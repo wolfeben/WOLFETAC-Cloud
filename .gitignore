@@ -8,6 +8,7 @@ TestResults/
 *.appPackage
 *.appsymbols
 rad.json
+Translations/*.g.xlf
 
 # Local VS Code target configuration
 .vscode/launch.json
