@@ -14,6 +14,40 @@ Object IDs are unique per AL object type. This registry reserves domain bands by
 
 The former 59006/59007 Cloud prototype IDs are retired. The last two digits are retained in the approved Cloud page IDs below.
 
+## FruitBank pages
+
+| ID | Name | State |
+|---|---|---|
+| 58500 | FruitBank Portal Sites | Implemented first management page |
+| 58650 | FBK Portal Site API | Implemented read-only `portalSites` API v1.0 |
+| 58651-58679 | FruitBank API pages | Reserved for versioned portal endpoints |
+
+## FruitBank tables
+
+| ID | Name | State |
+|---|---|---|
+| 58500 | FBK Portal Site | Implemented TAC-managed logical site to BC Location mapping |
+| 58501 | FBK Portal Site Buffer | Implemented temporary API projection buffer |
+| 58502-58549 | FruitBank configuration and access tables | Reserved |
+| 58550-58599 | FruitBank command, staging and audit tables | Reserved |
+
+## FruitBank codeunits
+
+| ID | Name | State |
+|---|---|---|
+| 58500 | FBK Read Projection | Implemented active-site projection |
+| 58501-58549 | FruitBank read, access and validation codeunits | Reserved |
+| 58550-58599 | FruitBank command and audit codeunits | Reserved |
+
+## FruitBank permission sets
+
+| ID | Name | State |
+|---|---|---|
+| 58680 | FBK PORTAL READ | Implemented non-assignable read component |
+| 58681 | FBK PORTAL STAGE | Reserved for the non-posting receipt staging capability |
+| 58682 | FBK PORTAL API | Implemented service-application permission set |
+| 58683 | FBK PORTAL ADMIN | Implemented TAC internal administration permission set |
+
 ## SAL pages
 
 | ID | Name | State |
