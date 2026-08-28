@@ -1,0 +1,34 @@
+{
+  "id": "7f0e9c2a-1e65-4a8b-9f37-5b4d8c6e2a10",
+  "name": "WOLFETAC Cloud",
+  "publisher": "WOLFE",
+  "version": "1.0.0.0",
+  "brief": "WOLFETAC cloud extension",
+  "description": "Cloud-side Business Central extension for WOLFETAC content serving SAL and FruitBank.",
+  "dependencies": [
+    {
+      "id": "29ca3407-aebd-4c07-a273-bf9c72e2e66d",
+      "name": "Avocados Core",
+      "publisher": "The Avocados Collective",
+      "version": "1.0.0.2"
+    }
+  ],
+  "application": "28.3.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [
+    {
+      "from": 58000,
+      "to": 58999
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "features": [
+    "NoImplicitWith",
+    "TranslationFile"
+  ]
+}

@@ -1,0 +1,30 @@
+# AL-generated and downloaded files
+.alpackages/
+.snapshots/
+.output/
+artifacts/
+TestResults/
+*.app
+*.appPackage
+*.appsymbols
+rad.json
+
+# Local VS Code target configuration
+.vscode/launch.json
+.vscode/settings.json
+
+# Credentials and machine-local environment
+.env
+.env.*
+!.env.example
+*AuthContext*.json
+secrets*.json
+*.pfx
+*.pem
+*.key
+
+# IDE and operating-system files
+.vs/
+.DS_Store
+Thumbs.db
+Desktop.ini
