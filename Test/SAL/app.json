@@ -1,0 +1,28 @@
+{
+  "id": "1c9a2e57-4b6f-4e2d-9a3e-0d7c5f9b6a12",
+  "name": "WOLFETAC Cloud Tests",
+  "publisher": "WOLFE",
+  "version": "1.0.0.0",
+  "brief": "Validation tests for the WOLFETAC Cloud SAL Plan Model",
+  "description": "Separate test extension for SAL Plan Model tables. Never includes test objects in the production app.",
+  "dependencies": [
+    {
+      "id": "7f0e9c2a-1e65-4a8b-9f37-5b4d8c6e2a10",
+      "name": "WOLFETAC Cloud",
+      "publisher": "WOLFE",
+      "version": "1.0.0.0"
+    }
+  ],
+  "application": "28.3.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [
+    {
+      "from": 58800,
+      "to": 58949
+    }
+  ],
+  "features": [
+    "NoImplicitWith"
+  ]
+}

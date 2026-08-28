@@ -59,7 +59,7 @@ The former 59006/59007 Cloud prototype IDs are retired. The last two digits are 
 | 58004 | SAL Pallet Components | Reserved |
 | 58005 | SAL Plan Events | Reserved |
 | 58006 | SAL Stock & Logistics Monitor | Approved primary Cloud page |
-| 58007 | SAL Stock & Logistics Planner | Approved primary Cloud page |
+| 58007 | SAL Stock & Logistics Planner | Implemented minimal draft-saving planner card |
 | 58008 | SAL Unconsigned Pallets | Reserved |
 | 58009 | SAL Allocation Exceptions | Reserved |
 | 58010 | SAL Pallet Templates | Reserved |
@@ -75,12 +75,12 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 
 | ID | Name | State |
 |---|---|---|
-| 58000 | SAL Setup | Reserved |
-| 58001 | SAL Plan Header | Reserved |
-| 58002 | SAL Plan Source | Reserved |
-| 58003 | SAL Plan Pallet | Reserved |
-| 58004 | SAL Plan Component | Reserved |
-| 58005 | SAL Plan Event | Reserved |
+| 58000 | SAL Setup | Implemented singleton |
+| 58001 | SAL Plan Header | Implemented |
+| 58002 | SAL Plan Source | Implemented |
+| 58003 | SAL Plan Pallet | Implemented |
+| 58004 | SAL Plan Component | Implemented |
+| 58005 | SAL Plan Event | Implemented |
 | 58006 | SAL Pallet Template | Reserved |
 | 58007 | SAL Template Rule | Reserved |
 | 58008 | SAL Product Group | Reserved |
@@ -93,11 +93,11 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 
 | ID | Name | State |
 |---|---|---|
-| 58000 | SAL Plan Status | Reserved |
-| 58001 | SAL Source Type | Reserved |
-| 58002 | SAL Execution Route | Reserved |
-| 58003 | SAL Facility Work Type | Reserved |
-| 58004 | SAL Pallet Type | Reserved |
+| 58000 | SAL Plan Status | Implemented |
+| 58001 | SAL Source Type | Implemented |
+| 58002 | SAL Execution Route | Implemented |
+| 58003 | SAL Facility Work Type | Implemented |
+| 58004 | SAL Pallet Type | Implemented |
 | 58005 | SAL Acknowledgement Type | Reserved |
 | 58006 | SAL Allocation Status | Reserved |
 | 58007 | SAL Integration Status | Reserved |
@@ -127,10 +127,18 @@ Do not encode TAC and Costa as enum values until the authoritative upstream mark
 
 | ID | Name | State |
 |---|---|---|
-| 58000 | SAL VIEW | Reserved |
-| 58001 | SAL PLANNER | Reserved |
-| 58002 | SAL ADMIN | Reserved |
+| 58000 | SAL VIEW | Implemented |
+| 58001 | SAL PLANNER | Implemented |
+| 58002 | SAL ADMIN | Implemented |
 | 58003 | SAL INTEGRATION | Reserved |
+
+## SAL test extension
+
+A separate test app, `WOLFETAC Cloud Tests`, lives under `Test/SAL` and depends on the production app. It uses codeunit IDs from the 58800-58949 test band.
+
+| ID | Name | State |
+|---|---|---|
+| 58800 | SAL Plan Model Tests | Implemented; validates line/pallet number sequencing, source-line referential checks and pallet quantity roll-up |
 
 ## Allocation rules
 
