@@ -73,7 +73,7 @@
                     '<button type="button" data-view="in-transit" aria-pressed="false">In transit</button>',
                     '<button type="button" data-view="arrived" aria-pressed="false">Arrived</button>',
                     '<button type="button" data-view="unconsigned" aria-pressed="false">Unconsigned</button>',
-                    '<button type="button" data-view="exceptions" aria-pressed="false">Exceptions</button>',
+                    '<button type="button" data-view="exceptions" aria-pressed="false">Data gaps</button>',
                 '</nav>',
                 '<div class="frm-layout">',
                     '<aside class="frm-queue">',
@@ -160,7 +160,7 @@
             ['Dispatched', countWhere(function (item) { return item.stageKey === 'dispatched'; }), 'Posted Sales Shipment evidence'],
             ['In transit', countWhere(function (item) { return item.stageKey === 'in-transit'; }), 'Transfer quantity recorded in transit'],
             ['Arrived', countWhere(function (item) { return item.stageKey === 'arrived'; }), 'Posted receipt evidence'],
-            ['Exceptions', countWhere(isDataGap), 'Known Cloud gaps; facility exceptions unavailable']
+            ['Data gaps', countWhere(isDataGap), 'Missing Cloud data; facility exceptions unavailable']
         ];
         elements.kpis.innerHTML = cards.map(function (card) {
             const unknown = card[1] === '—';
@@ -229,14 +229,27 @@
                 item.route, item.workType].join(' ').toLowerCase();
             return directionMatch && matchesView(item) && (!query || haystack.indexOf(query) >= 0);
         }).sort(function (a, b) {
+            const aRank = queueRank(a);
+            const bRank = queueRank(b);
+            if (aRank !== bRank)
+                return aRank - bRank;
             const aPriority = Number(a.salPriority) > 0 ? Number(a.salPriority) : 99;
             const bPriority = Number(b.salPriority) > 0 ? Number(b.salPriority) : 99;
-            if (['packing', 'ready', 'exceptions'].indexOf(state.view) >= 0 && aPriority !== bPriority)
+            if (aPriority !== bPriority)
                 return aPriority - bPriority;
             const aDate = text(a.actualArrival || a.eta || a.dispatchDate || a.requiredFinishDate || a.etd || '9999-12-31');
             const bDate = text(b.actualArrival || b.eta || b.dispatchDate || b.requiredFinishDate || b.etd || '9999-12-31');
             return aDate.localeCompare(bDate);
         });
+    }
+
+    function queueRank(item) {
+        if (isPackingDemand(item)) return 0;
+        if (isLivePlanningDemand(item)) return 1;
+        if (['dispatched', 'in-transit'].indexOf(item.stageKey) >= 0) return 2;
+        if (item.sourceType === 'Purchase Order') return 3;
+        if (item.stageKey === 'arrived') return 4;
+        return 5;
     }
 
     function emptyMessage() {
