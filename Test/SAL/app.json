@@ -7,8 +7,8 @@
   "description": "Separate test extension for SAL Plan Model tables. Never includes test objects in the production app.",
   "dependencies": [
     {
-      "id": "7f0e9c2a-1e65-4a8b-9f37-5b4d8c6e2a10",
-      "name": "WOLFETAC Cloud",
+      "id": "1802aae7-3e0b-4d5d-89c2-0ec78ca9032f",
+      "name": "TAC Stock & Logistics",
       "publisher": "WOLFE",
       "version": "1.0.0.0"
     }

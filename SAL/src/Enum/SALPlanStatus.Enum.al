@@ -1,6 +1,6 @@
 enum 58000 "SAL Plan Status"
 {
-    Extensible = true;
+    Extensible = false;
 
     value(0; Draft)
     {

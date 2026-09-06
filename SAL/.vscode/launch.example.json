@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TAC Cloud TestProd (Sandbox)",
+      "request": "launch",
+      "type": "al",
+      "environmentType": "Sandbox",
+      "environmentName": "TestProd",
+      "startupObjectType": "Page",
+      "startupObjectId": 58007,
+      "breakOnError": "All",
+      "tenant": "<tenant-id>",
+      "enableLongRunningSqlStatements": true,
+      "enableSqlInformationDebugger": true,
+      "schemaUpdateMode": "Synchronize",
+      "launchBrowser": false
+    }
+  ]
+}

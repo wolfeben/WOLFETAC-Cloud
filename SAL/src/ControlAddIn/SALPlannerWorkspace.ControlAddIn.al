@@ -1,0 +1,38 @@
+controladdin "SAL Planner Workspace"
+{
+    MinimumHeight = 720;
+    RequestedHeight = 900;
+    MinimumWidth = 1024;
+    RequestedWidth = 1920;
+    HorizontalStretch = true;
+    HorizontalShrink = true;
+    VerticalStretch = true;
+    VerticalShrink = true;
+
+    Scripts = 'ControlAddIn/Planner/planner.js';
+    StartupScript = 'ControlAddIn/Planner/startup.js';
+    RecreateScript = 'ControlAddIn/Planner/startup.js';
+    StyleSheets = 'ControlAddIn/Planner/planner.css';
+
+    procedure SetState(StateJson: Text; StatusMessage: Text; IsError: Boolean);
+
+    event ControlReady();
+    event RefreshRequested();
+    event PlanSelected(PlanNo: Text; VersionNo: Integer);
+    event DemandCandidateSelected(SourceType: Text; DocumentNo: Text);
+    event OpenNativeRequested();
+    event OpenPlansRequested();
+    event AddDemandRequested();
+    event RefreshDemandRequested();
+    event ValidateRequested();
+    event ReleaseRequested();
+    event CreateVersionRequested();
+    event CancelDraftRequested();
+    event AddPalletRequested(PalletType: Text; PalletCount: Integer; TargetQuantity: Decimal; Description: Text);
+    event DeletePalletRequested(PalletNo: Integer);
+    event AddComponentRequested(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal);
+    event DeleteComponentRequested(PalletNo: Integer; LineNo: Integer);
+    event SavePriorityRequested(Priority: Integer);
+    event SaveRoutingRequested(SourceLineNo: Integer; ExecutionRoute: Text; FacilityWorkType: Text);
+    event OpenSourceRequested(SourceLineNo: Integer);
+}

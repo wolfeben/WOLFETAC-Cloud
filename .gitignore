@@ -9,10 +9,16 @@ TestResults/
 *.appsymbols
 rad.json
 Translations/*.g.xlf
+**/Translations/*.g.xlf
 
 # Local VS Code target configuration
 .vscode/launch.json
 .vscode/settings.json
+**/.vscode/launch.json
+**/.vscode/settings.json
+
+# Preserved pre-separation working copy; canonical applications are SAL/ and FruitBank/
+/App/
 
 # Credentials and machine-local environment
 .env

@@ -58,8 +58,9 @@ Every message must have a GUID message ID, schema version, source and target env
 
 ## Primary pages
 
-- Page 58006: SAL Stock & Logistics Monitor, Cloud, read-only.
+- Page 58006: Packing & Logistics Monitor, Cloud, read-only and the primary end-to-end operational view.
 - Page 58007: SAL Stock & Logistics Planner, Cloud, transactional.
+- Page 58016: Freight Movement Details, Cloud, supporting and non-searchable.
 - Packing Wall and Packing Facility Operator remain on-premises and are not part of this app's object range.
 
 ## First end-to-end acceptance gate

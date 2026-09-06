@@ -1,0 +1,34 @@
+{
+  "id": "1802aae7-3e0b-4d5d-89c2-0ec78ca9032f",
+  "name": "TAC Stock & Logistics",
+  "publisher": "WOLFE",
+  "version": "1.0.0.0",
+  "brief": "TAC Stock & Logistics planning and monitoring",
+  "description": "Cloud-side Business Central extension for SAL stock, logistics, pallet planning and movement monitoring.",
+  "dependencies": [],
+  "internalsVisibleTo": [
+    {
+      "id": "1c9a2e57-4b6f-4e2d-9a3e-0d7c5f9b6a12",
+      "name": "WOLFETAC Cloud Tests",
+      "publisher": "WOLFE"
+    }
+  ],
+  "application": "28.3.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [
+    {
+      "from": 58000,
+      "to": 58499
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "features": [
+    "NoImplicitWith",
+    "TranslationFile"
+  ]
+}
