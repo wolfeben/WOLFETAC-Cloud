@@ -24,7 +24,7 @@ page 58002 "SAL Plan Details"
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     Importance = Promoted;
                     ToolTip = 'Specifies a concise description of the plan.';
                 }
@@ -44,42 +44,42 @@ page 58002 "SAL Plan Details"
                 field(Priority; Rec.Priority)
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     Importance = Promoted;
                     ToolTip = 'Specifies the priority from 1 to 10.';
                 }
                 field("Required Finish Date"; Rec."Required Finish Date")
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     Importance = Promoted;
                     ToolTip = 'Specifies when the stock must be ready.';
                 }
                 field("Dispatch Date"; Rec."Dispatch Date")
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     Importance = Promoted;
                     ToolTip = 'Specifies the planned dispatch date.';
                 }
                 field("Marketer Customer No."; Rec."Marketer Customer No.")
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     ToolTip = 'Specifies the customer representing the marketer, when applicable.';
                 }
                 field("Marketer Description"; Rec."Marketer Description")
                 {
                     ApplicationArea = All;
                     Caption = 'Marketer';
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     Importance = Promoted;
                     ToolTip = 'Specifies the confirmed commercial marketer.';
                 }
                 field("Marketer Confirmed"; Rec."Marketer Confirmed")
                 {
                     ApplicationArea = All;
-                    Editable = IsDraft;
+                    Editable = CanEditPlan;
                     ToolTip = 'Specifies that the marketer has been checked.';
                 }
             }
@@ -88,7 +88,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Demand and routing';
-                Editable = IsDraft;
+                Editable = CanEditPlan;
                 SubPageLink = "Plan No." = field("No."),
                               "Version No." = field("Version No.");
                 UpdatePropagation = Both;
@@ -97,7 +97,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Physical pallet plan';
-                Editable = IsDraft;
+                Editable = CanEditPlan;
                 SubPageLink = "Plan No." = field("No."),
                               "Version No." = field("Version No.");
                 UpdatePropagation = Both;
@@ -106,7 +106,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Selected pallet components';
-                Editable = IsDraft;
+                Editable = CanEditPlan;
                 Provider = Pallets;
                 SubPageLink = "Plan No." = field("Plan No."),
                               "Version No." = field("Version No."),
@@ -132,7 +132,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Add demand';
-                Enabled = IsDraft;
+                Enabled = CanEditPlan;
                 Image = Add;
                 Promoted = true;
                 PromotedCategory = Process;
@@ -151,7 +151,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Refresh demand';
-                Enabled = IsDraft;
+                Enabled = CanEditPlan;
                 Image = RefreshLines;
                 Promoted = true;
                 PromotedCategory = Process;
@@ -170,7 +170,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Validate plan';
-                Enabled = IsDraft;
+                Enabled = CanEditPlan;
                 Image = Check;
                 Promoted = true;
                 PromotedCategory = Process;
@@ -189,7 +189,7 @@ page 58002 "SAL Plan Details"
             {
                 ApplicationArea = All;
                 Caption = 'Release plan';
-                Enabled = IsDraft;
+                Enabled = CanEditPlan;
                 Image = ReleaseDoc;
                 Promoted = true;
                 PromotedCategory = Process;
@@ -235,6 +235,7 @@ page 58002 "SAL Plan Details"
                 Image = Planning;
                 Promoted = true;
                 PromotedCategory = Category4;
+                Visible = CanManagePlan;
                 ToolTip = 'Return to the widescreen Stock & Logistics Planner.';
 
                 trigger OnAction()
@@ -264,14 +265,18 @@ page 58002 "SAL Plan Details"
 
     local procedure UpdateState()
     begin
+        CanManagePlan := Rec.WritePermission();
         IsDraft := Rec.Status = Rec.Status::Draft;
-        CanEditPlanNo := IsDraft and IsNullGuid(Rec.SystemId);
-        CanCreateVersion := Rec.Status = Rec.Status::Released;
+        CanEditPlan := IsDraft and CanManagePlan;
+        CanEditPlanNo := CanEditPlan and IsNullGuid(Rec.SystemId);
+        CanCreateVersion := (Rec.Status = Rec.Status::Released) and CanManagePlan;
     end;
 
     var
         CanCreateVersion: Boolean;
+        CanEditPlan: Boolean;
         CanEditPlanNo: Boolean;
+        CanManagePlan: Boolean;
         IsDraft: Boolean;
         ReleasePlanQst: Label 'Validate and release plan %1 version %2 in Cloud?', Comment = '%1 = plan no., %2 = version no.';
 }

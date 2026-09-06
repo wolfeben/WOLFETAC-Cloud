@@ -57,8 +57,8 @@
         host.innerHTML = [
             '<div class="frm-app">',
                 '<header class="frm-header">',
-                    '<div class="frm-brand"><span class="frm-mark">TAC</span><span><strong>Packing &amp; Logistics Monitor</strong><small id="frm-company">Business Central</small></span></div>',
-                    '<div class="frm-actions"><span class="frm-chip is-cloud">Cloud · live BC</span><span class="frm-chip">Read only</span><button class="frm-button" data-action="refresh" type="button">Refresh</button></div>',
+                    '<div class="frm-brand"><span class="frm-mark">TAC</span><span><strong id="frm-company">Business Central</strong><small>Stock &amp; Logistics · live operational view</small></span></div>',
+                    '<div class="frm-actions"><span class="frm-chip is-cloud">Cloud · live BC</span><span class="frm-chip">Monitor is read only</span><button class="frm-button" data-action="refresh" type="button">Refresh</button></div>',
                 '</header>',
                 '<section class="frm-concept">',
                     '<div><strong>Live Business Central documents · Packing Facility feed not connected</strong><span>Follow demand from planning through dispatch, transit, arrival and invoice evidence. Facility acknowledgements, scans, completion and Unconsigned stock remain unavailable until the on-prem connection is active.</span></div>',
@@ -152,8 +152,8 @@
 
     function renderKpis() {
         const cards = [
-            ['Awaiting plan', countWhere(function (item) { return item.packingStatusKey === 'awaiting-plan'; }), 'Released demand without an active SAL plan'],
-            ['Planning', countWhere(function (item) { return item.packingStatusKey === 'planning'; }), 'Draft SAL plans in this projected snapshot'],
+            ['Awaiting plan', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'awaiting-plan'; }), 'Released demand without an active SAL plan'],
+            ['Planning', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'planning'; }), 'Draft SAL plans in this projected snapshot'],
             ['Yet to pack', '—', 'Requires facility acknowledgement and zero progress'],
             ['Packing', '—', 'Requires authoritative on-prem scan progress'],
             ['Ready', '—', 'Requires authoritative physical completion'],
@@ -172,6 +172,10 @@
 
     function isOrder(item) {
         return ['Sales Order', 'Transfer Order', 'Purchase Order'].indexOf(item.sourceType) >= 0;
+    }
+
+    function isLivePlanningDemand(item) {
+        return ['Sales Order', 'Transfer Order'].indexOf(item.sourceType) >= 0;
     }
 
     function isPackingDemand(item) {
@@ -274,19 +278,19 @@
     }
 
     function selectedItem() {
-        return (state.data.items || []).find(function (item) { return text(item.id) === state.selectedId; }) || null;
+        return filteredItems().find(function (item) { return text(item.id) === state.selectedId; }) || null;
     }
 
     function renderDetail() {
         const item = selectedItem();
         if (!item) {
-            elements.detail.innerHTML = '<div class="frm-empty is-large">Select a movement.</div>';
+            elements.detail.innerHTML = '<div class="frm-empty is-large">' + escapeHtml(emptyMessage()) + '</div>';
             return;
         }
         const hasPlan = Boolean(item.salPlanNo);
         const hasArrived = item.stageKey === 'arrived' || Boolean(item.actualArrival);
         const isInTransit = item.stageKey === 'in-transit';
-        const isDispatched = item.stageKey === 'dispatched' || isInTransit || hasArrived;
+        const isDispatched = item.stageKey === 'dispatched' || isInTransit;
         const isReady = item.packingStatusKey === 'ready-to-dispatch' && item.packingProgressKnown;
         const hasReference = Boolean(item.bookingReference);
         const commercialInvoiceType = item.commercialInvoiceType || 'Commercial invoice';
@@ -305,6 +309,9 @@
         const packingDetail = item.packingProgressKnown ? item.packingStatus :
             item.packingActionable ? 'Packing Facility feed not connected' : (item.packingStatus || 'Not applicable');
         const planValue = hasPlan ? item.salPlanNo + ' · v' + number(item.salPlanVersionNo) : 'Not linked';
+        const planNote = hasPlan ? item.salPlanStatus + (item.salPlanValidated ? ' · validated' : ' · validation not current') +
+            (item.hasPendingDraft ? ' · draft ' + text(item.pendingDraftPlanNo) + ' v' + number(item.pendingDraftVersionNo) + ' pending' : '') :
+            'Select in Planner to create one';
         const priorityValue = Number(item.salPriority) > 0 ? number(item.salPriority) : 'Not set';
         const palletValue = hasPlan ? number(item.palletCount) + ' involved' : 'No pallet plan';
         const palletNote = hasPlan ? 'Selected document · ' + number(item.standardPalletCount) + ' standard · ' + number(item.customPalletCount) + ' custom · ' + number(item.mixedPalletCount) + ' mixed' : 'Create a SAL plan to define physical pallets';
@@ -326,12 +333,12 @@
                 journeyStep('SAL plan', hasPlan, hasPlan ? item.salPlanStatus + ' · v' + number(item.salPlanVersionNo) : 'No active plan'),
                 journeyStep('Packing', Boolean(item.packingProgressKnown), packingDetail),
                 journeyStep('Ready', isReady, isReady ? 'Facility completion confirmed' : 'Requires facility completion feed'),
-                journeyStep('Dispatched', isDispatched, isDispatched ? dateLabel(item.etd) : 'Awaiting posted movement'),
-                journeyStep('In transit', isInTransit || hasArrived, isInTransit ? number(item.inTransitQuantity) + ' units in transit' : hasArrived ? 'Journey completed' : 'No authoritative transit event'),
+                journeyStep('Dispatched', isDispatched, isDispatched ? dateLabel(item.etd) : hasArrived ? 'Not separately projected; receipt is posted' : 'Awaiting posted movement'),
+                journeyStep('In transit', isInTransit, isInTransit ? number(item.inTransitQuantity) + ' units in transit' : hasArrived ? 'Not separately projected; receipt is posted' : 'No authoritative transit event'),
                 journeyStep('Arrived', hasArrived, hasArrived ? dateLabel(item.actualArrival) : 'No posted receipt evidence'),
             '</section>',
             '<section class="frm-grid">',
-                metricCard('SAL plan', planValue, hasPlan ? item.salPlanStatus + (item.salPlanValidated ? ' · validated' : ' · validation not current') : 'Select in Planner to create one'),
+                metricCard('SAL plan', planValue, planNote),
                 metricCard('Priority / finish', priorityValue, item.requiredFinishDate ? 'Finish ' + dateLabel(item.requiredFinishDate) + ' · dispatch ' + dateLabel(item.dispatchDate) : 'SAL dates not set'),
                 metricCard('Physical pallet plan', palletValue, palletNote),
                 metricCard('Selected document units', quantityValue, quantityNote),

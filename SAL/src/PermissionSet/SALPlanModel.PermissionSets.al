@@ -16,14 +16,11 @@ permissionset 58000 "SAL VIEW"
         table "SAL Plan Pallet" = X,
         table "SAL Plan Component" = X,
         table "SAL Plan Event" = X,
-        page "SAL Plans" = X,
         page "SAL Plan Details" = X,
         page "SAL Plan Pallets" = X,
         page "SAL Pallet Components" = X,
         page "SAL Plan Events" = X,
         page "SAL Stock & Logistics Monitor" = X,
-        page "SAL Stock & Logistics Planner" = X,
-        page "SAL Freight & Arrivals Monitor" = X,
         page "SAL Plan Sources" = X;
 }
 
@@ -51,6 +48,9 @@ permissionset 58001 "SAL PLANNER"
         codeunit "SAL Demand Management" = X,
         codeunit "SAL Plan Management" = X,
         codeunit "SAL Plan Validation" = X,
+        page "SAL Plans" = X,
+        page "SAL Stock & Logistics Planner" = X,
+        page "SAL Freight & Arrivals Monitor" = X,
         page "Sales Lines" = X,
         page "Transfer Lines" = X;
 }

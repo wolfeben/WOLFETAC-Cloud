@@ -542,6 +542,7 @@ page 58006 "SAL Stock & Logistics Monitor"
     local procedure AddSALPlanContext(var Item: JsonObject; SourceType: Enum "SAL Source Type"; DocumentNo: Code[20]; SourceReleased: Boolean)
     var
         PlanHeader: Record "SAL Plan Header";
+        PendingDraftHeader: Record "SAL Plan Header";
         PlanComponent: Record "SAL Plan Component";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
@@ -557,6 +558,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         AllRoutingConfirmed: Boolean;
         CustomPalletCount: Integer;
         HasSource: Boolean;
+        HasPendingDraft: Boolean;
         MixedPalletCount: Integer;
         PackingActionable: Boolean;
         StandardPalletCount: Integer;
@@ -644,6 +646,9 @@ page 58006 "SAL Stock & Logistics Monitor"
         if not HasSource then
             AllRoutingConfirmed := false;
 
+        if PlanHeader.Status = PlanHeader.Status::Released then
+            HasPendingDraft := FindLatestDraftSALPlan(SourceType, DocumentNo, PendingDraftHeader);
+
         foreach ProductKey in ProductKeys do begin
             ProductCodeByProduct.Get(ProductKey, ProductCode);
             DescriptionByProduct.Get(ProductKey, CurrentRoute);
@@ -689,6 +694,14 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('salPlanNo', PlanHeader."No.");
         Item.Add('salPlanVersionNo', PlanHeader."Version No.");
         Item.Add('salPlanStatus', Format(PlanHeader.Status));
+        Item.Add('hasPendingDraft', HasPendingDraft);
+        if HasPendingDraft then begin
+            Item.Add('pendingDraftPlanNo', PendingDraftHeader."No.");
+            Item.Add('pendingDraftVersionNo', PendingDraftHeader."Version No.");
+        end else begin
+            Item.Add('pendingDraftPlanNo', '');
+            Item.Add('pendingDraftVersionNo', 0);
+        end;
         Item.Add('salPriority', PlanHeader.Priority);
         Item.Add('requiredFinishDate', FormatDate(PlanHeader."Required Finish Date"));
         Item.Add('dispatchDate', FormatDate(PlanHeader."Dispatch Date"));
@@ -730,6 +743,9 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('salPlanNo', '');
         Item.Add('salPlanVersionNo', 0);
         Item.Add('salPlanStatus', '');
+        Item.Add('hasPendingDraft', false);
+        Item.Add('pendingDraftPlanNo', '');
+        Item.Add('pendingDraftVersionNo', 0);
         Item.Add('salPriority', 0);
         Item.Add('requiredFinishDate', '');
         Item.Add('dispatchDate', '');
@@ -782,13 +798,56 @@ page 58006 "SAL Stock & Logistics Monitor"
 
     local procedure IsBetterActivePlan(CandidatePlanHeader: Record "SAL Plan Header"; ActivePlanHeader: Record "SAL Plan Header"): Boolean
     begin
-        if (CandidatePlanHeader.Status = CandidatePlanHeader.Status::Draft) and
-           (ActivePlanHeader.Status <> ActivePlanHeader.Status::Draft)
+        if (CandidatePlanHeader.Status = CandidatePlanHeader.Status::Released) and
+           (ActivePlanHeader.Status <> ActivePlanHeader.Status::Released)
         then
             exit(true);
+        if (ActivePlanHeader.Status = ActivePlanHeader.Status::Released) and
+           (CandidatePlanHeader.Status <> CandidatePlanHeader.Status::Released)
+        then
+            exit(false);
         if CandidatePlanHeader.Status <> ActivePlanHeader.Status then
             exit(false);
+        if CandidatePlanHeader.Status = CandidatePlanHeader.Status::Released then begin
+            if CandidatePlanHeader."Released Date Time" <> ActivePlanHeader."Released Date Time" then
+                exit(CandidatePlanHeader."Released Date Time" > ActivePlanHeader."Released Date Time");
+        end else
+            if CandidatePlanHeader."Created Date Time" <> ActivePlanHeader."Created Date Time" then
+                exit(CandidatePlanHeader."Created Date Time" > ActivePlanHeader."Created Date Time");
+        if CandidatePlanHeader."No." <> ActivePlanHeader."No." then
+            exit(CandidatePlanHeader."No." > ActivePlanHeader."No.");
         exit(CandidatePlanHeader."Version No." > ActivePlanHeader."Version No.");
+    end;
+
+    local procedure FindLatestDraftSALPlan(SourceType: Enum "SAL Source Type"; DocumentNo: Code[20]; var DraftPlanHeader: Record "SAL Plan Header"): Boolean
+    var
+        CandidatePlanHeader: Record "SAL Plan Header";
+        PlanSource: Record "SAL Plan Source";
+        Found: Boolean;
+    begin
+        Clear(DraftPlanHeader);
+        PlanSource.SetRange("Source Type", SourceType);
+        PlanSource.SetRange("Source Document No.", DocumentNo);
+        if not PlanSource.FindSet() then
+            exit(false);
+
+        repeat
+            if CandidatePlanHeader.Get(PlanSource."Plan No.", PlanSource."Version No.") and
+               (CandidatePlanHeader.Status = CandidatePlanHeader.Status::Draft)
+            then
+                if (not Found) or
+                   (CandidatePlanHeader."Created Date Time" > DraftPlanHeader."Created Date Time") or
+                   ((CandidatePlanHeader."Created Date Time" = DraftPlanHeader."Created Date Time") and
+                    (CandidatePlanHeader."No." > DraftPlanHeader."No.")) or
+                   ((CandidatePlanHeader."Created Date Time" = DraftPlanHeader."Created Date Time") and
+                    (CandidatePlanHeader."No." = DraftPlanHeader."No.") and
+                    (CandidatePlanHeader."Version No." > DraftPlanHeader."Version No."))
+                then begin
+                    DraftPlanHeader := CandidatePlanHeader;
+                    Found := true;
+                end;
+        until PlanSource.Next() = 0;
+        exit(Found);
     end;
 
     local procedure AddSalesInvoiceLink(var Item: JsonObject; OrderNo: Code[20]; ShipmentNo: Code[20])
