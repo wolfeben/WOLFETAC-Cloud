@@ -579,6 +579,63 @@ codeunit 59300 "WLF Pool Review Read"
         exit(Format(Value));
     end;
 
+    procedure ShowLinkedLedger(SourceID: RecordId)
+    var
+        Source: RecordRef;
+        R: RecordRef;
+        Facts: Record "WLF Pool Review Fact";
+        LedgerPage: Page "WLF Pool Review Ledger";
+        LinkField: Integer;
+        LinkValue: Variant;
+    begin
+        if not (SourceID.TableNo() in [50233, 50230, 50208]) then
+            Error('This source does not support linked ledger entries.');
+        OpenSource(Source, SourceID.TableNo());
+        if not Source.Get(SourceID) then
+            Error('The source record is no longer visible. Reload the review.');
+        case SourceID.TableNo() of
+            50233: LinkField := 35;
+            50230: LinkField := 25;
+            50208: LinkField := 2;
+        end;
+        LinkValue := Source.Field(1).Value;
+        if Format(LinkValue) in ['', '0'] then
+            Error('The source has no valid ledger link.');
+        Source.Close();
+        OpenSource(R, 50209);
+        CheckField(R, 5, 'Posting Date', FieldType::Date);
+        CheckField(R, 14, 'VAT Amount', FieldType::Decimal);
+        CheckField(R, 22, 'G/L Entry No.', FieldType::Integer);
+        CheckField(R, 37, 'Comment', FieldType::Text);
+        Filter(R, LinkField, LinkValue);
+        if R.Count() > 25000 then
+            Error('More than 25,000 linked entries. This view cannot show the full result.');
+        if R.FindSet(false) then
+            repeat
+                Facts.Init();
+                Facts."Fact No." := IntValue(R, 1);
+                Facts."Source Record ID" := R.RecordId();
+                Facts."Group ID" := IntValue(R, 25);
+                Facts."Pool Code" := CopyStr(TextValue(R, 2), 1, 20);
+                Facts."Grower Code" := CopyStr(TextValue(R, 26), 1, 20);
+                Facts."Trans Type" := CopyStr(TextValue(R, 27), 1, 10);
+                Facts."Document No." := CopyStr(TextValue(R, 34), 1, 20);
+                Facts."Payment ID" := IntValue(R, 35);
+                Facts."Posting Date" := R.Field(5).Value;
+                Facts.Amount := DecimalValue(R, 13);
+                Facts."GST Amount" := DecimalValue(R, 14);
+                Facts.Kg := DecimalValue(R, 12);
+                Facts.Reversed := BoolValue(R, 20);
+                Facts."Posted to GL" := BoolValue(R, 39);
+                Facts."GL Entry No." := IntValue(R, 22);
+                Facts.Description := CopyStr(TextValue(R, 37), 1, 250);
+                Facts.Insert();
+            until R.Next() = 0;
+        R.Close();
+        LedgerPage.SetRows(Facts, Format(SourceID));
+        LedgerPage.RunModal();
+    end;
+
     procedure ShowEvidence(SourceID: RecordId)
     var
         R: RecordRef;
@@ -612,6 +669,7 @@ codeunit 59300 "WLF Pool Review Read"
             end;
         end;
         R.Close();
+        Evidence.SetSource(SourceID);
         Evidence.SetFields(Fields);
         Evidence.RunModal();
     end;

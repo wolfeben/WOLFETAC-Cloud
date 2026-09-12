@@ -97,6 +97,9 @@ table 59302 "WLF Pool Review Fact"
         field(28; "Legacy Match"; Boolean) { Caption = 'Legacy Match'; }
         field(29; "Posted At"; DateTime) { Caption = 'Posted At'; }
         field(30; "Invoice Group ID"; Integer) { Caption = 'Invoice Group ID'; }
+        field(31; "Posting Date"; Date) { Caption = 'Posting Date'; }
+        field(32; "GST Amount"; Decimal) { Caption = 'GST Amount'; }
+        field(33; "GL Entry No."; Integer) { Caption = 'G/L Entry No.'; }
     }
     keys { key(PK; "Fact No.") { Clustered = true; } key(KindPool; Kind, "Pool Code") { } key(Source; Kind, "Document No.", "Source Line No.") { } }
 }

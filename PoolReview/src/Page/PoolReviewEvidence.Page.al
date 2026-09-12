@@ -65,6 +65,34 @@ page 59302 "WLF Pool Review Evidence"
         }
     }
 
+    actions
+    {
+        area(Processing)
+        {
+            action(LinkedLedger)
+            {
+                Caption = 'Linked ledger entries';
+                ApplicationArea = All;
+                Image = LedgerEntries;
+                Visible = HasLedger;
+                ToolTip = 'See signed amounts, GST, kilograms and source evidence for ledger entries linked to this payment, group or pool.';
+                trigger OnAction()
+                var
+                    Reader: Codeunit "WLF Pool Review Read";
+                begin
+                    Reader.ShowLinkedLedger(SourceRecordID);
+                end;
+            }
+        }
+        area(Promoted) { actionref(LinkedLedgerPromoted; LinkedLedger) { } }
+    }
+
+    procedure SetSource(SourceID: RecordId)
+    begin
+        SourceRecordID := SourceID;
+        HasLedger := SourceID.TableNo() in [50233, 50230, 50208];
+    end;
+
     procedure SetFields(var SourceFields: Record "WLF Pool Review Field")
     var
         FieldView: Record "WLF Pool Review Field";
@@ -84,5 +112,7 @@ page 59302 "WLF Pool Review Evidence"
     end;
 
     var
+        SourceRecordID: RecordId;
+        HasLedger: Boolean;
         SourceNotesLbl: Label 'Read-only source values collected when this window opened. These values may differ from those used by the scan. The source cannot be edited or posted from this page.';
 }

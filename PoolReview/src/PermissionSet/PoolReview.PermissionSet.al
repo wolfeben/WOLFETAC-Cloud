@@ -15,6 +15,7 @@ permissionset 59300 "WLF POOL REVIEW"
         page "WLF Pooling Workspace" = X,
         page "WLF Pool Review Issues" = X,
         page "WLF Pool Review Evidence" = X,
+        page "WLF Pool Review Ledger" = X,
         codeunit "WLF Pool Review Read" = X,
         codeunit "WLF Pool Review Rules" = X,
         codeunit "WLF Pool Review Export" = X;
