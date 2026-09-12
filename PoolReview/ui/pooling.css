@@ -376,3 +376,13 @@ html, body {
 .pw-fullscreen-notice:empty { display:none; }
 .pw-root:fullscreen { width:100%; height:100%; overflow:auto; background:var(--pw-page); }
 .pw-root:fullscreen .pw-masthead { position:sticky; top:0; z-index:20; }
+
+/* BC hides overflow on the iframe body; the add-in must own its scrolling. */
+#controlAddIn.pw-root {
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: stable;
+}
+

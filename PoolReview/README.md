@@ -94,3 +94,7 @@ Version 0.4.0.1 adds a Full screen / Exit full screen button in the masthead. It
 ## TestProd publication — 12 September 2026
 Published the verified production package through Extension Management with Current version and Add schema mode. Status: Completed; summary: Publish operation completed successfully. Installed Pool Master is 2.0.0.1. Smoke check: page 59303 loaded; 2 groups scanned with 0 incomplete scans (one group with 9 mismatches, one with 4 review indicators). These findings are not yet independently reconciled. Payment history loaded 3 headers. Test app was not installed or executed. VS Code settings now reuse SAL's TestProd tenant and Synchronize configuration, with startup page 59303.
 
+
+## Scrolling correction — version 0.4.0.2
+Published successfully to TestProd on 12 September 2026. BC hides overflow on the control-add-in body; the root now owns viewport-bounded scrolling. Verified in BC at a 600px embedded height: content height 2135px, scroll reached the bottom and footer was visible; returned to top. Fullscreen entered and exited through the UI. Both apps compile and structural checks pass. No pooling rules changed.
+
