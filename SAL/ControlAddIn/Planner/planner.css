@@ -1,23 +1,26 @@
 :root {
-    --sal-bg: #f3f6f7;
+    --sal-bg: #f5f7fa;
     --sal-panel: #ffffff;
-    --sal-soft: #f7f9fa;
-    --sal-soft-2: #edf2f3;
-    --sal-line: #dce4e6;
-    --sal-text: #1e2b2d;
-    --sal-muted: #68777a;
-    --sal-teal: #008b8b;
-    --sal-teal-dark: #006e70;
-    --sal-teal-soft: #e2f4f3;
-    --sal-blue: #2f6f9f;
-    --sal-blue-soft: #e8f1f8;
+    --sal-soft: #f7f9fb;
+    --sal-soft-2: #edf2f6;
+    --sal-line: #d7dee7;
+    --sal-text: #0d2745;
+    --sal-muted: #667388;
+    --sal-navy: #002447;
+    --sal-navy-mid: #003158;
+    --sal-teal: #0b5b91;
+    --sal-teal-dark: #064976;
+    --sal-teal-soft: #eaf3f9;
+    --sal-blue: #17658e;
+    --sal-blue-soft: #edf6fb;
     --sal-green: #287a51;
     --sal-green-soft: #e7f4ec;
     --sal-amber: #9a6a08;
     --sal-amber-soft: #fff4d8;
-    --sal-red: #b23b42;
+    --sal-red: #d9251c;
+    --sal-red-dark: #b51d17;
     --sal-red-soft: #fcebec;
-    --sal-shadow: 0 12px 30px rgba(29, 55, 61, .08);
+    --sal-shadow: 0 6px 22px rgba(12, 40, 70, .07);
     --sal-radius: 10px;
 }
 
@@ -53,6 +56,11 @@ body {
     cursor: pointer;
 }
 
+#controlAddIn :is(button, input, select, [tabindex]):focus-visible {
+    outline: 3px solid var(--sal-red);
+    outline-offset: 3px;
+}
+
 .sal-app {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
@@ -62,15 +70,29 @@ body {
     background: var(--sal-bg);
 }
 
+.sal-app:fullscreen {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--sal-bg);
+}
+
+.sal-app:fullscreen .sal-utility {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
 .sal-utility {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    min-height: 48px;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--sal-line);
-    background: var(--sal-panel);
+    min-height: 126px;
+    padding: 20px 30px;
+    border-bottom: 4px solid var(--sal-red);
+    color: #fff;
+    background: linear-gradient(110deg, var(--sal-navy), var(--sal-navy-mid));
 }
 
 .sal-brand,
@@ -90,6 +112,122 @@ body {
 
 .sal-brand {
     min-width: 0;
+    flex: 0 0 auto;
+    padding-right: 28px;
+    border-right: 1px solid rgba(255, 255, 255, .2);
+}
+
+.sal-wordmark {
+    display: block;
+    width: 168px;
+    height: 77px;
+    object-fit: contain;
+}
+
+.sal-heading {
+    min-width: 230px;
+    flex: 1 1 auto;
+}
+
+.sal-heading strong,
+.sal-heading small,
+.sal-eyebrow {
+    display: block;
+}
+
+.sal-eyebrow {
+    color: #b8cbdc;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+}
+
+.sal-heading strong {
+    margin-top: 3px;
+    font-size: clamp(25px, 2.25vw, 34px);
+    font-weight: 720;
+    line-height: 1.18;
+    letter-spacing: -.025em;
+}
+
+.sal-heading small {
+    margin-top: 7px;
+    color: #c7d5e3;
+    font-size: 12px;
+}
+
+.sal-utility-actions {
+    flex: 0 1 520px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+}
+
+.sal-header-buttons,
+.sal-header-context {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.sal-header-button {
+    min-height: 36px;
+    padding: 7px 11px;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 6px;
+    color: #fff;
+    background: rgba(255, 255, 255, .04);
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.sal-header-button:not(:disabled):hover {
+    background: rgba(255, 255, 255, .15);
+}
+
+.sal-header-button.is-primary {
+    border-color: var(--sal-red);
+    background: var(--sal-red);
+}
+
+.sal-header-button.is-primary:not(:disabled):hover {
+    border-color: var(--sal-red-dark);
+    background: var(--sal-red-dark);
+}
+
+.sal-header-context {
+    color: #c9d8e6;
+    font-size: 10px;
+}
+
+.sal-environment {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 650;
+}
+
+.sal-environment::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f5ac8d;
+    content: "";
+}
+
+.sal-fullscreen-notice {
+    max-width: 410px;
+    color: #ffe0cb;
+    font-size: 10px;
+    text-align: right;
+}
+
+.sal-fullscreen-notice:empty {
+    display: none;
 }
 
 .sal-mark {
@@ -176,13 +314,14 @@ body {
 }
 
 .sal-button.is-primary {
-    border-color: var(--sal-teal);
+    border-color: var(--sal-red);
     color: #fff;
-    background: var(--sal-teal);
+    background: var(--sal-red);
 }
 
 .sal-button.is-primary:hover {
-    background: var(--sal-teal-dark);
+    border-color: var(--sal-red-dark);
+    background: var(--sal-red-dark);
 }
 
 .sal-button.is-danger {
@@ -259,6 +398,9 @@ body {
     grid-template-columns: minmax(265px, 310px) minmax(620px, 1fr) minmax(270px, 305px);
     min-height: 0;
     overflow: hidden;
+    width: 100%;
+    max-width: 1920px;
+    margin: 0 auto;
 }
 
 .sal-queue,
@@ -597,8 +739,8 @@ body {
 
 .sal-route-card {
     display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
+    grid-template-columns: 1fr;
+    align-items: start;
     gap: 10px;
     margin-bottom: 10px;
     padding: 10px 12px;
@@ -620,13 +762,17 @@ body {
 }
 
 .sal-route-controls {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     align-items: center;
     gap: 6px;
+    width: 100%;
 }
 
 .sal-route-controls select,
 .sal-mini-input {
+    min-width: 0;
+    width: 100%;
     height: 31px;
     padding: 5px 8px;
     border: 1px solid var(--sal-line);
@@ -634,6 +780,12 @@ body {
     color: var(--sal-text);
     background: var(--sal-panel);
     font-size: 11px;
+}
+
+.sal-route-controls .sal-button,
+.sal-route-controls .sal-chip {
+    width: 100%;
+    min-width: 0;
 }
 
 .sal-tabs {
@@ -943,7 +1095,187 @@ body {
     cursor: progress;
 }
 
+.sal-dialog-backdrop[hidden] {
+    display: none;
+}
+
+.sal-dialog-backdrop {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(0, 24, 48, .66);
+    backdrop-filter: blur(3px);
+}
+
+.sal-dialog {
+    width: min(660px, 100%);
+    max-height: min(760px, calc(100vh - 48px));
+    overflow: auto;
+    padding: 22px;
+    border: 1px solid #bdcad6;
+    border-top: 5px solid var(--sal-red);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 28px 70px rgba(0, 25, 50, .28);
+}
+
+.sal-dialog-head,
+.sal-dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sal-dialog-head h2 {
+    margin: 3px 0 0;
+    color: var(--sal-navy);
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.sal-dialog-head .sal-eyebrow {
+    color: #5f768c;
+}
+
+.sal-dialog-close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border: 1px solid var(--sal-line);
+    border-radius: 50%;
+    color: var(--sal-navy);
+    background: #fff;
+    font-size: 24px;
+}
+
+.sal-dialog-intro {
+    margin: 12px 0 18px;
+    color: var(--sal-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.sal-dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.sal-dialog-grid label {
+    display: grid;
+    gap: 6px;
+    color: #456077;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
+.sal-dialog-grid label.is-wide {
+    grid-column: 1 / -1;
+}
+
+.sal-dialog-grid input,
+.sal-dialog-grid select {
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 11px;
+    border: 1px solid #c7d4df;
+    border-radius: 6px;
+    color: var(--sal-text);
+    background: #fff;
+}
+
+.sal-dialog-error {
+    min-height: 20px;
+    margin-top: 10px;
+    color: #a82820;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.sal-dialog-actions {
+    justify-content: flex-end;
+    margin-top: 8px;
+    padding-top: 15px;
+    border-top: 1px solid var(--sal-line);
+}
+
+.sal-dialog-actions .sal-button {
+    min-height: 42px;
+    padding-right: 18px;
+    padding-left: 18px;
+}
+
+.sal-app.is-compact .sal-utility {
+    min-height: 92px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+}
+
+.sal-app.is-compact .sal-wordmark {
+    width: 128px;
+    height: 58px;
+}
+
+.sal-app.is-compact .sal-heading strong {
+    font-size: 24px;
+}
+
+.sal-app.is-compact .sal-heading small {
+    margin-top: 3px;
+    font-size: 10px;
+}
+
+.sal-app.is-compact .sal-queue-header,
+.sal-app.is-compact .sal-workspace,
+.sal-app.is-compact .sal-sidebar {
+    padding: 8px;
+}
+
+.sal-app.is-compact .sal-queue-card,
+.sal-app.is-compact .sal-order-card,
+.sal-app.is-compact .sal-panel,
+.sal-app.is-compact .sal-route-card {
+    margin-bottom: 5px;
+    padding: 7px;
+}
+
+.sal-app.is-compact .sal-fact,
+.sal-app.is-compact .sal-plan-row,
+.sal-app.is-compact .sal-source-row,
+.sal-app.is-compact .sal-event-row {
+    padding: 6px;
+}
+
 @media (max-width: 1250px) {
+    .sal-utility {
+        min-height: 112px;
+        padding: 16px 20px;
+    }
+
+    .sal-brand {
+        padding-right: 18px;
+    }
+
+    .sal-wordmark {
+        width: 138px;
+        height: 64px;
+    }
+
+    .sal-heading strong {
+        font-size: 25px;
+    }
+
+    .sal-utility-actions {
+        flex-basis: 430px;
+    }
+
     .sal-layout {
         grid-template-columns: 250px minmax(560px, 1fr) 260px;
     }
@@ -966,6 +1298,29 @@ body {
         height: auto;
     }
 
+    .sal-utility {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .sal-heading {
+        min-width: 260px;
+    }
+
+    .sal-utility-actions {
+        flex: 1 0 100%;
+        align-items: flex-start;
+    }
+
+    .sal-header-buttons,
+    .sal-header-context {
+        justify-content: flex-start;
+    }
+
+    .sal-fullscreen-notice {
+        text-align: left;
+    }
+
     .sal-layout {
         grid-template-columns: 250px minmax(560px, 1fr);
         overflow: visible;
@@ -982,5 +1337,71 @@ body {
 
     .sal-panel {
         margin-bottom: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .sal-utility {
+        padding: 14px;
+    }
+
+    .sal-brand {
+        display: none;
+    }
+
+    .sal-header-buttons {
+        width: 100%;
+    }
+
+    .sal-header-button {
+        flex: 1 1 auto;
+        min-height: 42px;
+    }
+
+    .sal-app {
+        display: block;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .sal-flow {
+        grid-template-columns: repeat(5, minmax(116px, 1fr));
+        overflow-x: auto;
+    }
+
+    .sal-layout {
+        display: block;
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .sal-queue,
+    .sal-workspace,
+    .sal-sidebar {
+        width: 100%;
+        overflow: visible;
+        border-right: 0;
+        border-left: 0;
+    }
+
+    .sal-sidebar {
+        display: block;
+    }
+
+    .sal-facts,
+    .sal-route-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .sal-order-title h2 {
+        white-space: normal;
+    }
+
+    .sal-dialog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sal-dialog-grid label.is-wide {
+        grid-column: auto;
     }
 }

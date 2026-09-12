@@ -2,7 +2,7 @@
   "id": "1802aae7-3e0b-4d5d-89c2-0ec78ca9032f",
   "name": "TAC Stock & Logistics",
   "publisher": "WOLFE",
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "brief": "TAC Stock & Logistics planning and monitoring",
   "description": "Cloud-side Business Central extension for SAL stock, logistics, pallet planning and movement monitoring.",
   "dependencies": [],

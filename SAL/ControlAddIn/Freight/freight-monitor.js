@@ -6,7 +6,10 @@
         selectedId: '',
         query: '',
         direction: 'all',
-        view: 'all'
+        view: 'all',
+        compact: false,
+        fullscreenPending: false,
+        fullscreenNotice: ''
     };
     let elements = {};
 
@@ -44,11 +47,93 @@
         return text(value).toLowerCase().replace(/[^a-z0-9]+/g, '-');
     }
 
+    function nav() {
+        return globalThis.Microsoft && Microsoft.Dynamics && Microsoft.Dynamics.NAV;
+    }
+
+    function resource(path) {
+        try {
+            return nav() && typeof nav().GetImageResource === 'function' ? nav().GetImageResource(path) : path;
+        } catch (_error) {
+            return path;
+        }
+    }
+
+    function isFullscreen() {
+        return Boolean(elements.root && document.fullscreenElement === elements.root);
+    }
+
+    function syncFullscreen() {
+        if (!elements.root)
+            return;
+        const button = elements.root.querySelector('[data-action="fullscreen"]');
+        if (button) {
+            button.textContent = isFullscreen() ? 'Exit full screen' : 'Full screen';
+            button.setAttribute('aria-pressed', String(isFullscreen()));
+            button.disabled = state.fullscreenPending;
+        }
+        const notice = elements.root.querySelector('#frm-fullscreen-notice');
+        if (notice)
+            notice.textContent = state.fullscreenNotice;
+    }
+
+    async function toggleFullscreen() {
+        if (!elements.root || state.fullscreenPending)
+            return;
+        state.fullscreenPending = true;
+        state.fullscreenNotice = '';
+        syncFullscreen();
+        try {
+            if (isFullscreen())
+                await document.exitFullscreen();
+            else {
+                if (!elements.root.requestFullscreen || !document.fullscreenEnabled)
+                    throw new Error('Fullscreen unavailable');
+                await elements.root.requestFullscreen();
+            }
+        } catch (_error) {
+            state.fullscreenNotice = 'Full screen is unavailable here. Expand the BC page or use the browser full-screen command.';
+        } finally {
+            state.fullscreenPending = false;
+            syncFullscreen();
+        }
+    }
+
+    function toggleDensity() {
+        state.compact = !state.compact;
+        elements.root.classList.toggle('is-compact', state.compact);
+        const button = elements.root.querySelector('[data-action="density"]');
+        if (button) {
+            button.textContent = state.compact ? 'Comfortable view' : 'Compact view';
+            button.setAttribute('aria-pressed', String(state.compact));
+        }
+    }
+
+    async function openNative(name, args) {
+        if (state.fullscreenPending)
+            return;
+        if (isFullscreen()) {
+            state.fullscreenPending = true;
+            syncFullscreen();
+            try {
+                await document.exitFullscreen();
+            } catch (_error) {
+                state.fullscreenNotice = 'Exit full screen before opening a Business Central page.';
+                state.fullscreenPending = false;
+                syncFullscreen();
+                return;
+            }
+            state.fullscreenPending = false;
+        }
+        invoke(name, args || []);
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreen);
+
     function invoke(name, args) {
-        if (!globalThis.Microsoft || !Microsoft.Dynamics || !Microsoft.Dynamics.NAV ||
-            typeof Microsoft.Dynamics.NAV.InvokeExtensibilityMethod !== 'function')
+        if (!nav() || typeof nav().InvokeExtensibilityMethod !== 'function')
             return false;
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(name, args || [], false);
+        nav().InvokeExtensibilityMethod(name, args || [], false);
         return true;
     }
 
@@ -57,8 +142,14 @@
         host.innerHTML = [
             '<div class="frm-app">',
                 '<header class="frm-header">',
-                    '<div class="frm-brand"><span class="frm-mark">TAC</span><span><strong>Freight &amp; Arrivals Monitor</strong><small id="frm-company">Business Central</small></span></div>',
-                    '<div class="frm-actions"><span class="frm-chip is-cloud">Cloud concept</span><button class="frm-button" data-action="refresh" type="button">Refresh</button></div>',
+                    '<div class="frm-brand"><img class="frm-wordmark" src="', escapeHtml(resource('ControlAddIn/Shared/images/avocado-wordmark.png')), '" alt="The Avocados Collective"></div>',
+                    '<div class="frm-heading"><span class="frm-header-eyebrow">The Avocados Collective</span><strong>Freight &amp; Arrivals Monitor</strong><small>See forward bookings, inter-DC movements, dispatches and arrivals.</small></div>',
+                    '<div class="frm-actions"><div class="frm-header-buttons">',
+                        '<button class="frm-header-button" data-action="density" aria-pressed="false" type="button">Compact view</button>',
+                        '<button class="frm-header-button" data-action="fullscreen" aria-pressed="false" type="button">Full screen</button>',
+                        '<button class="frm-header-button is-primary" data-action="refresh" type="button">Refresh</button>',
+                    '</div><div class="frm-header-context"><span class="frm-live-badge">Cloud concept</span><span>Read-only workspace</span><span id="frm-company">Business Central</span></div>',
+                    '<span class="frm-fullscreen-notice" id="frm-fullscreen-notice" role="status"></span></div>',
                 '</header>',
                 '<section class="frm-concept">',
                     '<div><strong>Workflow concept for Luke</strong><span>Current orders, transfer movements and posted shipments are live BC data. Booking milestones, carrier ETA and pallet/FruitBank movement events remain clearly marked until their authoritative source is agreed.</span></div>',
@@ -94,6 +185,7 @@
 
         elements = {
             host: host,
+            root: host.querySelector('.frm-app'),
             company: host.querySelector('#frm-company'),
             kpis: host.querySelector('#frm-kpis'),
             tabs: host.querySelector('#frm-tabs'),
@@ -142,6 +234,8 @@
         renderKpis();
         renderList();
         renderDetail();
+        elements.root.classList.toggle('is-compact', state.compact);
+        syncFullscreen();
     }
 
     function renderKpis() {
@@ -294,6 +388,14 @@
     function handleClick(event) {
         const target = event.target.closest('[data-action], [data-view], [data-direction]');
         if (!target) return;
+        if (target.dataset.action === 'fullscreen') {
+            toggleFullscreen();
+            return;
+        }
+        if (target.dataset.action === 'density') {
+            toggleDensity();
+            return;
+        }
         if (target.dataset.action === 'refresh') {
             invoke('RefreshRequested', []);
             return;
@@ -305,7 +407,7 @@
             return;
         }
         if (target.dataset.action === 'open-source') {
-            invoke('OpenSourceRequested', [text(target.dataset.sourceType), text(target.dataset.documentNo)]);
+            openNative('OpenSourceRequested', [text(target.dataset.sourceType), text(target.dataset.documentNo)]);
             return;
         }
         if (target.dataset.view) {

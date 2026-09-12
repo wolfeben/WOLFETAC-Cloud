@@ -2,7 +2,7 @@ controladdin "SAL Stock Logistics Workspace"
 {
     MinimumHeight = 720;
     RequestedHeight = 900;
-    MinimumWidth = 1024;
+    MinimumWidth = 320;
     RequestedWidth = 1920;
     HorizontalStretch = true;
     HorizontalShrink = true;
@@ -13,6 +13,7 @@ controladdin "SAL Stock Logistics Workspace"
     StartupScript = 'ControlAddIn/Monitor/startup.js';
     RecreateScript = 'ControlAddIn/Monitor/startup.js';
     StyleSheets = 'ControlAddIn/Monitor/packing-logistics-monitor.css';
+    Images = 'ControlAddIn/Shared/images/avocado-mark.png', 'ControlAddIn/Shared/images/avocado-wordmark.png';
 
     procedure SetState(StateJson: Text; StatusMessage: Text; IsError: Boolean);
 

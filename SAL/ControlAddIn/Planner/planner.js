@@ -9,7 +9,11 @@
         tab: 'plan',
         activeSourceLine: 0,
         pending: false,
-        pendingTimer: 0
+        pendingTimer: 0,
+        compact: false,
+        fullscreenPending: false,
+        fullscreenNotice: '',
+        dialogReturnFocus: null
     };
 
     let elements = {};
@@ -20,6 +24,89 @@
             Microsoft.Dynamics.NAV &&
             typeof Microsoft.Dynamics.NAV.InvokeExtensibilityMethod === 'function';
     }
+
+    function nav() {
+        return globalThis.Microsoft && Microsoft.Dynamics && Microsoft.Dynamics.NAV;
+    }
+
+    function resource(path) {
+        try {
+            return nav() && typeof nav().GetImageResource === 'function' ? nav().GetImageResource(path) : path;
+        } catch (_error) {
+            return path;
+        }
+    }
+
+    function isFullscreen() {
+        return Boolean(elements.root && document.fullscreenElement === elements.root);
+    }
+
+    function syncFullscreen() {
+        if (!elements.root)
+            return;
+        const button = elements.root.querySelector('[data-action="fullscreen"]');
+        if (button) {
+            button.textContent = isFullscreen() ? 'Exit full screen' : 'Full screen';
+            button.setAttribute('aria-pressed', String(isFullscreen()));
+            button.disabled = localState.fullscreenPending || localState.pending;
+        }
+        const notice = elements.root.querySelector('#sal-fullscreen-notice');
+        if (notice)
+            notice.textContent = localState.fullscreenNotice;
+    }
+
+    async function toggleFullscreen() {
+        if (!elements.root || localState.fullscreenPending || localState.pending)
+            return;
+        localState.fullscreenPending = true;
+        localState.fullscreenNotice = '';
+        syncFullscreen();
+        try {
+            if (isFullscreen())
+                await document.exitFullscreen();
+            else {
+                if (!elements.root.requestFullscreen || !document.fullscreenEnabled)
+                    throw new Error('Fullscreen unavailable');
+                await elements.root.requestFullscreen();
+            }
+        } catch (_error) {
+            localState.fullscreenNotice = 'Full screen is unavailable here. Expand the BC page or use the browser full-screen command.';
+        } finally {
+            localState.fullscreenPending = false;
+            syncFullscreen();
+        }
+    }
+
+    function toggleDensity() {
+        localState.compact = !localState.compact;
+        elements.root.classList.toggle('is-compact', localState.compact);
+        const button = elements.root.querySelector('[data-action="density"]');
+        if (button) {
+            button.textContent = localState.compact ? 'Comfortable view' : 'Compact view';
+            button.setAttribute('aria-pressed', String(localState.compact));
+        }
+    }
+
+    async function openNative(eventName, args, mutation) {
+        if (localState.fullscreenPending)
+            return;
+        if (isFullscreen()) {
+            localState.fullscreenPending = true;
+            syncFullscreen();
+            try {
+                await document.exitFullscreen();
+            } catch (_error) {
+                localState.fullscreenNotice = 'Exit full screen before opening a Business Central page.';
+                localState.fullscreenPending = false;
+                syncFullscreen();
+                return;
+            }
+            localState.fullscreenPending = false;
+        }
+        invoke(eventName, args || [], Boolean(mutation));
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreen);
 
     function invoke(eventName, args, mutation) {
         if (!navAvailable()) {
@@ -104,15 +191,22 @@
         host.innerHTML = [
             '<div class="sal-app">',
                 '<header class="sal-utility">',
-                    '<div class="sal-brand">',
-                        '<span class="sal-mark">SAL</span>',
-                        '<span><strong>Cloud planning workspace</strong><small id="sal-context">Business Central</small></span>',
+                    '<div class="sal-brand"><img class="sal-wordmark" src="', escapeHtml(resource('ControlAddIn/Shared/images/avocado-wordmark.png')), '" alt="The Avocados Collective"></div>',
+                    '<div class="sal-heading">',
+                        '<span class="sal-eyebrow">The Avocados Collective</span>',
+                        '<strong>Stock &amp; Logistics Planner</strong>',
+                        '<small>Route demand. Build physical pallet plans. Release clear facility work.</small>',
                     '</div>',
                     '<div class="sal-utility-actions">',
-                        '<span class="sal-pill" id="sal-company">Cloud</span>',
-                        '<button class="sal-button" type="button" data-action="open-plans">All plans</button>',
-                        '<button class="sal-button" type="button" data-action="open-native">Plan details</button>',
-                        '<button class="sal-icon-button" type="button" data-action="refresh" title="Refresh from Business Central" aria-label="Refresh">↻</button>',
+                        '<div class="sal-header-buttons">',
+                            '<button class="sal-header-button" type="button" data-action="open-plans">All plans</button>',
+                            '<button class="sal-header-button" type="button" data-action="open-native">Plan details</button>',
+                            '<button class="sal-header-button" type="button" data-action="density" aria-pressed="false">Compact view</button>',
+                            '<button class="sal-header-button" type="button" data-action="fullscreen" aria-pressed="false">Full screen</button>',
+                            '<button class="sal-header-button is-primary" type="button" data-action="refresh">Refresh</button>',
+                        '</div>',
+                        '<div class="sal-header-context"><span class="sal-environment" id="sal-context">Cloud · SAL planning</span><span id="sal-company">Business Central</span></div>',
+                        '<span class="sal-fullscreen-notice" id="sal-fullscreen-notice" role="status"></span>',
                     '</div>',
                 '</header>',
                 '<nav class="sal-flow" aria-label="Planning workflow">',
@@ -139,6 +233,7 @@
                     '<main class="sal-workspace" id="sal-workspace"></main>',
                     '<aside class="sal-sidebar" id="sal-sidebar"></aside>',
                 '</div>',
+                '<div class="sal-dialog-backdrop" id="sal-dialog" hidden></div>',
                 '<div class="sal-toast" id="sal-toast" role="status" aria-live="polite"></div>',
             '</div>'
         ].join('');
@@ -154,12 +249,14 @@
             queue: host.querySelector('#sal-queue-list'),
             workspace: host.querySelector('#sal-workspace'),
             sidebar: host.querySelector('#sal-sidebar'),
+            dialog: host.querySelector('#sal-dialog'),
             toast: host.querySelector('#sal-toast')
         };
 
         host.addEventListener('click', handleClick);
         host.addEventListener('input', handleInput);
         host.addEventListener('change', handleChange);
+        host.addEventListener('keydown', handleKeyDown);
     }
 
     function setBusy(isBusy) {
@@ -172,6 +269,7 @@
             elements.root.querySelectorAll('[data-server-action]').forEach(function (control) {
                 control.disabled = localState.pending;
             });
+        syncFullscreen();
 
         if (localState.pending) {
             localState.pendingTimer = window.setTimeout(function () {
@@ -247,6 +345,8 @@
         renderWorkspace();
         renderSidebar();
         renderFlow();
+        elements.root.classList.toggle('is-compact', localState.compact);
+        syncFullscreen();
     }
 
     function renderQueue() {
@@ -748,32 +848,101 @@
         if (event.target === elements.search) {
             localState.query = event.target.value || '';
             renderQueue();
+            return;
         }
+        if (event.target && event.target.id === 'sal-dialog-target-quantity')
+            event.target.dataset.changed = 'true';
+        if (event.target && event.target.id === 'sal-dialog-description')
+            event.target.dataset.changed = 'true';
     }
 
     function handleChange(event) {
         if (event.target && event.target.id === 'sal-source-picker') {
             localState.activeSourceLine = Number(event.target.value || 0);
             renderWorkspace();
+            return;
+        }
+        if (event.target && event.target.id === 'sal-dialog-pallet-type') {
+            const target = elements.dialog.querySelector('#sal-dialog-target-quantity');
+            const palletCount = elements.dialog.querySelector('#sal-dialog-pallet-count');
+            const description = elements.dialog.querySelector('#sal-dialog-description');
+            const isStandard = event.target.value === 'Standard';
+            if (target && !target.dataset.changed)
+                target.value = isStandard ? '160' : '';
+            if (palletCount) {
+                palletCount.disabled = !isStandard;
+                if (!isStandard)
+                    palletCount.value = '1';
+            }
+            if (description && !description.dataset.changed)
+                description.value = isStandard ? 'Standard pallet' : event.target.value + ' pallet';
+        }
+    }
+
+    function handleKeyDown(event) {
+        if (!elements.dialog || elements.dialog.hidden)
+            return;
+        if (event.key === 'Escape') {
+            closeDialog();
+            return;
+        }
+        if (event.key !== 'Tab')
+            return;
+        const focusable = Array.prototype.slice.call(elements.dialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+        if (!focusable.length)
+            return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
         }
     }
 
     function handleClick(event) {
+        if (event.target === elements.dialog) {
+            closeDialog();
+            return;
+        }
         const target = event.target.closest('[data-action]');
         if (!target)
             return;
         const action = target.dataset.action;
 
+        if (action === 'fullscreen') {
+            toggleFullscreen();
+            return;
+        }
+        if (action === 'density') {
+            toggleDensity();
+            return;
+        }
+        if (action === 'close-dialog') {
+            closeDialog();
+            return;
+        }
+        if (action === 'submit-pallet') {
+            submitPallet();
+            return;
+        }
+        if (action === 'submit-component') {
+            submitComponent();
+            return;
+        }
         if (action === 'refresh') {
             invoke('RefreshRequested', [], false);
             return;
         }
         if (action === 'open-native') {
-            invoke('OpenNativeRequested', [], false);
+            openNative('OpenNativeRequested', []);
             return;
         }
         if (action === 'open-plans') {
-            invoke('OpenPlansRequested', [], false);
+            openNative('OpenPlansRequested', []);
             return;
         }
         if (action === 'select-plan') {
@@ -792,7 +961,7 @@
             return;
         }
         if (action === 'add-demand') {
-            invoke('AddDemandRequested', [], true);
+            openNative('AddDemandRequested', [], true);
             return;
         }
         if (action === 'refresh-demand') {
@@ -833,7 +1002,7 @@
             return;
         }
         if (action === 'open-source') {
-            invoke('OpenSourceRequested', [Number(target.dataset.sourceLine)], false);
+            openNative('OpenSourceRequested', [Number(target.dataset.sourceLine)]);
             return;
         }
         if (action === 'validate') {
@@ -864,17 +1033,22 @@
     }
 
     function addPallet() {
-        const type = globalThis.prompt('Pallet type: Standard, Custom or Mixed', 'Standard');
-        if (type == null)
-            return;
-        const countText = globalThis.prompt('How many physical pallets?', '1');
-        if (countText == null)
-            return;
-        const targetText = globalThis.prompt('Target trays/units per pallet', type.toLowerCase() === 'standard' ? '160' : '0');
-        if (targetText == null)
-            return;
-        const description = globalThis.prompt('Description', type + ' pallet') || '';
-        invoke('AddPalletRequested', [type, Number(countText), Number(targetText), description], true);
+        openDialog([
+            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Physical pallet plan</span><h2 id="sal-dialog-title">Add pallet group</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Create one or more physical pallets. Standard groups stay compact; Custom and Mixed pallets remain visible by sequence.</p>',
+                '<div class="sal-dialog-grid">',
+                    '<label>Pallet type<select id="sal-dialog-pallet-type"><option value="Standard">Standard</option><option value="Custom">Custom</option><option value="Mixed">Mixed</option></select></label>',
+                    '<label>Physical pallets<input id="sal-dialog-pallet-count" type="number" min="1" max="50" step="1" value="1"></label>',
+                    '<label>Target trays / units per pallet<input id="sal-dialog-target-quantity" type="number" min="0.01" step="0.01" value="160"></label>',
+                    '<label class="is-wide">Description<input id="sal-dialog-description" type="text" maxlength="100" value="Standard pallet"></label>',
+                '</div>',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-pallet">Add pallet group</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-pallet-type');
     }
 
     function addComponent(palletNo) {
@@ -884,17 +1058,105 @@
             showToast('Add demand before adding a pallet component.', true);
             return;
         }
-        const defaultSource = sources[0];
-        const sourceList = sources.map(function (source) {
-            return source.lineNo + ' = ' + source.documentNo + ' / ' + source.itemNo;
-        }).join('\n');
-        const sourceText = globalThis.prompt('Source line number:\n' + sourceList, String(defaultSource.lineNo));
-        if (sourceText == null)
+        const options = sources.map(function (source) {
+            return '<option value="' + escapeHtml(source.lineNo) + '">' + escapeHtml(source.documentNo) + ' · ' +
+                escapeHtml(source.itemNo) + ' · ' + escapeHtml(source.description || 'Item line') + '</option>';
+        }).join('');
+        openDialog([
+            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Pallet ', escapeHtml(palletNo), '</span><h2 id="sal-dialog-title">Add product / size</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Choose an order line and the exact quantity carried by this physical pallet.</p>',
+                '<div class="sal-dialog-grid is-component">',
+                    '<label class="is-wide">Product / size<select id="sal-dialog-source-line">', options, '</select></label>',
+                    '<label>Tray / unit quantity<input id="sal-dialog-component-quantity" type="number" min="0.01" step="0.01" value="160"></label>',
+                '</div>',
+                '<input id="sal-dialog-pallet-no" type="hidden" value="', escapeHtml(palletNo), '">',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-component">Add to pallet</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-source-line');
+    }
+
+    function openDialog(content, focusSelector) {
+        if (!elements.dialog)
             return;
-        const quantityText = globalThis.prompt('Tray/unit quantity on this pallet', '160');
-        if (quantityText == null)
+        localState.dialogReturnFocus = document.activeElement;
+        elements.dialog.innerHTML = content;
+        elements.dialog.hidden = false;
+        Array.prototype.forEach.call(elements.root.children, function (child) {
+            if (child !== elements.dialog && child !== elements.toast)
+                child.inert = true;
+        });
+        const focusTarget = elements.dialog.querySelector(focusSelector);
+        if (focusTarget)
+            focusTarget.focus();
+    }
+
+    function closeDialog() {
+        if (!elements.dialog)
             return;
-        invoke('AddComponentRequested', [palletNo, Number(sourceText), Number(quantityText)], true);
+        elements.dialog.hidden = true;
+        elements.dialog.innerHTML = '';
+        Array.prototype.forEach.call(elements.root.children, function (child) {
+            child.inert = false;
+        });
+        if (localState.dialogReturnFocus && typeof localState.dialogReturnFocus.focus === 'function')
+            localState.dialogReturnFocus.focus();
+        localState.dialogReturnFocus = null;
+    }
+
+    function dialogValue(selector) {
+        const field = elements.dialog && elements.dialog.querySelector(selector);
+        return field ? field.value : '';
+    }
+
+    function showDialogError(message) {
+        const field = elements.dialog && elements.dialog.querySelector('#sal-dialog-error');
+        if (field)
+            field.textContent = message;
+    }
+
+    function submitPallet() {
+        const palletType = dialogValue('#sal-dialog-pallet-type');
+        const palletCount = Number(dialogValue('#sal-dialog-pallet-count'));
+        const targetQuantity = Number(dialogValue('#sal-dialog-target-quantity'));
+        const description = dialogValue('#sal-dialog-description').trim();
+        if (!['Standard', 'Custom', 'Mixed'].includes(palletType)) {
+            showDialogError('Choose Standard, Custom or Mixed.');
+            return;
+        }
+        if (!Number.isSafeInteger(palletCount) || palletCount < 1 || palletCount > 50) {
+            showDialogError('Physical pallets must be a whole number from 1 to 50.');
+            return;
+        }
+        if (palletType !== 'Standard' && palletCount !== 1) {
+            showDialogError('Custom and Mixed pallets must be added one physical pallet at a time.');
+            return;
+        }
+        if (!Number.isFinite(targetQuantity) || targetQuantity <= 0) {
+            showDialogError('Target trays / units must be greater than zero.');
+            return;
+        }
+        closeDialog();
+        invoke('AddPalletRequested', [palletType, palletCount, targetQuantity, description || palletType + ' pallet'], true);
+    }
+
+    function submitComponent() {
+        const palletNo = Number(dialogValue('#sal-dialog-pallet-no'));
+        const sourceLineNo = Number(dialogValue('#sal-dialog-source-line'));
+        const quantity = Number(dialogValue('#sal-dialog-component-quantity'));
+        if (!Number.isSafeInteger(palletNo) || palletNo <= 0 || !Number.isSafeInteger(sourceLineNo) || sourceLineNo <= 0) {
+            showDialogError('Choose a valid pallet and product / size.');
+            return;
+        }
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+            showDialogError('Tray / unit quantity must be greater than zero.');
+            return;
+        }
+        closeDialog();
+        invoke('AddComponentRequested', [palletNo, sourceLineNo, quantity], true);
     }
 
     globalThis.SetState = applyState;
