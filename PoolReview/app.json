@@ -1,0 +1,25 @@
+{
+  "id": "91fac4f6-4862-4b6a-83bf-b7c89edb5930",
+  "name": "TAC Pool Review",
+  "publisher": "WOLFE",
+  "version": "0.4.0.1",
+  "brief": "Read-only pool checks and supporting record review",
+  "description": "Independent, temporary pooling review results. No posting, repairs or business-table writes.",
+  "application": "28.3.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [
+    {
+      "from": 59300,
+      "to": 59349
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "features": [
+    "NoImplicitWith"
+  ]
+}
