@@ -1,0 +1,35 @@
+{
+  "id": "7ce03a80-b797-4aac-af41-7eaa96351ca5",
+  "name": "TAC Pool Master",
+  "publisher": "DIY-ERP",
+  "brief": "TAC Pool Payment Engine",
+  "description": "Grower revenue pool: pools packed kg and sale proceeds by Pool within a Pool Group, applies charges via a data-driven Charge Template Engine, and at close prorates net pool value to growers.",
+  "version": "2.0.0.2",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "application": "28.0.0.0",
+  "platform": "28.0.54016.0",
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true,
+    "applyToDevExtension": false
+  },
+  "features": [
+    "NOIMPLICITWITH"
+  ],
+  "dependencies": [
+    {
+      "id": "29ca3407-aebd-4c07-a273-bf9c72e2e66d",
+      "name": "Avocados Core",
+      "version": "1.0.0.0",
+      "publisher": "The Avocados Collective"
+    }
+  ],
+  "idRanges": [
+    {
+      "from": 50200,
+      "to": 50299
+    }
+  ]
+}
