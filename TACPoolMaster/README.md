@@ -24,3 +24,9 @@ The initial unchanged 2.0.0.1 rebuild failed Pool_Sandbox validation on 13 Septe
 
 Version 2.0.0.2 compiles with PerTenantExtensionCop enabled with zero errors or warnings.
 Package SHA256: 2472F935670DDE69A36554FE143D3F5D926B8A62BB65265583CFB43AD2EC2569
+
+## Deployment verified — 13 September 2026
+
+BC Extension Installation Status: TAC Pool Master 2.0.0.2, started 6:00 PM Australia/Perth, Status Completed, Summary: Publish operation completed successfully.
+
+Opened page 59303 in Pool_Sandbox / LIVE APMS after installation. Overview reports Group headers loaded, all seasons/weeks/types selected, 0 of 0 groups. The former missing-table-50230 error is resolved. There are no pool groups in this company to exercise payment or reconciliation checks; financial engine behavior has not been validated. TestProd data was not migrated and no transactions were posted.
