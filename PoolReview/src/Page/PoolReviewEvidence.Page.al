@@ -69,6 +69,17 @@ page 59302 "WLF Pool Review Evidence"
     {
         area(Processing)
         {
+            action(OpenNative)
+            {
+                Visible = HasNativePage; Caption = 'Open in Business Central'; ApplicationArea = All; Image = Navigate;
+                ToolTip = 'Open the actual source page in Business Central. Use the native pop-out button for a separate window. Payment headers open their pool group. Normal BC permissions and actions apply.';
+                trigger OnAction()
+                var Reader: Codeunit "WLF Pool Review Read";
+                begin
+                    Reader.OpenNativeSource(SourceRecordID);
+                end;
+            }
+
             action(LinkedLedger)
             {
                 Caption = 'Linked ledger entries';
@@ -84,12 +95,13 @@ page 59302 "WLF Pool Review Evidence"
                 end;
             }
         }
-        area(Promoted) { actionref(LinkedLedgerPromoted; LinkedLedger) { } }
+        area(Promoted) { actionref(OpenNativePromoted; OpenNative) { }  actionref(LinkedLedgerPromoted; LinkedLedger) { } }
     }
 
     procedure SetSource(SourceID: RecordId)
     begin
         SourceRecordID := SourceID;
+        HasNativePage := SourceID.TableNo() in [50230, 50220, 50208, 50209, 50233, 50206, 113];
         HasLedger := SourceID.TableNo() in [50233, 50230, 50208];
     end;
 
@@ -114,5 +126,6 @@ page 59302 "WLF Pool Review Evidence"
     var
         SourceRecordID: RecordId;
         HasLedger: Boolean;
-        SourceNotesLbl: Label 'Read-only source values collected when this window opened. These values may differ from those used by the scan. The source cannot be edited or posted from this page.';
+        HasNativePage: Boolean;
+        SourceNotesLbl: Label 'Read-only source values collected when this window opened. These values may differ from those used by the scan. This snapshot is read-only. Open in Business Central leaves the review and uses the source page permissions and actions.';
 }

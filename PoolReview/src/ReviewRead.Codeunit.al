@@ -636,6 +636,127 @@ codeunit 59300 "WLF Pool Review Read"
         LedgerPage.RunModal();
     end;
 
+    procedure OpenNativeSource(SourceID: RecordId)
+    var
+        R: RecordRef;
+        Target: RecordRef;
+    begin
+        OpenSource(R, SourceID.TableNo());
+        if not R.Get(SourceID) then
+            Error('The source record is no longer visible. Refresh the review.');
+        case R.Number() of
+            50230: OpenNativePage(R, 50251, 'TAC Pool Group Card');
+            50220: OpenNativePage(R, 50259, 'TAC Pool Weeks');
+            50208: OpenNativePage(R, 50211, 'TAC Pool');
+            50209: OpenNativePage(R, 50208, 'TAC Pool Ledger Entries');
+            50233:
+                begin
+                    OpenSource(Target, 50230);
+                    Filter(Target, 1, R.Field(2).Value);
+                    if not Target.FindFirst() then
+                        Error('The payment group is no longer visible.');
+                    OpenNativePage(Target, 50251, 'TAC Pool Group Card');
+                    Target.Close();
+                end;
+            50206: OpenDocumentHeader(R, 50204, 'TAC Consignment Header', 1, 50204, 'TAC Consignment');
+            113: OpenDocumentHeader(R, 112, 'Sales Invoice Header', 3, Page::"Posted Sales Invoice", 'Posted Sales Invoice');
+            else
+                Error('No native page is mapped for this source. Use the source evidence.');
+        end;
+        R.Close();
+    end;
+
+    procedure OpenOriginatingDocument(SourceID: RecordId)
+    var
+        R: RecordRef;
+        Line: RecordRef;
+        SourceGuid: Guid;
+        SourceKind: Integer;
+        SourceTable: Integer;
+        KeyField: Integer;
+    begin
+        if SourceID.TableNo() <> 50209 then
+            Error('Select a pool ledger entry.');
+        OpenSource(R, 50209);
+        if not R.Get(SourceID) then
+            Error('The ledger entry is no longer visible.');
+        SourceKind := IntValue(R, 41);
+        SourceGuid := R.Field(42).Value;
+        case SourceKind of
+            1: begin SourceTable := 113; KeyField := 3; end;
+            2: begin SourceTable := 115; KeyField := 3; end;
+            3: begin SourceTable := 50206; KeyField := 1; end;
+            4: begin SourceTable := 50236; KeyField := 1; end;
+            else
+                Error('This entry has no supported originating document link. Open its native ledger record or pool group instead.');
+        end;
+        case SourceKind of
+            1: CheckEnum(R, 41, 2, 1, 'Sales Invoice');
+            2: CheckEnum(R, 41, 3, 2, 'Sales Credit Memo');
+            3: CheckEnum(R, 41, 4, 3, 'Consignment');
+            4: CheckEnum(R, 41, 5, 4, 'Expense');
+        end;
+        Line.Open(SourceTable);
+        if not Line.ReadPermission() then
+            Error('You do not have read access to the originating document lines.');
+        case SourceKind of
+            1: CheckTable(Line, 'Sales Invoice Line');
+            2: CheckTable(Line, 'Sales Cr.Memo Line');
+            3: CheckTable(Line, 'TAC Consignment Line');
+            4: CheckTable(Line, 'TAC Pool Expense Detail');
+        end;
+        // System ID is authoritative: never fall back to a coincidentally matching document number.
+        if IsNullGuid(SourceGuid) then
+            Error('This entry has no originating line System ID. Use its native ledger record to investigate the stored references.');
+        if not Line.GetBySystemId(SourceGuid) then
+            Error('The originating document line is missing or not visible. No substitute document was opened.');
+        case SourceKind of
+            1: OpenDocumentHeader(Line, 112, 'Sales Invoice Header', KeyField, Page::"Posted Sales Invoice", 'Posted Sales Invoice');
+            2: OpenDocumentHeader(Line, 114, 'Sales Cr.Memo Header', KeyField, Page::"Posted Sales Credit Memo", 'Posted Sales Credit Memo');
+            3: OpenDocumentHeader(Line, 50204, 'TAC Consignment Header', KeyField, 50204, 'TAC Consignment');
+            4: OpenDocumentHeader(Line, 50235, 'TAC Pool Expense Header', KeyField, 50255, 'TAC Pool Expense');
+        end;
+        Line.Close();
+        R.Close();
+    end;
+
+    local procedure OpenDocumentHeader(var Line: RecordRef; HeaderTable: Integer; HeaderName: Text; LineKeyField: Integer; PageID: Integer; PageName: Text)
+    var
+        Header: RecordRef;
+        HeaderKeyField: Integer;
+    begin
+        Header.Open(HeaderTable);
+        CheckTable(Header, HeaderName);
+        if not Header.ReadPermission() then
+            Error('You do not have read access to this document.');
+        HeaderKeyField := 1;
+        if HeaderTable in [112, 114] then
+            HeaderKeyField := 3;
+        Filter(Header, HeaderKeyField, Line.Field(LineKeyField).Value);
+        if not Header.FindFirst() then
+            Error('The document header is missing or not visible.');
+        OpenNativePage(Header, PageID, PageName);
+        Header.Close();
+    end;
+
+    local procedure OpenNativePage(var R: RecordRef; PageID: Integer; ExpectedName: Text)
+    var
+        Metadata: RecordRef;
+        SourceRecord: Variant;
+    begin
+        Metadata.Open(2000000138);
+        CheckTable(Metadata, 'Page Metadata');
+        Filter(Metadata, 1, PageID);
+        if not Metadata.FindFirst() then
+            Error('The source page is not installed.');
+        if (TextValue(Metadata, 2) <> ExpectedName) or (IntValue(Metadata, 14) <> R.Number()) or BoolValue(Metadata, 25) then
+            Error('The source page mapping has changed. Ask the team to review this link.');
+        Metadata.Close();
+        R.SetRecFilter();
+        SourceRecord := R;
+        Page.RunModal(PageID, SourceRecord);
+    end;
+
     procedure ShowEvidence(SourceID: RecordId)
     var
         R: RecordRef;
@@ -869,4 +990,3 @@ codeunit 59300 "WLF Pool Review Read"
         PackDim: Code[20];
         PackCategoryDim: Code[20];
 }
-

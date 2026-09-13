@@ -43,6 +43,27 @@ page 59304 "WLF Pool Review Ledger"
     {
         area(Processing)
         {
+            action(OpenNative)
+            {
+                Caption = 'Open in Business Central'; ApplicationArea = All; Image = Navigate;
+                ToolTip = 'Open the actual source page in Business Central. Use the native pop-out button for a separate window. Payment headers open their pool group. Normal BC permissions and actions apply.';
+                trigger OnAction()
+                var Reader: Codeunit "WLF Pool Review Read";
+                begin
+                    Reader.OpenNativeSource(Rec."Source Record ID");
+                end;
+            }
+            action(OpenOrigin)
+            {
+                Caption = 'Open originating document'; ApplicationArea = All; Image = Document;
+                ToolTip = 'Open the invoice, credit memo, consignment or expense identified by the stored source line System ID. Reports when no reliable link is available.';
+                trigger OnAction()
+                var Reader: Codeunit "WLF Pool Review Read";
+                begin
+                    Reader.OpenOriginatingDocument(Rec."Source Record ID");
+                end;
+            }
+
             action(EntryEvidence)
             {
                 Caption = 'Entry evidence'; ApplicationArea = All; Image = View;
@@ -54,7 +75,7 @@ page 59304 "WLF Pool Review Ledger"
                 end;
             }
         }
-        area(Promoted) { actionref(EntryEvidencePromoted; EntryEvidence) { } }
+        area(Promoted) { actionref(OpenNativePromoted; OpenNative) { } actionref(OpenOriginPromoted; OpenOrigin) { }  actionref(EntryEvidencePromoted; EntryEvidence) { } }
     }
     procedure SetRows(var Facts: Record "WLF Pool Review Fact"; ContextText: Text)
     begin
