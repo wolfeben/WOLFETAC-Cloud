@@ -1066,7 +1066,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         PlanNo := CopyStr(PlanNoText, 1, MaxStrLen(PlanNo));
         if not PlanHeader.Get(PlanNo, VersionNo) then
             Error(PlanNotFoundErr, PlanNo, VersionNo);
-        Page.Run(Page::"SAL Plan Details", PlanHeader);
+        Page.Run(Page::"SAL Stock & Logistics Planner", PlanHeader);
     end;
 
     local procedure FormatDate(Value: Date): Text
