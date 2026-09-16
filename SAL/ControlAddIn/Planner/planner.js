@@ -8,6 +8,7 @@
         marketer: 'all',
         tab: 'plan',
         activeSourceLine: 0,
+        selectedCandidate: null,
         pending: false,
         pendingTimer: 0,
         compact: false,
@@ -221,6 +222,10 @@
                     '<aside class="sal-queue">',
                         '<div class="sal-queue-header">',
                             '<div class="sal-queue-top"><h2>Demand queue</h2><span class="sal-count" id="sal-queue-count">0</span></div>',
+                            '<div class="sal-new-demand-actions">',
+                                '<button class="sal-link-button" type="button" data-action="new-sales-order" data-server-action>+ Sales order</button>',
+                                '<button class="sal-link-button" type="button" data-action="new-transfer-order" data-server-action>+ Transfer order</button>',
+                            '</div>',
                             '<label class="sal-search"><span>⌕</span><input id="sal-search" type="search" placeholder="Order, customer or destination" autocomplete="off"></label>',
                         '</div>',
                         '<div class="sal-filters" id="sal-filters">',
@@ -322,6 +327,15 @@
 
         localState.data = parsed;
         localState.lastGood = parsed;
+        if (localState.selectedCandidate) {
+            const candidateStillExists = (parsed.queue || []).some(function (item) {
+                return isDemandCandidate(item) &&
+                    text(item.sourceType) === text(localState.selectedCandidate.sourceType) &&
+                    text(item.documentNo) === text(localState.selectedCandidate.documentNo);
+            });
+            if (!candidateStillExists)
+                localState.selectedCandidate = null;
+        }
         if (parsed.plan && parsed.plan.sources && parsed.plan.sources.length) {
             const sourceStillExists = parsed.plan.sources.some(function (source) {
                 return Number(source.lineNo) === Number(localState.activeSourceLine);
@@ -355,7 +369,7 @@
 
     function renderQueue() {
         const data = localState.data;
-        const selected = data.selectedKey || {};
+        const selected = localState.selectedCandidate || data.selectedKey || {};
         const query = localState.query.trim().toLowerCase();
         const marketerFilter = localState.marketer;
         const visible = (data.queue || []).filter(function (item) {
@@ -445,8 +459,8 @@
         const party = item.customerName || item.destinationName || 'Destination not set';
         const destination = item.destinationName && text(item.destinationName) !== text(party) ? ' · ' + text(item.destinationName) : '';
         const availability = isEligible ? (item.hasActivePlan ? 'Additional demand' : 'Ready to plan') : (isOpen ? 'Awaiting release' : 'Not eligible');
-        const detail = isEligible ? (item.hasActivePlan ? 'Select to refresh the current plan or create its next draft version' : 'Select to create a SAL plan') :
-            (item.blockedReason || (isOpen ? 'Release this order before planning.' : 'This demand cannot be planned yet.'));
+        const detail = isEligible ? (item.hasActivePlan ? 'Review demand, then refresh the current plan or create its next draft version' : 'Review demand before creating its SAL plan') :
+            (isOpen ? 'Review the order, then release it through standard BC checks and create its SAL plan.' : (item.blockedReason || 'This demand cannot be planned yet.'));
 
         return [
             '<button type="button" class="sal-queue-card sal-demand-candidate',
@@ -455,7 +469,6 @@
             '" data-document-no="', escapeHtml(documentNo),
             '" data-eligible="', String(isEligible),
             '" data-status="', escapeHtml(statusKey(item.status)), '"',
-            isEligible ? ' data-server-action' : ' disabled aria-disabled="true"',
             ' title="', escapeHtml(detail), '">',
                 '<span class="sal-inline">',
                     '<span class="sal-priority" title="Default priority; 1 is highest">', escapeHtml(item.priority || 10), '</span>',
@@ -476,12 +489,17 @@
     }
 
     function renderWorkspace() {
+        const candidate = selectedDemandCandidate();
+        if (candidate) {
+            renderDemandReview(candidate);
+            return;
+        }
         const plan = localState.data.plan;
         if (!plan || !plan.header) {
             elements.workspace.innerHTML = [
                 '<section class="sal-empty">',
                     '<div><h2>No SAL plan selected</h2>',
-                    '<p>Select any released Sales Order or Transfer Order marked “Ready to plan” in the demand queue. SAL will create the draft plan and bring in all outstanding item lines.</p>',
+                    '<p>Select any Sales Order or Transfer Order to review its outstanding lines. Released documents can create a SAL plan; Open documents can be released through standard Business Central checks first.</p>',
                     '<button type="button" class="sal-button is-primary" data-action="refresh">Refresh demand</button></div>',
                 '</section>'
             ].join('');
@@ -523,6 +541,71 @@
                 localState.tab === 'source' ? renderSources(plan, caps) :
                     localState.tab === 'activity' ? renderActivity(plan) : renderPlan(plan, caps),
             '</section>'
+        ].join('');
+    }
+
+    function selectedDemandCandidate() {
+        if (!localState.selectedCandidate)
+            return null;
+        return (localState.data.queue || []).find(function (item) {
+            return isDemandCandidate(item) &&
+                text(item.sourceType) === text(localState.selectedCandidate.sourceType) &&
+                text(item.documentNo) === text(localState.selectedCandidate.documentNo);
+        }) || null;
+    }
+
+    function renderDemandReview(candidate) {
+        const isOpen = statusKey(candidate.status) === 'open';
+        const isEligible = candidate.eligible === true && !isOpen;
+        const party = candidate.customerName || candidate.destinationName || 'Destination not set';
+        const lines = candidate.lines || [];
+        const primaryLabel = isOpen ? 'Release & create SAL plan' :
+            (candidate.hasActivePlan ? 'Refresh SAL plan' : 'Create SAL plan');
+        const primaryAction = isOpen ? 'release-create-demand' : 'create-demand-plan';
+        const primaryDisabled = !isOpen && !isEligible;
+
+        elements.workspace.innerHTML = [
+            '<section class="sal-order-card sal-demand-review">',
+                '<div class="sal-order-heading">',
+                    '<div class="sal-order-title">',
+                        '<span class="sal-kicker">Demand review · ', escapeHtml(candidate.sourceType), '</span>',
+                        '<h2>', escapeHtml(candidate.documentNo), ' · ', escapeHtml(party), '</h2>',
+                        '<div class="sal-order-sub">Review the live Business Central document before adding it to SAL.</div>',
+                    '</div>',
+                    '<span class="sal-status" data-tone="', isOpen ? 'draft' : escapeHtml(statusKey(candidate.status)), '">', escapeHtml(candidate.status || 'Status not set'), '</span>',
+                '</div>',
+                '<div class="sal-facts">',
+                    fact('Source', candidate.sourceType || 'Not set'),
+                    fact('Destination', candidate.destinationName || 'Not set'),
+                    fact('Shipment', dateLabel(candidate.shipmentDate)),
+                    fact('Outstanding', number(candidate.outstandingQuantity)),
+                    fact('Item lines', number(candidate.itemLineCount, 0)),
+                '</div>',
+            '</section>',
+            '<section class="sal-tab-card sal-demand-lines-card">',
+                '<div class="sal-panel-heading">',
+                    '<div><h3>Outstanding demand lines</h3><p>Live source quantities shown for review. Edit the source document in Business Central when required.</p></div>',
+                    '<div class="sal-action-row">',
+                        '<button type="button" class="sal-button" data-action="open-demand-source">Open BC source</button>',
+                        '<button type="button" class="sal-button is-primary" data-action="', primaryAction, '" data-server-action', primaryDisabled ? ' disabled' : '', '>', escapeHtml(primaryLabel), '</button>',
+                    '</div>',
+                '</div>',
+                '<div class="sal-candidate-lines">',
+                    lines.length ? lines.map(renderCandidateLine).join('') : '<div class="sal-queue-footer">No outstanding item lines were returned. Refresh the demand queue or open the source document.</div>',
+                '</div>',
+            '</section>'
+        ].join('');
+    }
+
+    function renderCandidateLine(line) {
+        const itemLabel = line.itemNo + (line.variantCode ? ' · ' + line.variantCode : '');
+        return [
+            '<article class="sal-candidate-line">',
+                '<div><span>Item</span><strong>', escapeHtml(itemLabel), '</strong><small>', escapeHtml(line.description || 'No description'), '</small></div>',
+                '<div><span>Outstanding</span><strong>', escapeHtml(number(line.outstandingQuantity)), ' ', escapeHtml(line.uom || ''), '</strong></div>',
+                '<div><span>Shipment</span><strong>', escapeHtml(dateLabel(line.shipmentDate)), '</strong></div>',
+                '<div><span>Location</span><strong>', escapeHtml(line.locationCode || 'Not set'), '</strong></div>',
+            '</article>'
         ].join('');
     }
 
@@ -794,6 +877,27 @@
 
     function renderSidebar() {
         const data = localState.data;
+        const candidate = selectedDemandCandidate();
+        if (candidate) {
+            const isOpen = statusKey(candidate.status) === 'open';
+            elements.sidebar.innerHTML = [
+                '<section class="sal-panel">',
+                    '<div class="sal-panel-heading"><h3>Demand readiness</h3><span class="sal-status" data-tone="', isOpen ? 'draft' : 'released', '">', escapeHtml(candidate.status), '</span></div>',
+                    '<div class="sal-checks">',
+                        check('Document selected', true, candidate.documentNo),
+                        check('Outstanding demand', Number(candidate.outstandingQuantity) > 0, number(candidate.outstandingQuantity) + ' units'),
+                        check('Item lines available', Number(candidate.itemLineCount) > 0, number(candidate.itemLineCount, 0) + ' line(s)'),
+                        check('Released for planning', !isOpen && candidate.eligible === true, isOpen ? 'Release required' : 'Ready to plan'),
+                    '</div>',
+                '</section>',
+                '<section class="sal-panel sal-advisory">',
+                    '<h3>Next step</h3>',
+                    '<p>', isOpen ? 'Open the source if changes are needed, or release it here. Business Central will run its normal release validation before SAL creates the plan.' : 'Create the SAL plan to bring in every outstanding item line from this document.', '</p>',
+                '</section>',
+                '<section class="sal-panel sal-integration"><h3>Source control</h3><p>The sales or transfer order remains the authoritative commercial document. SAL stores the physical planning snapshot after creation.</p></section>'
+            ].join('');
+            return;
+        }
         const plan = data.plan;
         const caps = data.capabilities || {};
         if (!plan || !plan.header) {
@@ -848,11 +952,21 @@
     }
 
     function renderFlow() {
-        const plan = localState.data.plan;
         const steps = Array.prototype.slice.call(elements.host.querySelectorAll('.sal-step'));
         steps.forEach(function (step) {
             step.classList.remove('is-done', 'is-active');
         });
+        if (selectedDemandCandidate()) {
+            const candidate = selectedDemandCandidate();
+            if (statusKey(candidate.status) === 'open')
+                setStep('demand', 'is-active');
+            else {
+                setStep('demand', 'is-done');
+                setStep('route', 'is-active');
+            }
+            return;
+        }
+        const plan = localState.data.plan;
         if (!plan || !plan.header) {
             setStep('demand', 'is-active');
             return;
@@ -1024,14 +1138,44 @@
             openNative('OpenFillGroupsRequested', []);
             return;
         }
+        if (action === 'new-sales-order') {
+            openNative('NewSalesOrderRequested', [], false);
+            return;
+        }
+        if (action === 'new-transfer-order') {
+            openNative('NewTransferOrderRequested', [], false);
+            return;
+        }
         if (action === 'select-plan') {
+            localState.selectedCandidate = null;
             invoke('PlanSelected', [text(target.dataset.planNo), Number(target.dataset.versionNo)], false);
             return;
         }
         if (action === 'select-demand-candidate') {
-            if (target.disabled || target.dataset.eligible !== 'true')
-                return;
-            invoke('DemandCandidateSelected', [text(target.dataset.sourceType), text(target.dataset.documentNo)], true);
+            localState.selectedCandidate = {
+                kind: 'candidate',
+                sourceType: text(target.dataset.sourceType),
+                documentNo: text(target.dataset.documentNo)
+            };
+            renderAll();
+            return;
+        }
+        if (action === 'open-demand-source') {
+            const candidate = selectedDemandCandidate();
+            if (candidate)
+                openNative('OpenDemandSourceRequested', [candidate.sourceType, candidate.documentNo]);
+            return;
+        }
+        if (action === 'create-demand-plan') {
+            const candidate = selectedDemandCandidate();
+            if (candidate)
+                invoke('DemandCandidateSelected', [candidate.sourceType, candidate.documentNo], true);
+            return;
+        }
+        if (action === 'release-create-demand') {
+            const candidate = selectedDemandCandidate();
+            if (candidate && globalThis.confirm('Release ' + candidate.sourceType + ' ' + candidate.documentNo + ' through standard Business Central checks and create its SAL plan?'))
+                invoke('ReleaseAndCreateDemandRequested', [candidate.sourceType, candidate.documentNo], true);
             return;
         }
         if (action === 'tab') {

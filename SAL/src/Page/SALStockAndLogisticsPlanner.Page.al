@@ -48,6 +48,26 @@ page 58007 "SAL Stock & Logistics Planner"
                     CreatePlanFromDemandCandidate(SourceType, DocumentNo);
                 end;
 
+                trigger OpenDemandSourceRequested(SourceType: Text; DocumentNo: Text)
+                begin
+                    OpenDemandSource(SourceType, DocumentNo);
+                end;
+
+                trigger ReleaseAndCreateDemandRequested(SourceType: Text; DocumentNo: Text)
+                begin
+                    ReleaseAndCreateDemand(SourceType, DocumentNo);
+                end;
+
+                trigger NewSalesOrderRequested()
+                begin
+                    CreateNewSalesOrder();
+                end;
+
+                trigger NewTransferOrderRequested()
+                begin
+                    CreateNewTransferOrder();
+                end;
+
                 trigger OpenNativeRequested()
                 begin
                     OpenNativePlan();
@@ -256,6 +276,8 @@ page 58007 "SAL Stock & Logistics Planner"
         SalesHeader: Record "Sales Header";
         SalesLine: Record "Sales Line";
         SourceType: Enum "SAL Source Type";
+        LineItem: JsonObject;
+        Lines: JsonArray;
         QueueItem: JsonObject;
         DestinationName: Text;
         FirstShipmentDate: Date;
@@ -289,10 +311,21 @@ page 58007 "SAL Stock & Logistics Planner"
                 OutstandingQuantity := 0;
                 HasAdditionalDemand := false;
                 FirstShipmentDate := SalesHeader."Shipment Date";
+                Clear(Lines);
                 if SalesLine.FindSet() then
                     repeat
                         ItemLineCount += 1;
                         OutstandingQuantity += SalesLine."Outstanding Quantity";
+                        Clear(LineItem);
+                        LineItem.Add('lineNo', SalesLine."Line No.");
+                        LineItem.Add('itemNo', SalesLine."No.");
+                        LineItem.Add('description', SalesLine.Description);
+                        LineItem.Add('variantCode', SalesLine."Variant Code");
+                        LineItem.Add('uom', SalesLine."Unit of Measure Code");
+                        LineItem.Add('outstandingQuantity', SalesLine."Outstanding Quantity");
+                        LineItem.Add('shipmentDate', FormatDate(SalesLine."Shipment Date"));
+                        LineItem.Add('locationCode', SalesLine."Location Code");
+                        Lines.Add(LineItem);
                         if (not HasActivePlan) or SalesLineRequiresPlanning(ActivePlanHeader, SalesLine) then
                             HasAdditionalDemand := true;
                         if (FirstShipmentDate = 0D) and (SalesLine."Shipment Date" <> 0D) then
@@ -324,6 +357,7 @@ page 58007 "SAL Stock & Logistics Planner"
                     QueueItem.Add('shipmentDate', FormatDate(FirstShipmentDate));
                     QueueItem.Add('outstandingQuantity', OutstandingQuantity);
                     QueueItem.Add('itemLineCount', ItemLineCount);
+                    QueueItem.Add('lines', Lines);
                     Queue.Add(QueueItem);
                     ItemCount += 1;
                 end;
@@ -337,6 +371,8 @@ page 58007 "SAL Stock & Logistics Planner"
         TransferHeader: Record "Transfer Header";
         TransferLine: Record "Transfer Line";
         SourceType: Enum "SAL Source Type";
+        LineItem: JsonObject;
+        Lines: JsonArray;
         QueueItem: JsonObject;
         DestinationName: Text;
         FirstShipmentDate: Date;
@@ -367,10 +403,21 @@ page 58007 "SAL Stock & Logistics Planner"
                 OutstandingQuantity := 0;
                 HasAdditionalDemand := false;
                 FirstShipmentDate := TransferHeader."Shipment Date";
+                Clear(Lines);
                 if TransferLine.FindSet() then
                     repeat
                         ItemLineCount += 1;
                         OutstandingQuantity += TransferLine."Outstanding Quantity";
+                        Clear(LineItem);
+                        LineItem.Add('lineNo', TransferLine."Line No.");
+                        LineItem.Add('itemNo', TransferLine."Item No.");
+                        LineItem.Add('description', TransferLine.Description);
+                        LineItem.Add('variantCode', TransferLine."Variant Code");
+                        LineItem.Add('uom', TransferLine."Unit of Measure Code");
+                        LineItem.Add('outstandingQuantity', TransferLine."Outstanding Quantity");
+                        LineItem.Add('shipmentDate', FormatDate(TransferLine."Shipment Date"));
+                        LineItem.Add('locationCode', TransferHeader."Transfer-from Code");
+                        Lines.Add(LineItem);
                         if (not HasActivePlan) or TransferLineRequiresPlanning(ActivePlanHeader, TransferLine) then
                             HasAdditionalDemand := true;
                         if (FirstShipmentDate = 0D) and (TransferLine."Shipment Date" <> 0D) then
@@ -404,6 +451,7 @@ page 58007 "SAL Stock & Logistics Planner"
                     QueueItem.Add('shipmentDate', FormatDate(FirstShipmentDate));
                     QueueItem.Add('outstandingQuantity', OutstandingQuantity);
                     QueueItem.Add('itemLineCount', ItemLineCount);
+                    QueueItem.Add('lines', Lines);
                     Queue.Add(QueueItem);
                     ItemCount += 1;
                 end;
@@ -961,6 +1009,89 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen(StrSubstNo(CandidatePlanCreatedMsg, PlanHeader."No.", AddedCount), false);
     end;
 
+    local procedure OpenDemandSource(SourceTypeText: Text; DocumentNoText: Text)
+    var
+        SalesHeader: Record "Sales Header";
+        TransferHeader: Record "Transfer Header";
+        DocumentNo: Code[20];
+    begin
+        DocumentNo := CopyStr(DocumentNoText, 1, MaxStrLen(DocumentNo));
+        if DocumentNo = '' then
+            Error(DemandDocumentRequiredErr);
+
+        case LowerCase(SourceTypeText) of
+            'sales order':
+                begin
+                    SalesHeader.Get(SalesHeader."Document Type"::Order, DocumentNo);
+                    Page.Run(Page::"Sales Order", SalesHeader);
+                end;
+            'transfer order':
+                begin
+                    TransferHeader.Get(DocumentNo);
+                    Page.Run(Page::"Transfer Order", TransferHeader);
+                end;
+            else
+                Error(DemandSourceTypeErr, SourceTypeText);
+        end;
+    end;
+
+    local procedure ReleaseAndCreateDemand(SourceTypeText: Text; DocumentNoText: Text)
+    var
+        ReleaseSalesDocument: Codeunit "Release Sales Document";
+        ReleaseTransferDocument: Codeunit "Release Transfer Document";
+        SalesHeader: Record "Sales Header";
+        TransferHeader: Record "Transfer Header";
+        DocumentNo: Code[20];
+    begin
+        DocumentNo := CopyStr(DocumentNoText, 1, MaxStrLen(DocumentNo));
+        if DocumentNo = '' then
+            Error(DemandDocumentRequiredErr);
+
+        case LowerCase(SourceTypeText) of
+            'sales order':
+                begin
+                    SalesHeader.Get(SalesHeader."Document Type"::Order, DocumentNo);
+                    if SalesHeader.Status = SalesHeader.Status::Open then
+                        ReleaseSalesDocument.PerformManualRelease(SalesHeader);
+                    SalesHeader.Get(SalesHeader."Document Type"::Order, DocumentNo);
+                    if SalesHeader.Status <> SalesHeader.Status::Released then
+                        Error(DemandReleaseFailedErr, SourceTypeText, DocumentNo, SalesHeader.Status);
+                end;
+            'transfer order':
+                begin
+                    TransferHeader.Get(DocumentNo);
+                    if TransferHeader.Status = TransferHeader.Status::Open then
+                        ReleaseTransferDocument.Release(TransferHeader);
+                    TransferHeader.Get(DocumentNo);
+                    if TransferHeader.Status <> TransferHeader.Status::Released then
+                        Error(DemandReleaseFailedErr, SourceTypeText, DocumentNo, TransferHeader.Status);
+                end;
+            else
+                Error(DemandSourceTypeErr, SourceTypeText);
+        end;
+
+        CreatePlanFromDemandCandidate(SourceTypeText, DocumentNo);
+    end;
+
+    local procedure CreateNewSalesOrder()
+    var
+        SalesHeader: Record "Sales Header";
+    begin
+        SalesHeader.Init();
+        SalesHeader.Validate("Document Type", SalesHeader."Document Type"::Order);
+        SalesHeader.Insert(true);
+        Page.Run(Page::"Sales Order", SalesHeader);
+    end;
+
+    local procedure CreateNewTransferOrder()
+    var
+        TransferHeader: Record "Transfer Header";
+    begin
+        TransferHeader.Init();
+        TransferHeader.Insert(true);
+        Page.Run(Page::"Transfer Order", TransferHeader);
+    end;
+
     local procedure AddDocumentDemand(var PlanHeader: Record "SAL Plan Header"; SourceType: Enum "SAL Source Type"; DocumentNo: Code[20]; var AddedCount: Integer; var SkippedCount: Integer)
     var
         DemandManagement: Codeunit "SAL Demand Management";
@@ -1349,6 +1480,7 @@ page 58007 "SAL Stock & Logistics Planner"
         CustomPalletCountErr: Label 'Add Custom or Mixed pallets one physical pallet at a time.';
         CandidatePlanCreatedMsg: Label 'SAL plan %1 created with %2 outstanding demand line(s).', Comment = '%1 = plan no., %2 = number of demand lines';
         DemandDocumentRequiredErr: Label 'The demand document number is required.';
+        DemandReleaseFailedErr: Label '%1 %2 could not be released. Its current status is %3.', Comment = '%1 = source type, %2 = document no., %3 = current status';
         DemandSourceTypeErr: Label '%1 is not a supported SAL demand source type.', Comment = '%1 = supplied source type';
         ExistingPlanUpdatedMsg: Label 'SAL plan %1 version %2 selected and refreshed with the latest outstanding demand.', Comment = '%1 = plan no., %2 = version no.';
         ExactAllocationExceededErr: Label 'Source line %1 has only %2 exact units available after its fill conversion.', Comment = '%1 = source line, %2 = available exact target';

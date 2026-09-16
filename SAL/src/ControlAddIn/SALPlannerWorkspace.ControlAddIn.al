@@ -21,6 +21,10 @@ controladdin "SAL Planner Workspace"
     event RefreshRequested();
     event PlanSelected(PlanNo: Text; VersionNo: Integer);
     event DemandCandidateSelected(SourceType: Text; DocumentNo: Text);
+    event OpenDemandSourceRequested(SourceType: Text; DocumentNo: Text);
+    event ReleaseAndCreateDemandRequested(SourceType: Text; DocumentNo: Text);
+    event NewSalesOrderRequested();
+    event NewTransferOrderRequested();
     event OpenNativeRequested();
     event OpenPlansRequested();
     event AddDemandRequested();
