@@ -221,7 +221,7 @@
                 '<div class="sal-layout">',
                     '<aside class="sal-queue">',
                         '<div class="sal-queue-header">',
-                            '<div class="sal-queue-top"><h2>Demand queue</h2><span class="sal-count" id="sal-queue-count">0</span></div>',
+                            '<div class="sal-queue-top"><h2>Packing priority queue</h2><span class="sal-count" id="sal-queue-count">0</span></div>',
                             '<div class="sal-new-demand-actions">',
                                 '<button class="sal-link-button" type="button" data-action="new-sales-order" data-server-action>+ Sales order</button>',
                                 '<button class="sal-link-button" type="button" data-action="new-transfer-order" data-server-action>+ Transfer order</button>',
@@ -591,7 +591,7 @@
                     '</div>',
                 '</div>',
                 '<div class="sal-candidate-lines">',
-                    lines.length ? lines.map(renderCandidateLine).join('') : '<div class="sal-queue-footer">No outstanding item lines were returned. Refresh the demand queue or open the source document.</div>',
+                    lines.length ? lines.map(renderCandidateLine).join('') : '<div class="sal-queue-footer">No outstanding item lines were returned. Refresh the packing priority queue or open the source document.</div>',
                 '</div>',
             '</section>'
         ].join('');
