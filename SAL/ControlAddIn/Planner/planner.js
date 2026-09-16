@@ -2,7 +2,7 @@
     'use strict';
 
     const localState = {
-        data: { schemaVersion: 1, queue: [], plan: null, capabilities: {} },
+        data: { schemaVersion: 2, queue: [], fillGroups: [], plan: null, capabilities: {} },
         lastGood: null,
         query: '',
         marketer: 'all',
@@ -200,6 +200,7 @@
                     '<div class="sal-utility-actions">',
                         '<div class="sal-header-buttons">',
                             '<button class="sal-header-button" type="button" data-action="open-plans">All plans</button>',
+                            '<button class="sal-header-button" type="button" data-action="open-fill-groups">Fill groups</button>',
                             '<button class="sal-header-button" type="button" data-action="open-native">Plan details</button>',
                             '<button class="sal-header-button" type="button" data-action="density" aria-pressed="false">Compact view</button>',
                             '<button class="sal-header-button" type="button" data-action="fullscreen" aria-pressed="false">Full screen</button>',
@@ -297,7 +298,7 @@
 
     function validateState(data) {
         return data &&
-            Number(data.schemaVersion) === 1 &&
+            Number(data.schemaVersion) >= 1 &&
             Array.isArray(data.queue) &&
             typeof data.capabilities === 'object';
     }
@@ -341,6 +342,9 @@
         const data = localState.data;
         elements.context.textContent = text(data.environment || 'Cloud planner');
         elements.company.textContent = text(data.company || 'Business Central');
+        const fillGroupButton = document.querySelector('.sal-header-buttons [data-action="open-fill-groups"]');
+        if (fillGroupButton)
+            fillGroupButton.hidden = !(data.capabilities && data.capabilities.canManageFillGroups);
         renderQueue();
         renderWorkspace();
         renderSidebar();
@@ -512,7 +516,7 @@
             renderRouteCard(selectedSource, sources, caps),
             '<div class="sal-tabs" role="tablist">',
                 tabButton('plan', 'Plan'),
-                tabButton('source', 'Source'),
+                tabButton('source', 'Demand'),
                 tabButton('activity', 'Activity'),
             '</div>',
             '<section class="sal-tab-card">',
@@ -624,7 +628,7 @@
                 '<div><h3>Physical pallet plan</h3><p>Required versus planned allocation. Facility scan completion is not yet part of the Cloud model.</p></div>',
                 actions,
             '</div>',
-            renderSizes(plan.sources || []),
+            renderSizes(plan.sources || [], canEdit),
             '<div class="sal-plan-table">',
                 pallets.length ? pallets.map(function (pallet) { return renderPallet(pallet, canEdit); }).join('') :
                     '<div class="sal-queue-footer">No physical pallets have been planned yet.</div>',
@@ -632,31 +636,48 @@
         ].join('');
     }
 
-    function renderSizes(sources) {
-        const grouped = {};
+    function renderSizes(sources, canEdit) {
+        const cards = [];
+        const exact = {};
         sources.forEach(function (source) {
-            const key = [source.itemNo, source.variantCode, source.uom].join('|');
-            if (!grouped[key])
-                grouped[key] = {
-                    itemNo: source.itemNo,
-                    variantCode: source.variantCode,
+            const exactTarget = Number(source.exactTargetQuantity == null ? source.requiredQuantity : source.exactTargetQuantity);
+            const exactPlanned = Number(source.exactPlannedQuantity == null ? source.plannedQuantity : source.exactPlannedQuantity);
+            if (exactTarget > 0) {
+                const key = [source.itemNo, source.variantCode, source.uom].join('|');
+                if (!exact[key])
+                    exact[key] = { itemNo: source.itemNo, variantCode: source.variantCode, uom: source.uom, required: 0, planned: 0 };
+                exact[key].required += exactTarget;
+                exact[key].planned += exactPlanned;
+            }
+            if (Number(source.fillTargetQuantity || 0) > 0) {
+                const members = source.fillMembers || [];
+                cards.push({
+                    kind: 'fill',
+                    sourceLineNo: source.lineNo,
+                    groupCode: source.fillGroupCode,
+                    required: Number(source.fillTargetQuantity || 0),
+                    planned: Number(source.fillPlannedQuantity || 0),
                     uom: source.uom,
-                    required: 0,
-                    planned: 0
-                };
-            grouped[key].required += Number(source.requiredQuantity || 0);
-            grouped[key].planned += Number(source.plannedQuantity || 0);
+                    members: members
+                });
+            }
         });
-        const items = Object.keys(grouped).map(function (key) { return grouped[key]; });
-        if (!items.length)
+        Object.keys(exact).forEach(function (key) { cards.unshift(Object.assign({ kind: 'exact' }, exact[key])); });
+        if (!cards.length)
             return '';
-        return '<div class="sal-size-strip">' + items.map(function (item) {
-            const label = item.itemNo + (item.variantCode ? ' · ' + item.variantCode : '');
+        return '<div class="sal-size-strip">' + cards.map(function (item) {
+            const label = item.kind === 'fill' ? 'Fill · ' + item.groupCode : item.itemNo + (item.variantCode ? ' · ' + item.variantCode : '');
+            const memberLabels = item.kind === 'fill' ? item.members.map(function (member) {
+                return member.itemNo + (member.variantCode ? ' · ' + member.variantCode : '');
+            }) : [];
             return [
-                '<div class="sal-size-card">',
-                    '<strong>', escapeHtml(label), '</strong>',
+                '<div class="sal-size-card', item.kind === 'fill' ? ' is-fill' : '', '">',
+                    '<div class="sal-size-title"><strong>', escapeHtml(label), '</strong><span class="sal-mode-pill">', item.kind === 'fill' ? 'Flexible' : 'Exact', '</span></div>',
                     '<span>', escapeHtml(number(item.planned)), ' / ', escapeHtml(number(item.required)), ' ', escapeHtml(item.uom || 'units'), ' planned</span>',
                     '<div class="sal-meter"><span style="width:', String(percent(item.planned, item.required)), '%"></span></div>',
+                    memberLabels.length ? '<small>' + escapeHtml(memberLabels.join(' · ')) + '</small>' : '',
+                    item.kind === 'fill' && canEdit ? '<button type="button" class="sal-link-button sal-adjust-fill" data-action="adjust-fill" data-source-line="' +
+                        escapeHtml(item.sourceLineNo) + '" data-server-action>Adjust fill balance</button>' : '',
                 '</div>'
             ].join('');
         }).join('') + '</div>';
@@ -685,7 +706,8 @@
                     return [
                         '<div class="sal-component">',
                             '<strong>', escapeHtml(component.itemNo), component.variantCode ? ' · ' + escapeHtml(component.variantCode) : '', '</strong>',
-                            '<span>', escapeHtml(number(component.quantity)), ' ', escapeHtml(component.uom || 'units'), '</span>',
+                            '<span>', escapeHtml(number(component.quantity)), ' ', escapeHtml(component.uom || 'units'),
+                                ' · ', escapeHtml(component.fulfilmentMode === 'Fill Group' ? 'Fill group' : 'Exact SKU'), '</span>',
                             canEdit ? '<button type="button" class="sal-link-button" data-action="delete-component" data-pallet-no="' + escapeHtml(pallet.palletNo) +
                                 '" data-line-no="' + escapeHtml(component.lineNo) + '" data-server-action>Remove</button>' : '',
                         '</div>'
@@ -707,20 +729,32 @@
             '<button type="button" class="sal-button" data-action="refresh-demand" data-server-action>Refresh demand</button></div>' : '';
         return [
             '<div class="sal-panel-heading">',
-                '<div><h3>Demand sources</h3><p>Released Business Central demand copied into this exact plan version.</p></div>',
+                '<div><h3>Demand</h3><p>Business Central demand stays linked to its source. Convert only the unplanned exact balance when the order can accept a fill group.</p></div>',
                 actions,
             '</div>',
             '<div class="sal-source-list">',
                 sources.length ? sources.map(function (source) {
+                    const exactTarget = Number(source.exactTargetQuantity == null ? source.requiredQuantity : source.exactTargetQuantity);
+                    const exactPlanned = Number(source.exactPlannedQuantity == null ? source.plannedQuantity : source.exactPlannedQuantity);
+                    const exactRemaining = Math.max(0, Number(source.exactRemainingQuantity == null ? exactTarget - exactPlanned : source.exactRemainingQuantity));
+                    const fillTarget = Number(source.fillTargetQuantity || 0);
+                    const fillPlanned = Number(source.fillPlannedQuantity || 0);
+                    const canConvert = caps.canConvertToFill === true && exactRemaining > 0;
                     return [
                         '<article class="sal-source-row">',
                             '<strong>', escapeHtml(source.sourceType), '</strong>',
                             '<span>', escapeHtml(source.documentNo), '<br><small>Line ', escapeHtml(source.documentLineNo), '</small></span>',
                             '<span><strong>', escapeHtml(source.itemNo), '</strong><br><small>', escapeHtml(source.itemDescription), '</small></span>',
-                            '<span><strong>', escapeHtml(number(source.plannedQuantity)), ' / ', escapeHtml(number(source.requiredQuantity)), '</strong><br><small>planned / plan quantity<br>BC outstanding snapshot ', escapeHtml(number(source.remainingQuantity)), '</small></span>',
+                            '<span class="sal-demand-allocation"><strong>', escapeHtml(number(source.plannedQuantity)), ' / ', escapeHtml(number(source.requiredQuantity)), '</strong><br>',
+                                '<small>Exact ', escapeHtml(number(exactPlanned)), ' / ', escapeHtml(number(exactTarget)),
+                                fillTarget > 0 ? '<br>Fill ' + escapeHtml(number(fillPlanned)) + ' / ' + escapeHtml(number(fillTarget)) + ' · ' + escapeHtml(source.fillGroupCode) : '',
+                                '<br>BC outstanding snapshot ', escapeHtml(number(source.remainingQuantity)), '</small></span>',
                             '<span>', escapeHtml(source.executionRoute), '</span>',
                             '<span>', source.routingConfirmed ? 'Confirmed' : 'Review route', '</span>',
-                            '<button type="button" class="sal-link-button" data-action="open-source" data-source-line="', escapeHtml(source.lineNo), '">Open source</button>',
+                            '<div class="sal-source-actions">',
+                                canConvert ? '<button type="button" class="sal-button is-fill" data-action="convert-fill" data-source-line="' + escapeHtml(source.lineNo) + '" data-server-action>Convert remaining to fill</button>' : '',
+                                '<button type="button" class="sal-link-button" data-action="open-source" data-source-line="', escapeHtml(source.lineNo), '">Open source</button>',
+                            '</div>',
                         '</article>'
                     ].join('');
                 }).join('') : '<div class="sal-queue-footer">No demand has been added.</div>',
@@ -854,6 +888,10 @@
             event.target.dataset.changed = 'true';
         if (event.target && event.target.id === 'sal-dialog-description')
             event.target.dataset.changed = 'true';
+        if (event.target && (event.target.id === 'sal-dialog-fill-quantity' || event.target.matches('.sal-fill-member-limit')))
+            updateFillImpact();
+        if (event.target && event.target.id === 'sal-dialog-adjust-fill-target')
+            updateAdjustFillImpact();
     }
 
     function handleChange(event) {
@@ -876,6 +914,23 @@
             }
             if (description && !description.dataset.changed)
                 description.value = isStandard ? 'Standard pallet' : event.target.value + ' pallet';
+        }
+        if (event.target && event.target.id === 'sal-dialog-fill-group') {
+            renderFillMembers(event.target.value);
+            return;
+        }
+        if (event.target && event.target.id === 'sal-dialog-component-choice') {
+            const quantity = elements.dialog.querySelector('#sal-dialog-component-quantity');
+            const selected = event.target.options[event.target.selectedIndex];
+            if (quantity && selected && selected.dataset.defaultQuantity)
+                quantity.value = selected.dataset.defaultQuantity;
+            return;
+        }
+        if (event.target && event.target.matches('.sal-fill-member-select')) {
+            const row = event.target.closest('.sal-fill-member-row');
+            if (row)
+                row.classList.toggle('is-disabled', !event.target.checked);
+            updateFillImpact();
         }
     }
 
@@ -933,6 +988,14 @@
             submitComponent();
             return;
         }
+        if (action === 'submit-fill-conversion') {
+            submitFillConversion();
+            return;
+        }
+        if (action === 'submit-adjust-fill') {
+            submitAdjustFillTarget();
+            return;
+        }
         if (action === 'refresh') {
             invoke('RefreshRequested', [], false);
             return;
@@ -943,6 +1006,10 @@
         }
         if (action === 'open-plans') {
             openNative('OpenPlansRequested', []);
+            return;
+        }
+        if (action === 'open-fill-groups') {
+            openNative('OpenFillGroupsRequested', []);
             return;
         }
         if (action === 'select-plan') {
@@ -985,6 +1052,14 @@
         }
         if (action === 'add-pallet') {
             addPallet();
+            return;
+        }
+        if (action === 'convert-fill') {
+            convertRemainingToFill(Number(target.dataset.sourceLine));
+            return;
+        }
+        if (action === 'adjust-fill') {
+            adjustFillTarget(Number(target.dataset.sourceLine));
             return;
         }
         if (action === 'delete-pallet') {
@@ -1032,6 +1107,279 @@
         }
     }
 
+    function findSource(sourceLineNo) {
+        const plan = localState.data.plan;
+        return plan && Array.isArray(plan.sources) ? plan.sources.find(function (source) {
+            return Number(source.lineNo) === Number(sourceLineNo);
+        }) : null;
+    }
+
+    function compatibleFillGroups(source) {
+        const plan = localState.data.plan || {};
+        const header = plan.header || {};
+        const marketerNo = text(header.marketerCustomerNo).toLowerCase();
+        return (localState.data.fillGroups || []).filter(function (group) {
+            if (source && source.fillGroupCode)
+                return text(group.code).toLowerCase() === text(source.fillGroupCode).toLowerCase();
+            const groupMarketer = text(group.marketerCustomerNo).toLowerCase();
+            return Boolean(marketerNo && groupMarketer && groupMarketer === marketerNo);
+        });
+    }
+
+    function adjustFillTarget(sourceLineNo) {
+        const source = findSource(sourceLineNo);
+        const caps = localState.data.capabilities || {};
+        if (!source || Number(source.fillTargetQuantity || 0) <= 0) {
+            showToast('The selected demand line does not have a fill balance to adjust.', true);
+            return;
+        }
+        if (caps.canEdit !== true) {
+            showToast('Create or open a Draft plan version before adjusting fill demand.', true);
+            return;
+        }
+        const currentTarget = Number(source.fillTargetQuantity || 0);
+        const fillPlanned = Number(source.fillPlannedQuantity || 0);
+        const minimumTarget = fillPlanned > 0 ? fillPlanned : 0;
+        openDialog([
+            '<div class="sal-dialog is-adjust-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Demand ', escapeHtml(source.documentNo), ' · Fill ', escapeHtml(source.fillGroupCode), '</span>',
+                '<h2 id="sal-dialog-title">Adjust fill balance</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Reduce the flexible balance and return the difference to the original exact SKU. Quantities already planned to fill products remain protected.</p>',
+                '<div class="sal-fill-impact is-top">',
+                    '<div><span>Current fill target</span><strong>', escapeHtml(number(currentTarget)), '</strong></div>',
+                    '<div><span>Fill already planned</span><strong>', escapeHtml(number(fillPlanned)), '</strong></div>',
+                    '<div><span>Exact already planned</span><strong>', escapeHtml(number(source.exactPlannedQuantity || 0)), '</strong></div>',
+                '</div>',
+                '<div class="sal-dialog-grid">',
+                    '<label>New fill target<input id="sal-dialog-adjust-fill-target" type="number" min="', escapeHtml(minimumTarget), '" max="', escapeHtml(currentTarget),
+                        '" step="0.01" value="', escapeHtml(currentTarget), '"></label>',
+                    '<div class="sal-adjust-fill-range"><span>Valid range</span><strong>', escapeHtml(number(minimumTarget)), ' to ', escapeHtml(number(currentTarget)), '</strong>',
+                        minimumTarget === 0 ? '<small>Enter 0 to return all unallocated fill demand to exact.</small>' : '<small>The lower limit protects fill quantities already assigned to pallets.</small>', '</div>',
+                    '<label class="is-wide">Reason<input id="sal-dialog-adjust-fill-reason" type="text" maxlength="250" placeholder="Why is the fill balance being reduced?"></label>',
+                '</div>',
+                '<input id="sal-dialog-adjust-fill-source" type="hidden" value="', escapeHtml(source.lineNo), '">',
+                '<div class="sal-fill-impact" id="sal-dialog-adjust-fill-impact"></div>',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-adjust-fill" data-server-action>Apply adjustment</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-adjust-fill-target');
+        updateAdjustFillImpact();
+    }
+
+    function updateAdjustFillImpact() {
+        const impact = elements.dialog && elements.dialog.querySelector('#sal-dialog-adjust-fill-impact');
+        if (!impact)
+            return;
+        const source = findSource(Number(dialogValue('#sal-dialog-adjust-fill-source')));
+        if (!source)
+            return;
+        const currentTarget = Number(source.fillTargetQuantity || 0);
+        const fillPlanned = Number(source.fillPlannedQuantity || 0);
+        const newTarget = Number(dialogValue('#sal-dialog-adjust-fill-target'));
+        const safeTarget = Number.isFinite(newTarget) ? Math.max(0, newTarget) : currentTarget;
+        const newExactTarget = Number(source.requiredQuantity || 0) - safeTarget;
+        impact.innerHTML = [
+            '<div><span>Returned to exact</span><strong>', escapeHtml(number(Math.max(0, currentTarget - safeTarget))), '</strong></div>',
+            '<div><span>Exact target after</span><strong>', escapeHtml(number(newExactTarget)), '</strong></div>',
+            '<div><span>Unallocated fill after</span><strong>', escapeHtml(number(Math.max(0, safeTarget - fillPlanned))), '</strong></div>'
+        ].join('');
+    }
+
+    function submitAdjustFillTarget() {
+        const sourceLineNo = Number(dialogValue('#sal-dialog-adjust-fill-source'));
+        const source = findSource(sourceLineNo);
+        const newTarget = Number(dialogValue('#sal-dialog-adjust-fill-target'));
+        const reason = dialogValue('#sal-dialog-adjust-fill-reason').trim();
+        if (!source) {
+            showDialogError('The demand line is no longer available.');
+            return;
+        }
+        const currentTarget = Number(source.fillTargetQuantity || 0);
+        const fillPlanned = Number(source.fillPlannedQuantity || 0);
+        const minimumTarget = fillPlanned > 0 ? fillPlanned : 0;
+        if (!Number.isFinite(newTarget) || newTarget < minimumTarget || newTarget >= currentTarget) {
+            showDialogError('Enter a lower fill target from ' + number(minimumTarget) + ' up to, but not including, ' + number(currentTarget) + '.');
+            return;
+        }
+        if (!reason) {
+            showDialogError('Enter a reason so this planning change is clear in the audit history.');
+            return;
+        }
+        closeDialog();
+        invoke('AdjustFillTargetRequested', [sourceLineNo, newTarget, reason], true);
+    }
+
+    function convertRemainingToFill(sourceLineNo) {
+        const source = findSource(sourceLineNo);
+        if (!source) {
+            showToast('The selected demand line is no longer available.', true);
+            return;
+        }
+        const exactRemaining = Math.max(0, Number(source.exactRemainingQuantity || 0));
+        if (exactRemaining <= 0) {
+            showToast('This demand line has no unplanned exact balance to convert.', true);
+            return;
+        }
+        const groups = compatibleFillGroups(source);
+        if (!groups.length) {
+            showToast('No active fill group matches this plan marketer. Set up the fill group first.', true);
+            return;
+        }
+        const options = groups.map(function (group) {
+            const memberCount = (group.members || []).length;
+            return '<option value="' + escapeHtml(group.code) + '">' + escapeHtml(group.code) + ' · ' +
+                escapeHtml(group.description || 'Fill group') + ' · ' + memberCount + ' eligible SKU' + (memberCount === 1 ? '' : 's') + '</option>';
+        }).join('');
+        openDialog([
+            '<div class="sal-dialog is-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Demand ', escapeHtml(source.documentNo), ' · ', escapeHtml(source.itemNo), '</span>',
+                '<h2 id="sal-dialog-title">Convert remaining demand to a fill group</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Keep quantities already allocated to the exact SKU. Only the selected unplanned balance becomes flexible across the eligible products below.</p>',
+                '<div class="sal-fill-impact is-top">',
+                    '<div><span>Exact demand</span><strong>', escapeHtml(number(source.exactTargetQuantity)), '</strong></div>',
+                    '<div><span>Exact planned</span><strong>', escapeHtml(number(source.exactPlannedQuantity)), '</strong></div>',
+                    '<div><span>Available to convert</span><strong>', escapeHtml(number(exactRemaining)), '</strong></div>',
+                '</div>',
+                '<div class="sal-dialog-grid">',
+                    '<label class="is-wide">Fill group<select id="sal-dialog-fill-group">', options, '</select></label>',
+                    '<label>Quantity to convert<input id="sal-dialog-fill-quantity" type="number" min="0.01" max="', escapeHtml(exactRemaining), '" step="0.01" value="', escapeHtml(exactRemaining), '"></label>',
+                    '<label class="sal-check-label"><input id="sal-dialog-fill-mixed" type="checkbox"> Allow mixed products on one physical pallet</label>',
+                    '<label class="is-wide">Reason<input id="sal-dialog-fill-reason" type="text" maxlength="250" placeholder="Why is this balance being made flexible?"></label>',
+                '</div>',
+                '<input id="sal-dialog-fill-source" type="hidden" value="', escapeHtml(source.lineNo), '">',
+                '<section class="sal-fill-members"><div class="sal-fill-members-head"><div><h3>Eligible products / sizes</h3><p>Select any number of SKUs and adjust this order’s limits.</p></div>',
+                    (localState.data.capabilities && localState.data.capabilities.canManageFillGroups ? '<button type="button" class="sal-link-button" data-action="open-fill-groups">Manage templates</button>' : ''), '</div>',
+                    '<div id="sal-dialog-fill-members"></div>',
+                '</section>',
+                '<div class="sal-fill-impact" id="sal-dialog-fill-impact"></div>',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-fill-conversion" data-server-action>Convert balance</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-fill-group');
+        renderFillMembers(groups[0].code);
+    }
+
+    function selectedTemplateGroup(groupCode) {
+        return (localState.data.fillGroups || []).find(function (group) {
+            return text(group.code).toLowerCase() === text(groupCode).toLowerCase();
+        }) || null;
+    }
+
+    function renderFillMembers(groupCode) {
+        const container = elements.dialog && elements.dialog.querySelector('#sal-dialog-fill-members');
+        const group = selectedTemplateGroup(groupCode);
+        if (!container || !group)
+            return;
+        const source = findSource(Number(dialogValue('#sal-dialog-fill-source')));
+        const isExistingGroup = Boolean(source && source.fillGroupCode && text(source.fillGroupCode).toLowerCase() === text(groupCode).toLowerCase());
+        const existingByTemplateLine = {};
+        if (isExistingGroup)
+            (source.fillMembers || []).forEach(function (member) {
+                existingByTemplateLine[Number(member.templateLineNo)] = member;
+            });
+        const members = group.members || [];
+        container.innerHTML = members.length ? members.map(function (member) {
+            const product = member.itemNo + (member.variantCode ? ' · ' + member.variantCode : '');
+            const existing = existingByTemplateLine[Number(member.lineNo)] || null;
+            const selected = isExistingGroup ? Boolean(existing) : true;
+            const minimum = existing ? existing.minimumQuantity : (member.minimumQuantity || 0);
+            const maximum = existing ? existing.maximumQuantity : (member.maximumQuantity || 0);
+            const maximumPallets = existing ? existing.maximumPallets : (member.maximumPallets || 0);
+            return [
+                '<article class="sal-fill-member-row" data-member-line="', escapeHtml(member.lineNo), '">',
+                    '<label class="sal-fill-member-product"><input class="sal-fill-member-select" type="checkbox"', selected ? ' checked' : '', '>',
+                        '<span><strong>', escapeHtml(product), '</strong><small>', escapeHtml(member.description || ''), ' · ', escapeHtml(member.uom || 'units'), '</small></span></label>',
+                    '<label>Minimum<input class="sal-fill-member-limit" data-limit="min" type="number" min="0" step="0.01" value="', escapeHtml(minimum), '"></label>',
+                    '<label>Maximum<input class="sal-fill-member-limit" data-limit="max" type="number" min="0" step="0.01" value="', escapeHtml(maximum), '"><small>0 = no cap</small></label>',
+                    '<label>Max pallets<input class="sal-fill-member-limit" data-limit="pallets" type="number" min="0" step="0.01" value="', escapeHtml(maximumPallets), '"><small>0 = no cap</small></label>',
+                '</article>'
+            ].join('');
+        }).join('') : '<div class="sal-queue-footer">This fill group has no active product members.</div>';
+        const mixed = elements.dialog.querySelector('#sal-dialog-fill-mixed');
+        if (mixed) {
+            mixed.checked = Boolean(group.allowMixedPallets);
+            mixed.disabled = !group.allowMixedPallets;
+            mixed.closest('label').title = group.allowMixedPallets ? '' : 'This fill group template does not permit mixed pallets.';
+        }
+        updateFillImpact();
+    }
+
+    function updateFillImpact() {
+        const impact = elements.dialog && elements.dialog.querySelector('#sal-dialog-fill-impact');
+        if (!impact)
+            return;
+        const source = findSource(Number(dialogValue('#sal-dialog-fill-source')));
+        const quantity = Number(dialogValue('#sal-dialog-fill-quantity')) || 0;
+        const exactRemaining = source ? Math.max(0, Number(source.exactRemainingQuantity || 0)) : 0;
+        const selectedCount = elements.dialog.querySelectorAll('.sal-fill-member-select:checked').length;
+        impact.innerHTML = [
+            '<div><span>Exact balance after</span><strong>', escapeHtml(number(Math.max(0, exactRemaining - quantity))), '</strong></div>',
+            '<div><span>Fill target after</span><strong>', escapeHtml(number((source ? Number(source.fillTargetQuantity || 0) : 0) + quantity)), '</strong></div>',
+            '<div><span>Eligible SKUs</span><strong>', escapeHtml(selectedCount), '</strong></div>'
+        ].join('');
+    }
+
+    function submitFillConversion() {
+        const sourceLineNo = Number(dialogValue('#sal-dialog-fill-source'));
+        const source = findSource(sourceLineNo);
+        const groupCode = dialogValue('#sal-dialog-fill-group');
+        const quantity = Number(dialogValue('#sal-dialog-fill-quantity'));
+        const reason = dialogValue('#sal-dialog-fill-reason').trim();
+        const mixedControl = elements.dialog.querySelector('#sal-dialog-fill-mixed');
+        if (!source || !groupCode) {
+            showDialogError('Choose a valid demand line and fill group.');
+            return;
+        }
+        const exactRemaining = Math.max(0, Number(source.exactRemainingQuantity || 0));
+        if (!Number.isFinite(quantity) || quantity <= 0 || quantity > exactRemaining) {
+            showDialogError('Quantity must be greater than zero and no more than the available exact balance of ' + number(exactRemaining) + '.');
+            return;
+        }
+        if (!reason) {
+            showDialogError('Enter a reason so this planning change is clear in the audit history.');
+            return;
+        }
+        const members = Array.prototype.slice.call(elements.dialog.querySelectorAll('.sal-fill-member-row')).map(function (row) {
+            const selected = row.querySelector('.sal-fill-member-select');
+            const min = row.querySelector('[data-limit="min"]');
+            const max = row.querySelector('[data-limit="max"]');
+            const pallets = row.querySelector('[data-limit="pallets"]');
+            return {
+                lineNo: Number(row.dataset.memberLine),
+                selected: Boolean(selected && selected.checked),
+                minQuantity: Number(min && min.value) || 0,
+                maxQuantity: Number(max && max.value) || 0,
+                maxPallets: Number(pallets && pallets.value) || 0
+            };
+        });
+        const selectedMembers = members.filter(function (member) { return member.selected; });
+        if (!selectedMembers.length) {
+            showDialogError('Select at least one eligible product or size.');
+            return;
+        }
+        const invalid = selectedMembers.some(function (member) {
+            return member.minQuantity < 0 || member.maxQuantity < 0 || member.maxPallets < 0 ||
+                (member.maxQuantity > 0 && member.minQuantity > member.maxQuantity);
+        });
+        if (invalid) {
+            showDialogError('Member limits cannot be negative, and a minimum cannot exceed its maximum.');
+            return;
+        }
+        closeDialog();
+        invoke('ConvertRemainingToFillRequested', [
+            sourceLineNo,
+            groupCode,
+            quantity,
+            Boolean(mixedControl && mixedControl.checked),
+            JSON.stringify(members),
+            reason
+        ], true);
+    }
+
     function addPallet() {
         openDialog([
             '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
@@ -1058,25 +1406,56 @@
             showToast('Add demand before adding a pallet component.', true);
             return;
         }
-        const options = sources.map(function (source) {
-            return '<option value="' + escapeHtml(source.lineNo) + '">' + escapeHtml(source.documentNo) + ' · ' +
-                escapeHtml(source.itemNo) + ' · ' + escapeHtml(source.description || 'Item line') + '</option>';
+        const choices = [];
+        sources.forEach(function (source) {
+            const exactRemaining = Math.max(0, Number(source.exactRemainingQuantity == null ?
+                Number(source.requiredQuantity || 0) - Number(source.plannedQuantity || 0) : source.exactRemainingQuantity));
+            if (exactRemaining > 0)
+                choices.push({
+                    value: 'exact|' + source.lineNo + '|0',
+                    label: source.documentNo + ' · Exact · ' + source.itemNo + (source.variantCode ? ' · ' + source.variantCode : ''),
+                    detail: number(exactRemaining) + ' ' + (source.uom || 'units') + ' remaining',
+                    defaultQuantity: Math.min(160, exactRemaining)
+                });
+            const fillRemaining = Math.max(0, Number(source.fillRemainingQuantity || 0));
+            if (fillRemaining > 0)
+                (source.fillMembers || []).forEach(function (member) {
+                    const memberAllowance = Number(member.effectiveMaximumQuantity || 0) > 0 ?
+                        Math.max(0, Number(member.remainingAllowance || 0)) : fillRemaining;
+                    const available = Math.min(fillRemaining, memberAllowance);
+                    if (available <= 0)
+                        return;
+                    choices.push({
+                        value: 'fill|' + source.lineNo + '|' + member.lineNo,
+                        label: source.documentNo + ' · Fill ' + source.fillGroupCode + ' · ' + member.itemNo + (member.variantCode ? ' · ' + member.variantCode : ''),
+                        detail: number(available) + ' ' + (member.uom || 'units') + ' available under current caps',
+                        defaultQuantity: Math.min(Number(member.defaultPalletQuantity || 160), available)
+                    });
+                });
+        });
+        if (!choices.length) {
+            showToast('All demand is already allocated, or the fill group has no available member capacity.', true);
+            return;
+        }
+        const options = choices.map(function (choice) {
+            return '<option value="' + escapeHtml(choice.value) + '" data-default-quantity="' + escapeHtml(choice.defaultQuantity) + '">' +
+                escapeHtml(choice.label) + ' — ' + escapeHtml(choice.detail) + '</option>';
         }).join('');
         openDialog([
             '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
                 '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Pallet ', escapeHtml(palletNo), '</span><h2 id="sal-dialog-title">Add product / size</h2></div>',
                 '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
-                '<p class="sal-dialog-intro">Choose an order line and the exact quantity carried by this physical pallet.</p>',
+                '<p class="sal-dialog-intro">Choose an exact demand item or an eligible member of a converted fill group. Every physical pallet still records its actual product and quantity.</p>',
                 '<div class="sal-dialog-grid is-component">',
-                    '<label class="is-wide">Product / size<select id="sal-dialog-source-line">', options, '</select></label>',
-                    '<label>Tray / unit quantity<input id="sal-dialog-component-quantity" type="number" min="0.01" step="0.01" value="160"></label>',
+                    '<label class="is-wide">Demand and product / size<select id="sal-dialog-component-choice">', options, '</select></label>',
+                    '<label>Tray / unit quantity<input id="sal-dialog-component-quantity" type="number" min="0.01" step="0.01" value="', escapeHtml(choices[0].defaultQuantity), '"></label>',
                 '</div>',
                 '<input id="sal-dialog-pallet-no" type="hidden" value="', escapeHtml(palletNo), '">',
                 '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
                 '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
                 '<button class="sal-button is-primary" type="button" data-action="submit-component">Add to pallet</button></div>',
             '</div>'
-        ].join(''), '#sal-dialog-source-line');
+        ].join(''), '#sal-dialog-component-choice');
     }
 
     function openDialog(content, focusSelector) {
@@ -1145,10 +1524,18 @@
 
     function submitComponent() {
         const palletNo = Number(dialogValue('#sal-dialog-pallet-no'));
-        const sourceLineNo = Number(dialogValue('#sal-dialog-source-line'));
+        const choice = dialogValue('#sal-dialog-component-choice').split('|');
+        const mode = choice[0];
+        const sourceLineNo = Number(choice[1]);
+        const fillMemberLineNo = Number(choice[2]);
         const quantity = Number(dialogValue('#sal-dialog-component-quantity'));
-        if (!Number.isSafeInteger(palletNo) || palletNo <= 0 || !Number.isSafeInteger(sourceLineNo) || sourceLineNo <= 0) {
+        if (!Number.isSafeInteger(palletNo) || palletNo <= 0 || !Number.isSafeInteger(sourceLineNo) || sourceLineNo <= 0 ||
+            !['exact', 'fill'].includes(mode)) {
             showDialogError('Choose a valid pallet and product / size.');
+            return;
+        }
+        if (mode === 'fill' && (!Number.isSafeInteger(fillMemberLineNo) || fillMemberLineNo <= 0)) {
+            showDialogError('Choose a valid fill-group product or size.');
             return;
         }
         if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -1156,7 +1543,10 @@
             return;
         }
         closeDialog();
-        invoke('AddComponentRequested', [palletNo, sourceLineNo, quantity], true);
+        if (mode === 'fill')
+            invoke('AddFillComponentRequested', [palletNo, sourceLineNo, fillMemberLineNo, quantity], true);
+        else
+            invoke('AddComponentRequested', [palletNo, sourceLineNo, quantity], true);
     }
 
     globalThis.SetState = applyState;

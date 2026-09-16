@@ -39,6 +39,8 @@ table 58004 "SAL Plan Component"
                     exit;
 
                 PlanSource.Get("Plan No.", "Version No.", "Source Line No.");
+                "Fulfilment Mode" := "Fulfilment Mode"::ExactSKU;
+                "Fill Member Line No." := 0;
                 Validate("Item No.", PlanSource."Item No.");
                 Validate("Variant Code", PlanSource."Variant Code");
                 Validate("Unit of Measure Code", PlanSource."Unit of Measure Code");
@@ -82,6 +84,40 @@ table 58004 "SAL Plan Component"
         {
             Caption = 'Description';
             DataClassification = CustomerContent;
+        }
+        field(11; "Fulfilment Mode"; Enum "SAL Fulfilment Mode")
+        {
+            Caption = 'Fulfilment Mode';
+            DataClassification = CustomerContent;
+
+            trigger OnValidate()
+            begin
+                if "Fulfilment Mode" = "Fulfilment Mode"::ExactSKU then
+                    "Fill Member Line No." := 0;
+            end;
+        }
+        field(12; "Fill Member Line No."; Integer)
+        {
+            Caption = 'Fill Member Line No.';
+            DataClassification = CustomerContent;
+            TableRelation = "SAL Plan Fill Member"."Line No." where("Plan No." = field("Plan No."),
+                                                                      "Version No." = field("Version No."),
+                                                                      "Source Line No." = field("Source Line No."));
+
+            trigger OnValidate()
+            var
+                FillMember: Record "SAL Plan Fill Member";
+            begin
+                if "Fill Member Line No." = 0 then
+                    exit;
+
+                FillMember.Get("Plan No.", "Version No.", "Source Line No.", "Fill Member Line No.");
+                "Fulfilment Mode" := "Fulfilment Mode"::FillGroup;
+                Validate("Item No.", FillMember."Item No.");
+                Validate("Variant Code", FillMember."Variant Code");
+                Validate("Unit of Measure Code", FillMember."Unit of Measure Code");
+                Description := FillMember.Description;
+            end;
         }
     }
 

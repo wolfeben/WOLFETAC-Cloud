@@ -25,6 +25,18 @@ page 58004 "SAL Pallet Components"
                     ShowMandatory = true;
                     ToolTip = 'Specifies the plan demand line fulfilled by this pallet component.';
                 }
+                field("Fulfilment Mode"; Rec."Fulfilment Mode")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows whether this component is the original exact SKU or an eligible fill member.';
+                }
+                field("Fill Member Line No."; Rec."Fill Member Line No.")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the selected fill member when this is a flexible component.';
+                }
                 field("Item No."; Rec."Item No.")
                 {
                     ApplicationArea = All;

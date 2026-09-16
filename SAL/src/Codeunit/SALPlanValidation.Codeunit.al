@@ -53,8 +53,7 @@ codeunit 58002 "SAL Plan Validation"
 
     local procedure ValidateSource(var PlanSource: Record "SAL Plan Source")
     var
-        PlanComponent: Record "SAL Plan Component";
-        PlannedQuantity: Decimal;
+        ExactTargetQuantity: Decimal;
     begin
         PlanSource.TestField("Source Document No.");
         PlanSource.TestField("Source Document Line No.");
@@ -68,13 +67,61 @@ codeunit 58002 "SAL Plan Validation"
         ValidateSourceDocument(PlanSource);
         ValidateSourceSnapshot(PlanSource);
 
-        PlanComponent.SetRange("Plan No.", PlanSource."Plan No.");
-        PlanComponent.SetRange("Version No.", PlanSource."Version No.");
-        PlanComponent.SetRange("Source Line No.", PlanSource."Line No.");
-        PlanComponent.CalcSums(Quantity);
-        PlannedQuantity := PlanComponent.Quantity;
-        if not QuantitiesEqual(PlannedQuantity, PlanSource.Quantity) then
-            Error(SourceTotalErr, PlanSource."Line No.", PlanSource.Quantity, PlannedQuantity);
+        if (PlanSource."Fill Target Quantity" < 0) or (PlanSource."Fill Target Quantity" > PlanSource.Quantity) then
+            Error(FillTargetInvalidErr, PlanSource."Line No.", PlanSource."Fill Target Quantity", PlanSource.Quantity);
+
+        PlanSource.CalcFields("Exact Planned Quantity", "Fill Planned Quantity");
+        ExactTargetQuantity := PlanSource.Quantity - PlanSource."Fill Target Quantity";
+        if not QuantitiesEqual(PlanSource."Exact Planned Quantity", ExactTargetQuantity) then
+            Error(ExactSourceTotalErr, PlanSource."Line No.", ExactTargetQuantity, PlanSource."Exact Planned Quantity");
+        if not QuantitiesEqual(PlanSource."Fill Planned Quantity", PlanSource."Fill Target Quantity") then
+            Error(FillSourceTotalErr, PlanSource."Line No.", PlanSource."Fill Target Quantity", PlanSource."Fill Planned Quantity");
+
+        if PlanSource."Fill Target Quantity" > 0 then
+            ValidateFillSource(PlanSource)
+        else
+            if PlanSource."Fulfilment Mode" <> PlanSource."Fulfilment Mode"::ExactSKU then
+                Error(ExactModeErr, PlanSource."Line No.");
+    end;
+
+    local procedure ValidateFillSource(PlanSource: Record "SAL Plan Source")
+    var
+        FillMember: Record "SAL Plan Fill Member";
+        PlanHeader: Record "SAL Plan Header";
+        EffectiveMaximum: Decimal;
+    begin
+        PlanSource.TestField("Fill Group Code");
+        PlanSource.TestField("Fill Marketer Customer No.");
+        if PlanSource."Fill Target Quantity" = PlanSource.Quantity then begin
+            if PlanSource."Fulfilment Mode" <> PlanSource."Fulfilment Mode"::FillGroup then
+                Error(FillModeErr, PlanSource."Line No.");
+        end else
+            if PlanSource."Fulfilment Mode" <> PlanSource."Fulfilment Mode"::Hybrid then
+                Error(HybridModeErr, PlanSource."Line No.");
+
+        PlanHeader.Get(PlanSource."Plan No.", PlanSource."Version No.");
+        if PlanSource."Fill Marketer Customer No." <> PlanHeader."Marketer Customer No." then
+            Error(FillMarketerMismatchErr, PlanSource."Line No.", PlanSource."Fill Marketer Customer No.", PlanHeader."Marketer Customer No.");
+
+        FillMember.SetRange("Plan No.", PlanSource."Plan No.");
+        FillMember.SetRange("Version No.", PlanSource."Version No.");
+        FillMember.SetRange("Source Line No.", PlanSource."Line No.");
+        if not FillMember.FindSet() then
+            Error(NoFillMembersErr, PlanSource."Line No.");
+        repeat
+            if FillMember."Group Code" <> PlanSource."Fill Group Code" then
+                Error(FillMemberGroupErr, FillMember."Line No.", PlanSource."Line No.");
+            if FillMember."Unit of Measure Code" <> PlanSource."Unit of Measure Code" then
+                Error(
+                    FillMemberUOMMismatchErr,
+                    FillMember."Item No.", FillMember."Unit of Measure Code", PlanSource."Unit of Measure Code");
+            FillMember.CalcFields("Planned Quantity");
+            if (FillMember."Minimum Quantity" > 0) and (FillMember."Planned Quantity" < FillMember."Minimum Quantity") then
+                Error(FillMemberMinimumErr, FillMember."Item No.", FillMember."Minimum Quantity", FillMember."Planned Quantity");
+            EffectiveMaximum := GetEffectiveMaximum(FillMember);
+            if (EffectiveMaximum > 0) and (FillMember."Planned Quantity" > EffectiveMaximum) then
+                Error(FillMemberMaximumErr, FillMember."Item No.", EffectiveMaximum, FillMember."Planned Quantity");
+        until FillMember.Next() = 0;
     end;
 
     local procedure ValidateRouteAndWorkType(PlanSource: Record "SAL Plan Source")
@@ -220,6 +267,9 @@ codeunit 58002 "SAL Plan Validation"
         if not QuantitiesEqual(PlannedQuantity, PlanPallet."Target Quantity") then
             Error(PalletTotalErr, PlanPallet."Pallet No.", PlanPallet."Target Quantity", PlannedQuantity);
 
+        if HasDifferentProduct then
+            ValidateFillMixPermissions(PlanPallet);
+
         case PlanPallet."Pallet Type" of
             PlanPallet."Pallet Type"::Standard:
                 if ComponentCount <> 1 then
@@ -235,15 +285,70 @@ codeunit 58002 "SAL Plan Validation"
 
     local procedure ValidateComponentMatchesSource(PlanComponent: Record "SAL Plan Component")
     var
+        FillMember: Record "SAL Plan Fill Member";
         PlanSource: Record "SAL Plan Source";
     begin
         if not PlanSource.Get(PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.") then
             Error(ComponentSourceErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
-        if (PlanComponent."Item No." <> PlanSource."Item No.") or
-           (PlanComponent."Variant Code" <> PlanSource."Variant Code") or
-           (PlanComponent."Unit of Measure Code" <> PlanSource."Unit of Measure Code")
-        then
-            Error(ComponentSourceMismatchErr, PlanComponent."Pallet No.", PlanComponent."Line No.", PlanSource."Line No.");
+        case PlanComponent."Fulfilment Mode" of
+            PlanComponent."Fulfilment Mode"::ExactSKU:
+                begin
+                    if PlanComponent."Fill Member Line No." <> 0 then
+                        Error(ExactComponentMemberErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
+                    if (PlanComponent."Item No." <> PlanSource."Item No.") or
+                       (PlanComponent."Variant Code" <> PlanSource."Variant Code") or
+                       (PlanComponent."Unit of Measure Code" <> PlanSource."Unit of Measure Code")
+                    then
+                        Error(ComponentSourceMismatchErr, PlanComponent."Pallet No.", PlanComponent."Line No.", PlanSource."Line No.");
+                end;
+            PlanComponent."Fulfilment Mode"::FillGroup:
+                begin
+                    if PlanSource."Fill Target Quantity" <= 0 then
+                        Error(ComponentSourceNotFillErr, PlanComponent."Pallet No.", PlanComponent."Line No.", PlanSource."Line No.");
+                    PlanComponent.TestField("Fill Member Line No.");
+                    if not FillMember.Get(
+                        PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.", PlanComponent."Fill Member Line No.")
+                    then
+                        Error(ComponentFillMemberErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
+                    if (PlanComponent."Item No." <> FillMember."Item No.") or
+                       (PlanComponent."Variant Code" <> FillMember."Variant Code") or
+                       (PlanComponent."Unit of Measure Code" <> FillMember."Unit of Measure Code")
+                    then
+                        Error(ComponentFillMismatchErr, PlanComponent."Pallet No.", PlanComponent."Line No.", FillMember."Line No.");
+                end;
+            else
+                Error(ComponentModeErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
+        end;
+    end;
+
+    local procedure ValidateFillMixPermissions(PlanPallet: Record "SAL Plan Pallet")
+    var
+        PlanComponent: Record "SAL Plan Component";
+        PlanSource: Record "SAL Plan Source";
+    begin
+        PlanComponent.SetRange("Plan No.", PlanPallet."Plan No.");
+        PlanComponent.SetRange("Version No.", PlanPallet."Version No.");
+        PlanComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+        PlanComponent.SetRange("Fulfilment Mode", PlanComponent."Fulfilment Mode"::FillGroup);
+        if PlanComponent.FindSet() then
+            repeat
+                PlanSource.Get(PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.");
+                if not PlanSource."Fill Allows Mixed Pallets" then
+                    Error(FillMixNotAllowedErr, PlanPallet."Pallet No.", PlanSource."Line No.");
+            until PlanComponent.Next() = 0;
+    end;
+
+    local procedure GetEffectiveMaximum(FillMember: Record "SAL Plan Fill Member") EffectiveMaximum: Decimal
+    var
+        PalletMaximum: Decimal;
+    begin
+        EffectiveMaximum := FillMember."Maximum Quantity";
+        if FillMember."Maximum Pallets" > 0 then begin
+            FillMember.TestField("Default Pallet Quantity");
+            PalletMaximum := FillMember."Maximum Pallets" * FillMember."Default Pallet Quantity";
+            if (EffectiveMaximum = 0) or (PalletMaximum < EffectiveMaximum) then
+                EffectiveMaximum := PalletMaximum;
+        end;
     end;
 
     local procedure ValidateMarketerCustomer(MarketerCustomerNo: Code[20])
@@ -261,16 +366,34 @@ codeunit 58002 "SAL Plan Validation"
 
     var
         ComponentQuantityErr: Label 'Pallet %1 component line %2 must have a quantity greater than zero.', Comment = '%1 = pallet no., %2 = component line no.';
+        ComponentFillMemberErr: Label 'Pallet %1 component line %2 is not linked to a valid fill member.', Comment = '%1 = pallet no., %2 = component line no.';
+        ComponentFillMismatchErr: Label 'Pallet %1 component line %2 does not match fill member line %3 item, variant and unit of measure.', Comment = '%1 = pallet no., %2 = component line no., %3 = fill member line no.';
+        ComponentModeErr: Label 'Pallet %1 component line %2 has an invalid fulfilment mode.', Comment = '%1 = pallet no., %2 = component line no.';
         ComponentSourceErr: Label 'Pallet %1 component line %2 is not linked to a valid source line.', Comment = '%1 = pallet no., %2 = component line no.';
         ComponentSourceMismatchErr: Label 'Pallet %1 component line %2 does not match source line %3 item, variant and unit of measure.', Comment = '%1 = pallet no., %2 = component line no., %3 = source line no.';
-        CustomPalletErr: Label 'Custom pallet %1 must contain at least one exact component.', Comment = '%1 = pallet no.';
+        ComponentSourceNotFillErr: Label 'Pallet %1 component line %2 is marked as fill, but source line %3 has no fill target.', Comment = '%1 = pallet no., %2 = component line no., %3 = source line no.';
+        CustomPalletErr: Label 'Custom pallet %1 must contain at least one component.', Comment = '%1 = pallet no.';
         DemandNoLongerAvailableErr: Label 'Demand %1 line %2 is no longer available in the active consignment lines.', Comment = '%1 = document no., %2 = line no.';
         DemandNotReleasedErr: Label 'Demand %1 line %2 is no longer Released.', Comment = '%1 = document no., %2 = line no.';
         DemandProductChangedErr: Label 'Demand %1 line %2 now has a different item, variant or unit of measure. Refresh the demand and rebuild the affected pallet components.', Comment = '%1 = document no., %2 = line no.';
         DispatchBeforeFinishErr: Label 'Dispatch Date cannot be earlier than Required Finish Date.';
+        ExactComponentMemberErr: Label 'Pallet %1 exact component line %2 cannot reference a fill member.', Comment = '%1 = pallet no., %2 = component line no.';
+        ExactModeErr: Label 'Source line %1 has no fill target and must remain Exact SKU.', Comment = '%1 = source line no.';
+        ExactSourceTotalErr: Label 'Source line %1 requires %2 exact units but its exact pallet components total %3.', Comment = '%1 = source line, %2 = exact target, %3 = exact planned';
+        FillMarketerMismatchErr: Label 'Source line %1 fill marketer %2 does not match plan marketer %3.', Comment = '%1 = source line, %2 = fill marketer, %3 = plan marketer';
+        FillMemberGroupErr: Label 'Fill member line %1 does not match the fill group on source line %2.', Comment = '%1 = member line, %2 = source line';
+        FillMemberMaximumErr: Label 'Fill member %1 allows at most %2 units but %3 are planned.', Comment = '%1 = item, %2 = maximum, %3 = planned';
+        FillMemberMinimumErr: Label 'Fill member %1 requires at least %2 units but only %3 are planned.', Comment = '%1 = item, %2 = minimum, %3 = planned';
+        FillMemberUOMMismatchErr: Label 'Fill member %1 uses unit %2, but source demand uses %3. Fill quantities must use the same unit.', Comment = '%1 = item, %2 = member UOM, %3 = source UOM';
+        FillMixNotAllowedErr: Label 'Pallet %1 mixes products or sizes, but source line %2 does not allow a mixed fill pallet.', Comment = '%1 = pallet no., %2 = source line';
+        FillModeErr: Label 'Source line %1 is entirely flexible and must use Fill Group mode.', Comment = '%1 = source line no.';
+        FillSourceTotalErr: Label 'Source line %1 requires %2 fill units but its fill pallet components total %3.', Comment = '%1 = source line, %2 = fill target, %3 = fill planned';
+        FillTargetInvalidErr: Label 'Source line %1 has fill target %2, which cannot exceed its total quantity of %3.', Comment = '%1 = source line, %2 = fill target, %3 = total';
+        HybridModeErr: Label 'Source line %1 contains both exact and fill demand and must use Exact + Fill mode.', Comment = '%1 = source line no.';
         MarketerCustomerNotFoundErr: Label 'Marketer customer %1 does not exist.', Comment = '%1 = customer no.';
         MarketerNotConfirmedErr: Label 'Confirm the commercial marketer before releasing the plan.';
         MixedPalletErr: Label 'Mixed pallet %1 must contain at least two components with different items or variants.', Comment = '%1 = pallet no.';
+        NoFillMembersErr: Label 'Source line %1 has a fill target but no eligible products or sizes.', Comment = '%1 = source line no.';
         NoPalletsErr: Label 'Add at least one physical pallet before releasing the plan.';
         NoSourcesErr: Label 'Add at least one source demand line before releasing the plan.';
         PalletNoComponentsErr: Label 'Pallet %1 has no components.', Comment = '%1 = pallet no.';

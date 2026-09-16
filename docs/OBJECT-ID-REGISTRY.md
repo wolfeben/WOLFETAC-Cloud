@@ -52,21 +52,25 @@ The former 59006/59007 Cloud prototype IDs are retired. The last two digits are 
 
 | ID | Name | State |
 |---|---|---|
-| 58000 | SAL Setup | Reserved |
-| 58001 | SAL Plans | Reserved |
-| 58002 | SAL Plan Card | Reserved |
-| 58003 | SAL Plan Pallets | Reserved |
-| 58004 | SAL Pallet Components | Reserved |
-| 58005 | SAL Plan Events | Reserved |
-| 58006 | SAL Stock & Logistics Monitor | Approved primary Cloud page |
-| 58007 | SAL Stock & Logistics Planner | Implemented minimal draft-saving planner card |
+| 58000 | SAL Setup | Implemented setup card |
+| 58001 | SAL Plans | Implemented plan-version list |
+| 58002 | SAL Plan Details | Implemented supporting plan card |
+| 58003 | SAL Plan Pallets | Implemented planner ListPart |
+| 58004 | SAL Pallet Components | Implemented selected-pallet ListPart |
+| 58005 | SAL Plan Events | Implemented read-only activity ListPart |
+| 58006 | SAL Stock & Logistics Monitor | Implemented as the searchable Packing & Logistics Monitor |
+| 58007 | SAL Stock & Logistics Planner | Implemented interactive versioned planner card |
 | 58008 | SAL Unconsigned Pallets | Reserved |
 | 58009 | SAL Allocation Exceptions | Reserved |
 | 58010 | SAL Pallet Templates | Reserved |
 | 58011 | SAL Template Rules | Reserved |
-| 58012 | SAL Product Groups | Reserved |
-| 58013 | SAL Product Group Members | Reserved |
+| 58012 | SAL Product Groups | Implemented fill-group setup list |
+| 58013 | SAL Product Group Members | Implemented eligible SKU and per-template limit setup |
 | 58014 | SAL Integration Status | Reserved |
+| 58015 | SAL Plan Sources | Implemented demand-and-routing ListPart |
+| 58016 | SAL Freight & Arrivals Monitor | Implemented as a non-searchable supporting freight-detail projection |
+| 58017 | SAL Freight Load Card | Reserved pending confirmation of the authoritative freight source and ownership |
+| 58018 | SAL Plan Fill Members | Implemented versioned per-order fill-member snapshot list |
 | 58150-58179 | SAL API pages | Reserved for versioned integration endpoints; not interactive pages |
 
 Packing Wall and Packing Facility Operator remain in the on-premises extension and receive no IDs from this Cloud range.
@@ -83,11 +87,12 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 | 58005 | SAL Plan Event | Implemented |
 | 58006 | SAL Pallet Template | Reserved |
 | 58007 | SAL Template Rule | Reserved |
-| 58008 | SAL Product Group | Reserved |
-| 58009 | SAL Product Group Member | Reserved |
+| 58008 | SAL Product Group | Implemented marketer-specific fill-group template |
+| 58009 | SAL Product Group Member | Implemented unlimited eligible SKU membership and default limits |
 | 58010 | SAL Allocation Exception | Reserved |
 | 58011 | SAL Sync State | Reserved |
 | 58012 | SAL Operation Request | Reserved |
+| 58013 | SAL Plan Fill Member | Implemented versioned eligible SKU and per-order limit snapshot |
 
 ## SAL enums
 
@@ -102,6 +107,7 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 | 58006 | SAL Allocation Status | Reserved |
 | 58007 | SAL Integration Status | Reserved |
 | 58008 | SAL Exception Type | Reserved |
+| 58009 | SAL Fulfilment Mode | Implemented Exact SKU, Fill Group and Exact + Fill modes |
 
 Do not encode TAC and Costa as enum values until the authoritative upstream marketer field and extensibility requirement are confirmed.
 
@@ -109,13 +115,13 @@ Do not encode TAC and Costa as enum values until the authoritative upstream mark
 
 | ID | Name | State |
 |---|---|---|
-| 58000 | SAL Demand Management | Reserved |
-| 58001 | SAL Plan Management | Reserved |
-| 58002 | SAL Plan Validation | Reserved |
+| 58000 | SAL Demand Management | Implemented released Sales/Transfer demand selection and source snapshots |
+| 58001 | SAL Plan Management | Implemented validation, release and safe version-copy lifecycle |
+| 58002 | SAL Plan Validation | Implemented release validation and quantity/routing rules |
 | 58003 | SAL Publish Management | Reserved |
 | 58004 | SAL Sales Adapter | Reserved |
 | 58005 | SAL Transfer Adapter | Reserved |
-| 58006 | SAL Allocation Management | Reserved |
+| 58006 | SAL Allocation Management | Implemented Draft fill conversion, fill allocation, adjustment and audit rules |
 | 58007 | SAL Finish Short Management | Reserved |
 | 58008 | SAL Integration Outbound | Reserved |
 | 58009 | SAL Integration Inbound | Reserved |
@@ -139,6 +145,7 @@ A separate test app, `WOLFETAC Cloud Tests`, lives under `Test/SAL` and depends 
 | ID | Name | State |
 |---|---|---|
 | 58800 | SAL Plan Model Tests | Implemented; validates line/pallet number sequencing, source-line referential checks and pallet quantity roll-up |
+| 58801 | SAL Fill Group Tests | Implemented fill conversion, caps, marketer, mixed-pallet, adjustment and revision tests |
 
 ## Allocation rules
 

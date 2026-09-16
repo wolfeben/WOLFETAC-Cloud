@@ -74,6 +74,36 @@ page 58015 "SAL Plan Sources"
                     StyleExpr = PlannedQuantityStyle;
                     ToolTip = 'Specifies the quantity currently assigned to physical pallet components.';
                 }
+                field("Fulfilment Mode"; Rec."Fulfilment Mode")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows whether this demand is exact, flexible fill, or a combination of both.';
+                }
+                field("Fill Group Code"; Rec."Fill Group Code")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the fill group selected for the flexible balance.';
+                }
+                field("Exact Planned Quantity"; Rec."Exact Planned Quantity")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the quantity assigned to the original exact SKU.';
+                }
+                field("Fill Target Quantity"; Rec."Fill Target Quantity")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the quantity that may be fulfilled by eligible fill group members.';
+                }
+                field("Fill Planned Quantity"; Rec."Fill Planned Quantity")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the flexible quantity assigned to eligible fill products and sizes.';
+                }
                 field("Unit of Measure Code"; Rec."Unit of Measure Code")
                 {
                     ApplicationArea = All;
@@ -126,7 +156,7 @@ page 58015 "SAL Plan Sources"
 
     trigger OnAfterGetRecord()
     begin
-        Rec.CalcFields("Planned Quantity");
+        Rec.CalcFields("Planned Quantity", "Exact Planned Quantity", "Fill Planned Quantity");
         if Rec."Routing Confirmed" then
             RoutingStyle := 'Favorable'
         else

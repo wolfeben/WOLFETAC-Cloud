@@ -174,6 +174,79 @@ table 58002 "SAL Plan Source"
             Caption = 'Destination';
             DataClassification = CustomerContent;
         }
+        field(28; "Fulfilment Mode"; Enum "SAL Fulfilment Mode")
+        {
+            Caption = 'Fulfilment Mode';
+            DataClassification = CustomerContent;
+            Editable = false;
+        }
+        field(29; "Fill Group Code"; Code[20])
+        {
+            Caption = 'Fill Group Code';
+            DataClassification = CustomerContent;
+            Editable = false;
+            TableRelation = "SAL Product Group".Code;
+        }
+        field(30; "Fill Target Quantity"; Decimal)
+        {
+            Caption = 'Fill Target Quantity';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            Editable = false;
+            MinValue = 0;
+        }
+        field(31; "Fill Allows Mixed Pallets"; Boolean)
+        {
+            Caption = 'Fill Allows Mixed Pallets';
+            DataClassification = CustomerContent;
+            Editable = false;
+        }
+        field(32; "Fill Conversion Reason"; Text[250])
+        {
+            Caption = 'Fill Conversion Reason';
+            DataClassification = CustomerContent;
+            Editable = false;
+        }
+        field(33; "Fill Converted At"; DateTime)
+        {
+            Caption = 'Fill Converted At';
+            DataClassification = SystemMetadata;
+            Editable = false;
+        }
+        field(34; "Fill Converted By"; Code[50])
+        {
+            Caption = 'Fill Converted By';
+            DataClassification = EndUserIdentifiableInformation;
+            Editable = false;
+        }
+        field(35; "Exact Planned Quantity"; Decimal)
+        {
+            Caption = 'Exact Planned Quantity';
+            FieldClass = FlowField;
+            CalcFormula = sum("SAL Plan Component".Quantity where("Plan No." = field("Plan No."),
+                                                                   "Version No." = field("Version No."),
+                                                                   "Source Line No." = field("Line No."),
+                                                                   "Fulfilment Mode" = const(ExactSKU)));
+            Editable = false;
+        }
+        field(36; "Fill Planned Quantity"; Decimal)
+        {
+            Caption = 'Fill Planned Quantity';
+            FieldClass = FlowField;
+            CalcFormula = sum("SAL Plan Component".Quantity where("Plan No." = field("Plan No."),
+                                                                   "Version No." = field("Version No."),
+                                                                   "Source Line No." = field("Line No."),
+                                                                   "Fulfilment Mode" = const(FillGroup)));
+            Editable = false;
+        }
+        field(37; "Fill Marketer Customer No."; Code[20])
+        {
+            Caption = 'Fill Marketer Customer No.';
+            DataClassification = CustomerContent;
+            Editable = false;
+            TableRelation = Customer."No.";
+            ToolTip = 'Specifies the marketer captured when the exact balance was converted to a fill group.';
+        }
     }
 
     keys
@@ -219,6 +292,7 @@ table 58002 "SAL Plan Source"
 
     trigger OnDelete()
     var
+        FillMember: Record "SAL Plan Fill Member";
         PlanComponent: Record "SAL Plan Component";
         PlanHeader: Record "SAL Plan Header";
     begin
@@ -229,6 +303,11 @@ table 58002 "SAL Plan Source"
         PlanComponent.SetRange("Source Line No.", "Line No.");
         if not PlanComponent.IsEmpty() then
             Error(SourceInUseErr, "Line No.");
+
+        FillMember.SetRange("Plan No.", "Plan No.");
+        FillMember.SetRange("Version No.", "Version No.");
+        FillMember.SetRange("Source Line No.", "Line No.");
+        FillMember.DeleteAll(true);
     end;
 
     trigger OnRename()

@@ -10,18 +10,25 @@ permissionset 58000 "SAL VIEW"
         tabledata "SAL Plan Pallet" = r,
         tabledata "SAL Plan Component" = r,
         tabledata "SAL Plan Event" = r,
+        tabledata "SAL Plan Fill Member" = r,
+        tabledata "SAL Product Group" = r,
+        tabledata "SAL Product Group Member" = r,
         table "SAL Setup" = X,
         table "SAL Plan Header" = X,
         table "SAL Plan Source" = X,
         table "SAL Plan Pallet" = X,
         table "SAL Plan Component" = X,
         table "SAL Plan Event" = X,
+        table "SAL Plan Fill Member" = X,
+        table "SAL Product Group" = X,
+        table "SAL Product Group Member" = X,
         page "SAL Plan Details" = X,
         page "SAL Plan Pallets" = X,
         page "SAL Pallet Components" = X,
         page "SAL Plan Events" = X,
         page "SAL Stock & Logistics Monitor" = X,
-        page "SAL Plan Sources" = X;
+        page "SAL Plan Sources" = X,
+        page "SAL Plan Fill Members" = X;
 }
 
 permissionset 58001 "SAL PLANNER"
@@ -36,6 +43,9 @@ permissionset 58001 "SAL PLANNER"
         tabledata "SAL Plan Pallet" = RIMD,
         tabledata "SAL Plan Component" = RIMD,
         tabledata "SAL Plan Event" = RI,
+        tabledata "SAL Plan Fill Member" = RIMD,
+        tabledata "SAL Product Group" = r,
+        tabledata "SAL Product Group Member" = r,
         tabledata "Sales Header" = r,
         tabledata "Sales Line" = r,
         tabledata "Transfer Header" = r,
@@ -48,6 +58,7 @@ permissionset 58001 "SAL PLANNER"
         codeunit "SAL Demand Management" = X,
         codeunit "SAL Plan Management" = X,
         codeunit "SAL Plan Validation" = X,
+        codeunit "SAL Allocation Management" = X,
         page "SAL Plans" = X,
         page "SAL Stock & Logistics Planner" = X,
         page "SAL Freight & Arrivals Monitor" = X,
@@ -63,6 +74,10 @@ permissionset 58002 "SAL ADMIN"
 
     Permissions =
         tabledata "SAL Setup" = RIMD,
+        tabledata "SAL Product Group" = RIMD,
+        tabledata "SAL Product Group Member" = RIMD,
         tabledata "No. Series" = r,
-        page "SAL Setup" = X;
+        page "SAL Setup" = X,
+        page "SAL Product Groups" = X,
+        page "SAL Product Group Members" = X;
 }

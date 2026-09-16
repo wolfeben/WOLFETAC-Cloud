@@ -56,6 +56,17 @@ Every message must have a GUID message ID, schema version, source and target env
 - The physical Grade Item Data marketer validates scanned stock. SAL also requires an authoritative commercial/order marketer and may not infer TAC or Costa from display names.
 - Do not write Item Ledger Entry, posted shipment or posted receipt tables directly.
 
+## Fill-group planning
+
+- The source Sales or Transfer line remains the authoritative demand quantity and product reference.
+- A Draft plan may reclassify only its unplanned exact balance to a marketer-specific fill group.
+- The original exact component allocation is never silently changed. A hybrid source therefore carries an exact target and a fill target whose sum remains the source demand.
+- Eligible group members and order-specific limits are snapshotted into the plan version. Later template edits cannot change released history.
+- Every physical pallet component still records one exact Item, Variant, UOM and quantity. A mixed pallet is one physical pallet with multiple exact components, not an unspecified group allocation.
+- Fill conversion and adjustment are Draft-only until the facility feedback contract identifies which released components are physically completed or scanned.
+- Validation enforces exact and fill totals separately, marketer equality, member identity and limits, physical pallet totals, and the mixed-pallet permission.
+- SAL planning does not substitute or post the source BC document line. Any commercial-document change remains a controlled standard BC process.
+
 ## Primary pages
 
 - Page 58006: Packing & Logistics Monitor, Cloud, read-only and the primary end-to-end operational view.

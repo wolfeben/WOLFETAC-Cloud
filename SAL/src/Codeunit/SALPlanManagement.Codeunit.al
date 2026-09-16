@@ -59,6 +59,7 @@ codeunit 58001 "SAL Plan Management"
 
         InitialiseNewVersion(CurrentPlanHeader, NextVersionNo, NewPlanHeader);
         CopySources(CurrentPlanHeader, NewPlanHeader);
+        CopyFillMembers(CurrentPlanHeader, NewPlanHeader);
         CopyPallets(CurrentPlanHeader, NewPlanHeader);
         CopyComponents(CurrentPlanHeader, NewPlanHeader);
 
@@ -200,6 +201,22 @@ codeunit 58001 "SAL Plan Management"
                 NewPlanPallet."Version No." := NewPlanHeader."Version No.";
                 NewPlanPallet.Insert(true);
             until PlanPallet.Next() = 0;
+    end;
+
+    local procedure CopyFillMembers(CurrentPlanHeader: Record "SAL Plan Header"; NewPlanHeader: Record "SAL Plan Header")
+    var
+        NewPlanFillMember: Record "SAL Plan Fill Member";
+        PlanFillMember: Record "SAL Plan Fill Member";
+    begin
+        PlanFillMember.SetRange("Plan No.", CurrentPlanHeader."No.");
+        PlanFillMember.SetRange("Version No.", CurrentPlanHeader."Version No.");
+        if PlanFillMember.FindSet() then
+            repeat
+                NewPlanFillMember.Init();
+                NewPlanFillMember.TransferFields(PlanFillMember, true);
+                NewPlanFillMember."Version No." := NewPlanHeader."Version No.";
+                NewPlanFillMember.Insert(true);
+            until PlanFillMember.Next() = 0;
     end;
 
     local procedure CopyComponents(CurrentPlanHeader: Record "SAL Plan Header"; NewPlanHeader: Record "SAL Plan Header")

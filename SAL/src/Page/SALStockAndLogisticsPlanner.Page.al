@@ -103,9 +103,29 @@ page 58007 "SAL Stock & Logistics Planner"
                     AddComponent(PalletNo, SourceLineNo, Quantity);
                 end;
 
+                trigger AddFillComponentRequested(PalletNo: Integer; SourceLineNo: Integer; FillMemberLineNo: Integer; Quantity: Decimal)
+                begin
+                    AddFillComponent(PalletNo, SourceLineNo, FillMemberLineNo, Quantity);
+                end;
+
                 trigger DeleteComponentRequested(PalletNo: Integer; LineNo: Integer)
                 begin
                     DeleteComponent(PalletNo, LineNo);
+                end;
+
+                trigger AdjustFillTargetRequested(SourceLineNo: Integer; NewFillTarget: Decimal; Reason: Text)
+                begin
+                    AdjustFillTarget(SourceLineNo, NewFillTarget, Reason);
+                end;
+
+                trigger ConvertRemainingToFillRequested(SourceLineNo: Integer; FillGroupCode: Text; Quantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text)
+                begin
+                    ConvertRemainingToFill(SourceLineNo, FillGroupCode, Quantity, AllowMixed, MembersJson, Reason);
+                end;
+
+                trigger OpenFillGroupsRequested()
+                begin
+                    Page.Run(Page::"SAL Product Groups");
                 end;
 
                 trigger SavePriorityRequested(Priority: Integer)
@@ -150,6 +170,7 @@ page 58007 "SAL Stock & Logistics Planner"
     local procedure BuildState(var StateJson: Text)
     var
         Capabilities: JsonObject;
+        FillGroups: JsonArray;
         Queue: JsonArray;
         Root: JsonObject;
         SelectedHeader: Record "SAL Plan Header";
@@ -157,7 +178,7 @@ page 58007 "SAL Stock & Logistics Planner"
         SelectedPlan: JsonObject;
     begin
         InitialiseSelection();
-        Root.Add('schemaVersion', 1);
+        Root.Add('schemaVersion', 2);
         Root.Add('environment', 'Cloud · SAL planning');
         Root.Add('company', CompanyName());
         Root.Add('currentUser', UserId());
@@ -171,12 +192,14 @@ page 58007 "SAL Stock & Logistics Planner"
             Root.Add('selectedKey', SelectedKey);
             BuildSelectedPlan(SelectedHeader, SelectedPlan);
             Root.Add('plan', SelectedPlan);
+            BuildFillGroups(SelectedHeader."Marketer Customer No.", FillGroups);
             BuildCapabilities(SelectedHeader, Capabilities);
         end else begin
             Root.Add('selectedKey', SelectedKey);
             Root.Add('plan', SelectedPlan);
             BuildEmptyCapabilities(Capabilities);
         end;
+        Root.Add('fillGroups', FillGroups);
         Root.Add('capabilities', Capabilities);
         Root.WriteTo(StateJson);
     end;
@@ -500,6 +523,58 @@ page 58007 "SAL Stock & Logistics Planner"
         SelectedPlan.Add('readiness', Readiness);
     end;
 
+    local procedure BuildFillGroups(MarketerCustomerNo: Code[20]; var FillGroups: JsonArray)
+    var
+        FillGroup: JsonObject;
+        Members: JsonArray;
+        ProductGroup: Record "SAL Product Group";
+    begin
+        if MarketerCustomerNo = '' then
+            exit;
+        ProductGroup.SetRange(Active, true);
+        ProductGroup.SetRange("Marketer Customer No.", MarketerCustomerNo);
+        if ProductGroup.FindSet() then
+            repeat
+                Clear(FillGroup);
+                Clear(Members);
+                ProductGroup.CalcFields("Marketer Description");
+                FillGroup.Add('code', ProductGroup.Code);
+                FillGroup.Add('description', ProductGroup.Description);
+                FillGroup.Add('marketerCustomerNo', ProductGroup."Marketer Customer No.");
+                FillGroup.Add('marketerDescription', ProductGroup."Marketer Description");
+                FillGroup.Add('allowMixedPallets', ProductGroup."Allow Mixed Pallets");
+                FillGroup.Add('defaultPalletQuantity', ProductGroup."Default Pallet Quantity");
+                BuildFillGroupMembers(ProductGroup.Code, Members);
+                FillGroup.Add('members', Members);
+                FillGroups.Add(FillGroup);
+            until ProductGroup.Next() = 0;
+    end;
+
+    local procedure BuildFillGroupMembers(GroupCode: Code[20]; var Members: JsonArray)
+    var
+        Member: JsonObject;
+        ProductGroupMember: Record "SAL Product Group Member";
+    begin
+        ProductGroupMember.SetCurrentKey("Group Code", Preference, "Line No.");
+        ProductGroupMember.SetRange("Group Code", GroupCode);
+        ProductGroupMember.SetRange(Active, true);
+        if ProductGroupMember.FindSet() then
+            repeat
+                Clear(Member);
+                Member.Add('lineNo', ProductGroupMember."Line No.");
+                Member.Add('itemNo', ProductGroupMember."Item No.");
+                Member.Add('variantCode', ProductGroupMember."Variant Code");
+                Member.Add('uom', ProductGroupMember."Unit of Measure Code");
+                Member.Add('description', ProductGroupMember.Description);
+                Member.Add('minimumQuantity', ProductGroupMember."Minimum Quantity");
+                Member.Add('maximumQuantity', ProductGroupMember."Maximum Quantity");
+                Member.Add('maximumPallets', ProductGroupMember."Maximum Pallets");
+                Member.Add('defaultPalletQuantity', ProductGroupMember."Default Pallet Quantity");
+                Member.Add('preference', ProductGroupMember.Preference);
+                Members.Add(Member);
+            until ProductGroupMember.Next() = 0;
+    end;
+
     local procedure BuildHeader(PlanHeader: Record "SAL Plan Header"; var Header: JsonObject)
     var
         PlanManagement: Codeunit "SAL Plan Management";
@@ -528,26 +603,43 @@ page 58007 "SAL Stock & Logistics Planner"
 
     local procedure BuildSources(PlanHeader: Record "SAL Plan Header"; var Sources: JsonArray)
     var
+        FillMembers: JsonArray;
         PlanSource: Record "SAL Plan Source";
         Source: JsonObject;
+        ExactTargetQuantity: Decimal;
         ItemCount: Integer;
     begin
         PlanSource.SetRange("Plan No.", PlanHeader."No.");
         PlanSource.SetRange("Version No.", PlanHeader."Version No.");
         if PlanSource.FindSet() then
             repeat
-                PlanSource.CalcFields("Planned Quantity");
+                PlanSource.CalcFields("Planned Quantity", "Exact Planned Quantity", "Fill Planned Quantity");
                 Clear(Source);
+                Clear(FillMembers);
+                ExactTargetQuantity := PlanSource.Quantity - PlanSource."Fill Target Quantity";
                 Source.Add('lineNo', PlanSource."Line No.");
                 Source.Add('sourceType', Format(PlanSource."Source Type"));
                 Source.Add('documentNo', PlanSource."Source Document No.");
                 Source.Add('documentLineNo', PlanSource."Source Document Line No.");
                 Source.Add('itemNo', PlanSource."Item No.");
                 Source.Add('itemDescription', PlanSource."Item Description");
+                Source.Add('description', PlanSource."Item Description");
                 Source.Add('variantCode', PlanSource."Variant Code");
                 Source.Add('uom', PlanSource."Unit of Measure Code");
                 Source.Add('requiredQuantity', PlanSource.Quantity);
                 Source.Add('plannedQuantity', PlanSource."Planned Quantity");
+                Source.Add('fulfilmentMode', Format(PlanSource."Fulfilment Mode"));
+                Source.Add('fillGroupCode', PlanSource."Fill Group Code");
+                Source.Add('fillTargetQuantity', PlanSource."Fill Target Quantity");
+                Source.Add('fillPlannedQuantity', PlanSource."Fill Planned Quantity");
+                Source.Add('fillRemainingQuantity', PlanSource."Fill Target Quantity" - PlanSource."Fill Planned Quantity");
+                Source.Add('fillAllowsMixedPallets', PlanSource."Fill Allows Mixed Pallets");
+                Source.Add('fillConversionReason', PlanSource."Fill Conversion Reason");
+                Source.Add('fillConvertedAt', FormatDateTime(PlanSource."Fill Converted At"));
+                Source.Add('fillConvertedBy', PlanSource."Fill Converted By");
+                Source.Add('exactTargetQuantity', ExactTargetQuantity);
+                Source.Add('exactPlannedQuantity', PlanSource."Exact Planned Quantity");
+                Source.Add('exactRemainingQuantity', ExactTargetQuantity - PlanSource."Exact Planned Quantity");
                 Source.Add('remainingQuantity', PlanSource."Remaining Quantity Snapshot");
                 Source.Add('executionRoute', Format(PlanSource."Execution Route"));
                 Source.Add('facilityWorkType', Format(PlanSource."Facility Work Type"));
@@ -559,9 +651,53 @@ page 58007 "SAL Stock & Logistics Planner"
                 Source.Add('destinationName', PlanSource."Destination Name");
                 Source.Add('shipmentDate', FormatDate(PlanSource."Shipment Date"));
                 Source.Add('modifiedAt', FormatDateTime(PlanSource.SystemModifiedAt));
+                BuildPlanFillMembers(PlanHeader, PlanSource."Line No.", FillMembers);
+                Source.Add('fillMembers', FillMembers);
                 Sources.Add(Source);
                 ItemCount += 1;
             until (PlanSource.Next() = 0) or (ItemCount >= 250);
+    end;
+
+    local procedure BuildPlanFillMembers(PlanHeader: Record "SAL Plan Header"; SourceLineNo: Integer; var FillMembers: JsonArray)
+    var
+        FillMember: JsonObject;
+        PlanFillMember: Record "SAL Plan Fill Member";
+        EffectiveMaximumQuantity: Decimal;
+    begin
+        PlanFillMember.SetRange("Plan No.", PlanHeader."No.");
+        PlanFillMember.SetRange("Version No.", PlanHeader."Version No.");
+        PlanFillMember.SetRange("Source Line No.", SourceLineNo);
+        if PlanFillMember.FindSet() then
+            repeat
+                PlanFillMember.CalcFields("Planned Quantity");
+                EffectiveMaximumQuantity := PlanFillMember."Maximum Quantity";
+                if (PlanFillMember."Maximum Pallets" > 0) and (PlanFillMember."Default Pallet Quantity" > 0) then
+                    if (EffectiveMaximumQuantity = 0) or
+                       (PlanFillMember."Maximum Pallets" * PlanFillMember."Default Pallet Quantity" < EffectiveMaximumQuantity)
+                    then
+                        EffectiveMaximumQuantity := PlanFillMember."Maximum Pallets" * PlanFillMember."Default Pallet Quantity";
+
+                Clear(FillMember);
+                FillMember.Add('lineNo', PlanFillMember."Line No.");
+                FillMember.Add('templateLineNo', PlanFillMember."Template Member Line No.");
+                FillMember.Add('groupCode', PlanFillMember."Group Code");
+                FillMember.Add('itemNo', PlanFillMember."Item No.");
+                FillMember.Add('variantCode', PlanFillMember."Variant Code");
+                FillMember.Add('uom', PlanFillMember."Unit of Measure Code");
+                FillMember.Add('description', PlanFillMember.Description);
+                FillMember.Add('minimumQuantity', PlanFillMember."Minimum Quantity");
+                FillMember.Add('maximumQuantity', PlanFillMember."Maximum Quantity");
+                FillMember.Add('maximumPallets', PlanFillMember."Maximum Pallets");
+                FillMember.Add('defaultPalletQuantity', PlanFillMember."Default Pallet Quantity");
+                FillMember.Add('effectiveMaximumQuantity', EffectiveMaximumQuantity);
+                FillMember.Add('preference', PlanFillMember.Preference);
+                FillMember.Add('plannedQuantity', PlanFillMember."Planned Quantity");
+                if EffectiveMaximumQuantity > 0 then
+                    FillMember.Add('remainingAllowance', EffectiveMaximumQuantity - PlanFillMember."Planned Quantity")
+                else
+                    FillMember.Add('remainingAllowance', 0);
+                FillMembers.Add(FillMember);
+            until PlanFillMember.Next() = 0;
     end;
 
     local procedure BuildPallets(PlanHeader: Record "SAL Plan Header"; var Pallets: JsonArray)
@@ -605,6 +741,8 @@ page 58007 "SAL Stock & Logistics Planner"
                 Clear(Component);
                 Component.Add('lineNo', PlanComponent."Line No.");
                 Component.Add('sourceLineNo', PlanComponent."Source Line No.");
+                Component.Add('fulfilmentMode', Format(PlanComponent."Fulfilment Mode"));
+                Component.Add('fillMemberLineNo', PlanComponent."Fill Member Line No.");
                 Component.Add('itemNo', PlanComponent."Item No.");
                 Component.Add('itemDescription', PlanComponent.Description);
                 Component.Add('variantCode', PlanComponent."Variant Code");
@@ -678,6 +816,8 @@ page 58007 "SAL Stock & Logistics Planner"
     local procedure BuildCapabilities(PlanHeader: Record "SAL Plan Header"; var Capabilities: JsonObject)
     var
         IsDraft: Boolean;
+        ProductGroup: Record "SAL Product Group";
+        ProductGroupMember: Record "SAL Product Group Member";
     begin
         IsDraft := PlanHeader.Status = PlanHeader.Status::Draft;
         Capabilities.Add('canCreate', true);
@@ -688,12 +828,18 @@ page 58007 "SAL Stock & Logistics Planner"
         Capabilities.Add('canRelease', IsDraft);
         Capabilities.Add('canCreateVersion', PlanHeader.Status = PlanHeader.Status::Released);
         Capabilities.Add('canCancelDraft', IsDraft);
+        Capabilities.Add('canConvertToFill', IsDraft and PlanHeader."Marketer Confirmed" and (PlanHeader."Marketer Customer No." <> ''));
+        Capabilities.Add('canAddFillComponent', IsDraft);
+        Capabilities.Add('canManageFillGroups', ProductGroup.WritePermission() and ProductGroupMember.WritePermission());
         Capabilities.Add('publishImplemented', false);
         Capabilities.Add('finishShortImplemented', false);
         Capabilities.Add('facilityFeedbackAvailable', false);
     end;
 
     local procedure BuildEmptyCapabilities(var Capabilities: JsonObject)
+    var
+        ProductGroup: Record "SAL Product Group";
+        ProductGroupMember: Record "SAL Product Group Member";
     begin
         Capabilities.Add('canCreate', true);
         Capabilities.Add('canEdit', false);
@@ -703,6 +849,9 @@ page 58007 "SAL Stock & Logistics Planner"
         Capabilities.Add('canRelease', false);
         Capabilities.Add('canCreateVersion', false);
         Capabilities.Add('canCancelDraft', false);
+        Capabilities.Add('canConvertToFill', false);
+        Capabilities.Add('canAddFillComponent', false);
+        Capabilities.Add('canManageFillGroups', ProductGroup.WritePermission() and ProductGroupMember.WritePermission());
         Capabilities.Add('publishImplemented', false);
         Capabilities.Add('finishShortImplemented', false);
         Capabilities.Add('facilityFeedbackAvailable', false);
@@ -1011,6 +1160,14 @@ page 58007 "SAL Stock & Logistics Planner"
             Error(PalletNotFoundErr, PalletNo);
         if not PlanSource.Get(PlanHeader."No.", PlanHeader."Version No.", SourceLineNo) then
             Error(SourceNotFoundErr, SourceLineNo);
+        PlanPallet.CalcFields("Planned Quantity", "No. of Components");
+        if PlanPallet."Planned Quantity" + Quantity > PlanPallet."Target Quantity" then
+            Error(PalletAllocationExceededErr, PalletNo, PlanPallet."Target Quantity", PlanPallet."Planned Quantity" + Quantity);
+        if (PlanPallet."Pallet Type" = PlanPallet."Pallet Type"::Standard) and (PlanPallet."No. of Components" > 0) then
+            Error(StandardPalletAllocationErr, PalletNo);
+        PlanSource.CalcFields("Exact Planned Quantity");
+        if PlanSource."Exact Planned Quantity" + Quantity > PlanSource.Quantity - PlanSource."Fill Target Quantity" then
+            Error(ExactAllocationExceededErr, SourceLineNo, PlanSource.Quantity - PlanSource."Fill Target Quantity");
 
         PlanComponent.Init();
         PlanComponent."Plan No." := PlanHeader."No.";
@@ -1020,6 +1177,42 @@ page 58007 "SAL Stock & Logistics Planner"
         PlanComponent.Validate(Quantity, Quantity);
         PlanComponent.Insert(true);
         LoadScreen(StrSubstNo(ComponentAddedMsg, PalletNo), false);
+    end;
+
+    local procedure AddFillComponent(PalletNo: Integer; SourceLineNo: Integer; FillMemberLineNo: Integer; Quantity: Decimal)
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        PlanHeader: Record "SAL Plan Header";
+    begin
+        GetSelectedDraft(PlanHeader);
+        AllocationManagement.AddFillComponent(PlanHeader, PalletNo, SourceLineNo, FillMemberLineNo, Quantity);
+        LoadScreen(StrSubstNo(FillComponentAddedMsg, PalletNo), false);
+    end;
+
+    local procedure ConvertRemainingToFill(SourceLineNo: Integer; FillGroupCodeText: Text; Quantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text)
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        CurrentPlanHeader: Record "SAL Plan Header";
+        ResultPlanHeader: Record "SAL Plan Header";
+        FillGroupCode: Code[20];
+    begin
+        GetSelectedPlan(CurrentPlanHeader);
+        FillGroupCode := CopyStr(FillGroupCodeText, 1, MaxStrLen(FillGroupCode));
+        AllocationManagement.ConvertRemainingToFill(
+            CurrentPlanHeader, SourceLineNo, FillGroupCode, Quantity, AllowMixed, MembersJson, Reason, ResultPlanHeader);
+        SelectedPlanNo := ResultPlanHeader."No.";
+        SelectedVersionNo := ResultPlanHeader."Version No.";
+        LoadScreen(StrSubstNo(FillConvertedMsg, Quantity, FillGroupCode), false);
+    end;
+
+    local procedure AdjustFillTarget(SourceLineNo: Integer; NewFillTarget: Decimal; Reason: Text)
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        PlanHeader: Record "SAL Plan Header";
+    begin
+        GetSelectedDraft(PlanHeader);
+        AllocationManagement.AdjustFillTarget(PlanHeader, SourceLineNo, NewFillTarget, Reason);
+        LoadScreen(StrSubstNo(FillTargetAdjustedMsg, NewFillTarget), false);
     end;
 
     local procedure DeleteComponent(PalletNo: Integer; LineNo: Integer)
@@ -1120,6 +1313,9 @@ page 58007 "SAL Stock & Logistics Planner"
         SelectedPlanNo: Code[20];
         SelectedVersionNo: Integer;
         ComponentAddedMsg: Label 'Component added to pallet %1.', Comment = '%1 = pallet number';
+        FillComponentAddedMsg: Label 'Fill component added to pallet %1.', Comment = '%1 = pallet number';
+        FillConvertedMsg: Label '%1 units converted to fill group %2.', Comment = '%1 = quantity, %2 = fill group code';
+        FillTargetAdjustedMsg: Label 'Fill target adjusted to %1 units.', Comment = '%1 = new fill target quantity';
         ComponentNotFoundErr: Label 'Pallet %1 component line %2 no longer exists.', Comment = '%1 = pallet number, %2 = line number';
         ComponentQuantityErr: Label 'Component quantity must be greater than zero.';
         CustomPalletCountErr: Label 'Add Custom or Mixed pallets one physical pallet at a time.';
@@ -1127,12 +1323,14 @@ page 58007 "SAL Stock & Logistics Planner"
         DemandDocumentRequiredErr: Label 'The demand document number is required.';
         DemandSourceTypeErr: Label '%1 is not a supported SAL demand source type.', Comment = '%1 = supplied source type';
         ExistingPlanUpdatedMsg: Label 'SAL plan %1 version %2 selected and refreshed with the latest outstanding demand.', Comment = '%1 = plan no., %2 = version no.';
+        ExactAllocationExceededErr: Label 'Source line %1 has only %2 exact units available after its fill conversion.', Comment = '%1 = source line, %2 = available exact target';
         FallbackPlanNoErr: Label 'A unique SAL plan number could not be generated for demand document %1. Configure SAL Plan Nos. and try again.', Comment = '%1 = source document no.';
         NoCandidateDemandErr: Label '%1 %2 no longer has eligible outstanding item demand to add.', Comment = '%1 = source type, %2 = source document no.';
         NoPlanSelectedErr: Label 'Select a SAL plan first.';
         PalletCountErr: Label 'Pallet count must be between 1 and 50.';
         PalletDeletedMsg: Label 'Pallet %1 removed.', Comment = '%1 = pallet number';
         PalletNotFoundErr: Label 'Pallet %1 no longer exists.', Comment = '%1 = pallet number';
+        PalletAllocationExceededErr: Label 'Pallet %1 target is %2 units, but this component would bring it to %3.', Comment = '%1 = pallet no., %2 = target, %3 = proposed total';
         PalletTargetErr: Label 'Target quantity must be greater than zero.';
         PalletsAddedMsg: Label '%1 physical pallet(s) added.', Comment = '%1 = pallet count';
         PriorityUpdatedMsg: Label 'Plan priority updated to %1 (1 is highest).', Comment = '%1 = priority';
@@ -1141,5 +1339,6 @@ page 58007 "SAL Stock & Logistics Planner"
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';
         RouteErr: Label '%1 is not a valid execution route.', Comment = '%1 = supplied route';
         SourceNotFoundErr: Label 'Source line %1 no longer exists.', Comment = '%1 = source line number';
+        StandardPalletAllocationErr: Label 'Standard pallet %1 already has its one component. Use a Custom or Mixed pallet for additional components.', Comment = '%1 = pallet no.';
         WorkTypeErr: Label '%1 is not a valid facility work type.', Comment = '%1 = supplied work type';
 }

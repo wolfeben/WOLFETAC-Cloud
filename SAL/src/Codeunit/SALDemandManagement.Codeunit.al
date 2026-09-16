@@ -42,12 +42,38 @@ codeunit 58000 "SAL Demand Management"
                 PlanSource."Source Type"::TransferOrder:
                     RefreshTransferSource(PlanSource);
             end;
+            ValidateProtectedAllocationAfterRefresh(PlanSource);
+            NormaliseFulfilmentMode(PlanSource);
             PlanSource.Modify(true);
             RefreshedCount += 1;
         until PlanSource.Next() = 0;
 
         PlanHeader.Get(PlanHeader."No.", PlanHeader."Version No.");
         Message(DemandRefreshedMsg, RefreshedCount);
+    end;
+
+    local procedure ValidateProtectedAllocationAfterRefresh(var PlanSource: Record "SAL Plan Source")
+    begin
+        PlanSource.CalcFields("Exact Planned Quantity", "Fill Planned Quantity");
+        if PlanSource."Fill Target Quantity" > PlanSource.Quantity then
+            Error(RefreshedBelowFillTargetErr, PlanSource."Line No.", PlanSource.Quantity, PlanSource."Fill Target Quantity");
+        if PlanSource."Exact Planned Quantity" > PlanSource.Quantity - PlanSource."Fill Target Quantity" then
+            Error(
+                RefreshedBelowExactAllocationErr,
+                PlanSource."Line No.", PlanSource.Quantity, PlanSource."Exact Planned Quantity", PlanSource."Fill Target Quantity");
+        if PlanSource."Fill Planned Quantity" > PlanSource."Fill Target Quantity" then
+            Error(RefreshedBelowFillAllocationErr, PlanSource."Line No.", PlanSource."Fill Target Quantity", PlanSource."Fill Planned Quantity");
+    end;
+
+    local procedure NormaliseFulfilmentMode(var PlanSource: Record "SAL Plan Source")
+    begin
+        if PlanSource."Fill Target Quantity" = 0 then
+            PlanSource."Fulfilment Mode" := PlanSource."Fulfilment Mode"::ExactSKU
+        else
+            if PlanSource."Fill Target Quantity" = PlanSource.Quantity then
+                PlanSource."Fulfilment Mode" := PlanSource."Fulfilment Mode"::FillGroup
+            else
+                PlanSource."Fulfilment Mode" := PlanSource."Fulfilment Mode"::Hybrid;
     end;
 
     procedure AddSalesOrderDemand(var PlanHeader: Record "SAL Plan Header"; SalesOrderNo: Code[20]; var AddedCount: Integer; var SkippedCount: Integer)
@@ -409,6 +435,9 @@ codeunit 58000 "SAL Demand Management"
         DemandUnavailableErr: Label 'Demand %1 line %2 is not an available item line.', Comment = '%1 = document no., %2 = line no.';
         NoRemainingDemandErr: Label 'Demand %1 line %2 has no remaining quantity to plan.', Comment = '%1 = document no., %2 = line no.';
         NoDemandToRefreshErr: Label 'This plan has no demand lines to refresh.';
+        RefreshedBelowExactAllocationErr: Label 'Demand refresh would reduce source line %1 to %2 units, below its protected %3 exact units plus %4 fill target. Adjust the plan before refreshing.', Comment = '%1 = source line, %2 = refreshed quantity, %3 = exact planned, %4 = fill target';
+        RefreshedBelowFillAllocationErr: Label 'Source line %1 fill target is %2 units, below the %3 units already assigned to fill members. Remove or reduce fill components first.', Comment = '%1 = source line, %2 = fill target, %3 = fill planned';
+        RefreshedBelowFillTargetErr: Label 'Demand refresh would reduce source line %1 to %2 units, below its fill target of %3. Reduce the fill balance first.', Comment = '%1 = source line, %2 = refreshed quantity, %3 = fill target';
         PlanNotDraftErr: Label 'Plan %1 version %2 is not Draft.', Comment = '%1 = plan no., %2 = version no.';
         PlanNotFoundErr: Label 'The SAL plan no longer exists.';
         SalesOrderNotFoundErr: Label 'Sales Order %1 does not exist.', Comment = '%1 = sales order no.';

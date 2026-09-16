@@ -215,6 +215,7 @@ table 58001 "SAL Plan Header"
     var
         PlanComponent: Record "SAL Plan Component";
         PlanEvent: Record "SAL Plan Event";
+        PlanFillMember: Record "SAL Plan Fill Member";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
     begin
@@ -229,7 +230,11 @@ table 58001 "SAL Plan Header"
         PlanComponent.SetRange("Version No.", "Version No.");
         PlanEvent.SetRange("Plan No.", "No.");
         PlanEvent.SetRange("Version No.", "Version No.");
-        if not PlanSource.IsEmpty() or not PlanPallet.IsEmpty() or not PlanComponent.IsEmpty() or not PlanEvent.IsEmpty() then
+        PlanFillMember.SetRange("Plan No.", "No.");
+        PlanFillMember.SetRange("Version No.", "Version No.");
+        if not PlanSource.IsEmpty() or not PlanPallet.IsEmpty() or not PlanComponent.IsEmpty() or
+           not PlanEvent.IsEmpty() or not PlanFillMember.IsEmpty()
+        then
             Error(DeleteChildrenFirstErr);
     end;
 
