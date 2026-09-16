@@ -1,7 +1,7 @@
 controladdin "SAL Freight Monitor Workspace"
 {
-    MinimumHeight = 720;
-    RequestedHeight = 900;
+    MinimumHeight = 480;
+    RequestedHeight = 720;
     MinimumWidth = 320;
     RequestedWidth = 1920;
     HorizontalStretch = true;
