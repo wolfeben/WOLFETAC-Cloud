@@ -69,7 +69,7 @@ Every message must have a GUID message ID, schema version, source and target env
 
 ## Primary pages
 
-- Page 58006: Packing & Logistics Monitor, Cloud, read-only and the primary end-to-end operational view. Its Queue/Calendar toggle presents packing, dispatch, transit and arrival milestones in one workspace.
+- Page 58006: Packing & Logistics Monitor, Cloud, read-only and the primary end-to-end operational view. Its Queue/Calendar toggle presents packing, dispatch, transit and arrival milestones in one workspace. Calendar cards preview the underlying BC item/size lines, while Queue & Details exposes the full source-line quantity and original unit of measure (including `TE` without assuming a tray conversion).
 - Page 58007: SAL Stock & Logistics Planner, Cloud, transactional.
 - Page 58016: Freight Movement Details, Cloud, retained only as a supporting non-searchable compatibility/detail projection. It is not a second operational workspace.
 - Packing Wall and Packing Facility Operator remain on-premises and are not part of this app's object range.

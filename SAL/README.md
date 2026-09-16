@@ -23,6 +23,13 @@ Planner fill workflow (app version 1.1.0.0):
 
 Freight and arrival dates now appear inside page 58006 through its Calendar toggle. Page 58016 is retained only as a non-searchable compatibility/detail projection, not as a separate primary workspace. On-premises Packing Wall, operator, scanner, Unconsigned and physical completion remain outside this Cloud app until the versioned facility integration is implemented.
 
+Movement source lines (app version 1.1.0.2):
+
+- Calendar cards include a compact preview of the underlying BC item/size lines.
+- Selecting a movement in Queue & Details shows every projected source line with item, variant, description, quantity and the original BC unit of measure.
+- Transfer lines distinguish outstanding quantity from quantity already in transit.
+- Units are not silently converted. In particular, `TE` remains `TE` unless a verified item unit-of-measure conversion is introduced separately.
+
 Transcript follow-ups intentionally outside the 1.1.0.0 fill slice are: scanner-backed completion and reclassification of already released work, 80-percent/amber near-full status, freight-leg gating for pallet-pool movements and invoice matching, EDI item-mapping exceptions, and setup-change history.
 
 Compile and publish from this folder only. Never publish the preserved `D:\WOLFETAC\Cloud\App` copy or an old combined `WOLFETAC Cloud` package.

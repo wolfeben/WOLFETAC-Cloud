@@ -33,6 +33,57 @@
         return Number.isFinite(parsed) ? parsed.toLocaleString('en-AU', { maximumFractionDigits: 1 }) : '0';
     }
 
+    function movementLines(item) {
+        return Array.isArray(item && item.movementLines) ? item.movementLines : [];
+    }
+
+    function movementLineCode(line) {
+        return text(line.itemNo || 'Item') + (line.variantCode ? ' / ' + text(line.variantCode) : '');
+    }
+
+    function movementLineQuantity(line) {
+        const unit = text(line.unitOfMeasure || 'units');
+        const quantity = Number(line.quantity || 0);
+        const inTransit = Number(line.inTransitQuantity || 0);
+        if (line.quantityBasis === 'Transfer') {
+            const parts = [];
+            if (quantity)
+                parts.push(number(quantity) + ' ' + unit + ' outstanding');
+            if (inTransit)
+                parts.push(number(inTransit) + ' ' + unit + ' in transit');
+            return parts.join(' · ') || '0 ' + unit;
+        }
+        return number(quantity) + ' ' + unit + (line.quantityBasis ? ' ' + text(line.quantityBasis).toLowerCase() : '');
+    }
+
+    function movementLinePreview(item) {
+        const lines = movementLines(item);
+        if (!lines.length)
+            return number(item.lineCount || 0) + ' item lines';
+        const shown = lines.slice(0, 2).map(function (line) {
+            return movementLineCode(line) + ' · ' + movementLineQuantity(line).replace(/ (outstanding|shipped|received)$/i, '');
+        });
+        if (lines.length > 2)
+            shown.push('+' + (lines.length - 2) + ' lines');
+        return shown.join(' | ');
+    }
+
+    function movementQuantitySummary(item) {
+        const totals = {};
+        movementLines(item).forEach(function (line) {
+            const unit = text(line.unitOfMeasure || 'units');
+            const value = line.quantityBasis === 'Transfer' && Number(line.inTransitQuantity || 0) > 0 ?
+                Number(line.inTransitQuantity || 0) : Number(line.quantity || 0);
+            totals[unit] = (totals[unit] || 0) + value;
+        });
+        const units = Object.keys(totals);
+        if (!units.length)
+            return number(item.quantity);
+        if (units.length === 1)
+            return number(totals[units[0]]) + ' ' + units[0];
+        return units.map(function (unit) { return number(totals[unit]) + ' ' + unit; }).join(' · ');
+    }
+
     function dateLabel(value) {
         if (!value)
             return 'Not supplied';
@@ -337,9 +388,10 @@
                 const item = event.item;
                 return '<button type="button" class="frm-calendar-event is-' + event.kind + '" data-action="open-source" data-source-type="' +
                     escapeHtml(item.sourceType) + '" data-document-no="' + escapeHtml(item.documentNo) + '" title="' +
-                    escapeHtml(event.label + ' · ' + item.documentNo + ' · ' + (item.destination || item.party || '')) + '"><span>' +
+                    escapeHtml(event.label + ' · ' + item.documentNo + ' · ' + (item.destination || item.party || '') + ' · ' + movementLinePreview(item)) + '"><span>' +
                     escapeHtml(event.label) + '</span><strong>' + escapeHtml(item.documentNo) + '</strong><small>' +
-                    escapeHtml(item.destination || item.party || '') + '</small></button>';
+                    escapeHtml(item.destination || item.party || '') + '</small><small class="frm-calendar-lines">' +
+                    escapeHtml(movementLinePreview(item)) + '</small></button>';
             }).join('');
             cells.push('<div class="frm-calendar-day' + (outside ? ' is-outside' : '') + (today ? ' is-today' : '') + '"><div class="frm-calendar-date"><strong>' +
                 current.getDate() + '</strong><span>' + (dayEvents.length ? dayEvents.length + ' movement' + (dayEvents.length === 1 ? '' : 's') : '') +
@@ -433,9 +485,12 @@
         const query = state.query.trim().toLowerCase();
         return (state.data.items || []).filter(function (item) {
             const directionMatch = state.direction === 'all' || statusKey(item.direction) === state.direction;
+            const movementSearch = movementLines(item).map(function (line) {
+                return [line.itemNo, line.variantCode, line.description, line.unitOfMeasure].join(' ');
+            }).join(' ');
             const haystack = [item.documentNo, item.relatedDocumentNo, item.party, item.origin, item.destination,
                 item.carrier, item.bookingReference, item.stage, item.packingStatus, item.salPlanNo, item.marketer,
-                item.route, item.workType].join(' ').toLowerCase();
+                item.route, item.workType, movementSearch].join(' ').toLowerCase();
             return directionMatch && matchesView(item) && (!query || haystack.indexOf(query) >= 0);
         }).sort(function (a, b) {
             const aRank = queueRank(a);
@@ -537,8 +592,8 @@
         const priorityValue = Number(item.salPriority) > 0 ? number(item.salPriority) : 'Not set';
         const palletValue = hasPlan ? number(item.palletCount) + ' involved' : 'No pallet plan';
         const palletNote = hasPlan ? 'Selected document · ' + number(item.standardPalletCount) + ' standard · ' + number(item.customPalletCount) + ' custom · ' + number(item.mixedPalletCount) + ' mixed' : 'Create a SAL plan to define physical pallets';
-        const quantityValue = hasPlan ? number(item.salPlannedQuantity) + ' / ' + number(item.salRequiredQuantity) : number(item.quantity);
-        const quantityNote = hasPlan ? 'Planned / required source units; not packing completion' : number(item.lineCount) + ' item lines · source units';
+        const quantityValue = movementQuantitySummary(item);
+        const quantityNote = number(item.lineCount) + ' BC item lines · original unit of measure retained';
 
         elements.detail.innerHTML = [
             '<section class="frm-detail-head">',
@@ -569,6 +624,7 @@
                 metricCard('Carrier / reference', item.carrier || 'Not supplied', hasReference ? item.bookingReference : item.service || 'Reference not supplied'),
                 metricCard(hasArrived ? 'Actual arrival' : 'Planned / expected arrival', hasArrived ? dateLabel(item.actualArrival) : dateLabel(item.eta), hasArrived ? item.dateSource : item.eta ? item.dateSource : 'Carrier ETA not connected'),
             '</section>',
+            renderMovementLines(item),
             renderSizeSummary(item),
             '<section class="frm-panels">',
                 '<article><span class="frm-eyebrow">CURRENT DATA TRUTH</span><h3>', escapeHtml(item.connectionState || 'BC document data'), '</h3><p>', escapeHtml(item.dataNote || 'No additional data note supplied.'), '</p></article>',
@@ -577,6 +633,18 @@
                 '<article><span class="frm-eyebrow">NEXT CONNECTIONS</span><h3>Packing Facility, carrier and FruitBank</h3><p>Versioned facility acknowledgement and pallet events will activate Yet to pack, Packing, Ready and Unconsigned. Carrier milestones and FruitBank can then share the same movement identity.</p></article>',
             '</section>'
         ].join('');
+    }
+
+    function renderMovementLines(item) {
+        const lines = movementLines(item);
+        if (!lines.length)
+            return '<section class="frm-movement-lines"><div class="frm-section-head"><div><span class="frm-eyebrow">BC SOURCE LINES</span><h3>No item-line detail available</h3></div></div></section>';
+        return '<section class="frm-movement-lines"><div class="frm-section-head"><div><span class="frm-eyebrow">BC SOURCE LINES</span><h3>Products, quantities and recorded UOM</h3></div><span class="frm-chip">' +
+            escapeHtml(number(lines.length)) + ' line' + (lines.length === 1 ? '' : 's') + '</span></div><div class="frm-movement-line-grid">' +
+            lines.map(function (line) {
+                return '<article><div><strong>' + escapeHtml(movementLineCode(line)) + '</strong><small>' + escapeHtml(line.description || 'No description') +
+                    '</small></div><span>' + escapeHtml(movementLineQuantity(line)) + '</span></article>';
+            }).join('') + '</div><p class="frm-uom-note">Quantities use the unit recorded on the BC line. TE is shown as TE and is not assumed to mean an individual tray.</p></section>';
     }
 
     function renderSizeSummary(item) {

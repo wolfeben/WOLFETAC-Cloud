@@ -127,6 +127,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         SalesLine: Record "Sales Line";
         SourceType: Enum "SAL Source Type";
         Item: JsonObject;
+        MovementLines: JsonArray;
         CarrierName: Text;
         DestinationName: Text;
         FirstShipmentDate: Date;
@@ -148,11 +149,14 @@ page 58006 "SAL Stock & Logistics Monitor"
             SalesLine.SetFilter("Outstanding Quantity", '>0');
             LineCount := 0;
             OutstandingQuantity := 0;
+            Clear(MovementLines);
             FirstShipmentDate := SalesHeader."Shipment Date";
             if SalesLine.FindSet() then
                 repeat
                     LineCount += 1;
                     OutstandingQuantity += SalesLine."Outstanding Quantity";
+                    AddMovementLine(MovementLines, SalesLine."No.", SalesLine.Description, SalesLine."Variant Code",
+                        SalesLine."Outstanding Quantity", SalesLine."Unit of Measure Code", 'Outstanding', 0);
                     if (FirstShipmentDate = 0D) and (SalesLine."Shipment Date" <> 0D) then
                         FirstShipmentDate := SalesLine."Shipment Date";
                 until SalesLine.Next() = 0;
@@ -168,6 +172,7 @@ page 58006 "SAL Stock & Logistics Monitor"
                     Format(SalesHeader.Status), SalesHeader."Sell-to Customer Name", SalesHeader."Location Code", DestinationName,
                     CarrierName, SalesHeader."Shipping Agent Service Code", SalesHeader."Package Tracking No.",
                     FirstShipmentDate, 0D, OutstandingQuantity, LineCount);
+                Item.Add('movementLines', MovementLines);
                 Item.Add('relatedDocumentNo', '');
                 AddSALPlanContext(Item, SourceType::SalesOrder, SalesHeader."No.", SalesHeader.Status = SalesHeader.Status::Released);
                 AddSalesInvoiceLink(Item, SalesHeader."No.", '');
@@ -189,6 +194,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         TransferLine: Record "Transfer Line";
         SourceType: Enum "SAL Source Type";
         Item: JsonObject;
+        MovementLines: JsonArray;
         CarrierName: Text;
         DestinationName: Text;
         FirstReceiptDate: Date;
@@ -211,6 +217,7 @@ page 58006 "SAL Stock & Logistics Monitor"
             LineCount := 0;
             OutstandingQuantity := 0;
             InTransitQuantity := 0;
+            Clear(MovementLines);
             FirstShipmentDate := TransferHeader."Shipment Date";
             FirstReceiptDate := TransferHeader."Receipt Date";
             if TransferLine.FindSet() then
@@ -219,6 +226,8 @@ page 58006 "SAL Stock & Logistics Monitor"
                         LineCount += 1;
                         OutstandingQuantity += TransferLine."Outstanding Quantity";
                         InTransitQuantity += TransferLine."Qty. in Transit";
+                        AddMovementLine(MovementLines, TransferLine."Item No.", TransferLine.Description, TransferLine."Variant Code",
+                            TransferLine."Outstanding Quantity", TransferLine."Unit of Measure Code", 'Transfer', TransferLine."Qty. in Transit");
                         if (FirstShipmentDate = 0D) and (TransferLine."Shipment Date" <> 0D) then
                             FirstShipmentDate := TransferLine."Shipment Date";
                         if (FirstReceiptDate = 0D) and (TransferLine."Receipt Date" <> 0D) then
@@ -239,6 +248,7 @@ page 58006 "SAL Stock & Logistics Monitor"
                     TransferHeader."Transfer-from Code", DestinationName, CarrierName,
                     TransferHeader."Shipping Agent Service Code", '', FirstShipmentDate, FirstReceiptDate,
                     OutstandingQuantity, LineCount);
+                Item.Add('movementLines', MovementLines);
                 Item.Add('relatedDocumentNo', '');
                 AddSALPlanContext(Item, SourceType::TransferOrder, TransferHeader."No.", TransferHeader.Status = TransferHeader.Status::Released);
                 AddNoInvoiceLink(Item);
@@ -264,6 +274,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         PurchaseHeader: Record "Purchase Header";
         PurchaseLine: Record "Purchase Line";
         Item: JsonObject;
+        MovementLines: JsonArray;
         DestinationName: Text;
         FirstExpectedReceiptDate: Date;
         AddedForSource: Integer;
@@ -286,11 +297,14 @@ page 58006 "SAL Stock & Logistics Monitor"
             PurchaseLine.SetFilter("Outstanding Quantity", '>0');
             LineCount := 0;
             OutstandingQuantity := 0;
+            Clear(MovementLines);
             FirstExpectedReceiptDate := 0D;
             if PurchaseLine.FindSet() then
                 repeat
                     LineCount += 1;
                     OutstandingQuantity += PurchaseLine."Outstanding Quantity";
+                    AddMovementLine(MovementLines, PurchaseLine."No.", PurchaseLine.Description, PurchaseLine."Variant Code",
+                        PurchaseLine."Outstanding Quantity", PurchaseLine."Unit of Measure Code", 'Outstanding', 0);
                     if (PurchaseLine."Expected Receipt Date" <> 0D) and
                        ((FirstExpectedReceiptDate = 0D) or (PurchaseLine."Expected Receipt Date" < FirstExpectedReceiptDate))
                     then
@@ -306,6 +320,7 @@ page 58006 "SAL Stock & Logistics Monitor"
                     Format(PurchaseHeader.Status), PurchaseHeader."Buy-from Vendor Name", 'Vendor', DestinationName,
                     'Not supplied in this projection', '', '', 0D, FirstExpectedReceiptDate,
                     OutstandingQuantity, LineCount);
+                Item.Add('movementLines', MovementLines);
                 Item.Add('relatedDocumentNo', '');
                 AddNoSALPlanContext(Item, 'Not applicable / not confirmed');
                 AddPurchaseInvoiceLink(Item, PurchaseHeader."No.", '');
@@ -330,6 +345,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         SalesShipmentLine: Record "Sales Shipment Line";
         SourceType: Enum "SAL Source Type";
         Item: JsonObject;
+        MovementLines: JsonArray;
         DestinationName: Text;
         AddedForSource: Integer;
         LineCount: Integer;
@@ -348,10 +364,13 @@ page 58006 "SAL Stock & Logistics Monitor"
             SalesShipmentLine.SetFilter("No.", '<>%1', '');
             LineCount := 0;
             ShipmentQuantity := 0;
+            Clear(MovementLines);
             if SalesShipmentLine.FindSet() then
                 repeat
                     LineCount += 1;
                     ShipmentQuantity += SalesShipmentLine.Quantity;
+                    AddMovementLine(MovementLines, SalesShipmentLine."No.", SalesShipmentLine.Description, SalesShipmentLine."Variant Code",
+                        SalesShipmentLine.Quantity, SalesShipmentLine."Unit of Measure Code", 'Shipped', 0);
                 until SalesShipmentLine.Next() = 0;
 
             DestinationName := SalesShipmentHeader."Ship-to Name";
@@ -364,6 +383,7 @@ page 58006 "SAL Stock & Logistics Monitor"
                 GetShippingAgentName(SalesShipmentHeader."Shipping Agent Code"),
                 SalesShipmentHeader."Shipping Agent Service Code", SalesShipmentHeader."Package Tracking No.",
                 SalesShipmentHeader."Shipment Date", 0D, ShipmentQuantity, LineCount);
+            Item.Add('movementLines', MovementLines);
             Item.Add('relatedDocumentNo', SalesShipmentHeader."Order No.");
             AddSALPlanContext(Item, SourceType::SalesOrder, SalesShipmentHeader."Order No.", true);
             AddSalesInvoiceLink(Item, SalesShipmentHeader."Order No.", SalesShipmentHeader."No.");
@@ -383,6 +403,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         TransferReceiptLine: Record "Transfer Receipt Line";
         SourceType: Enum "SAL Source Type";
         Item: JsonObject;
+        MovementLines: JsonArray;
         AddedForSource: Integer;
         LineCount: Integer;
         ReceivedQuantity: Decimal;
@@ -397,10 +418,13 @@ page 58006 "SAL Stock & Logistics Monitor"
             TransferReceiptLine.SetFilter("Item No.", '<>%1', '');
             LineCount := 0;
             ReceivedQuantity := 0;
+            Clear(MovementLines);
             if TransferReceiptLine.FindSet() then
                 repeat
                     LineCount += 1;
                     ReceivedQuantity += TransferReceiptLine.Quantity;
+                    AddMovementLine(MovementLines, TransferReceiptLine."Item No.", TransferReceiptLine.Description, TransferReceiptLine."Variant Code",
+                        TransferReceiptLine.Quantity, TransferReceiptLine."Unit of Measure Code", 'Received', 0);
                 until TransferReceiptLine.Next() = 0;
 
             Clear(Item);
@@ -408,6 +432,7 @@ page 58006 "SAL Stock & Logistics Monitor"
                 StrSubstNo('%1 to %2', TransferReceiptHeader."Transfer-from Code", TransferReceiptHeader."Transfer-to Code"),
                 TransferReceiptHeader."Transfer-from Code", TransferReceiptHeader."Transfer-to Code", 'Not supplied', '', '',
                 0D, 0D, ReceivedQuantity, LineCount);
+            Item.Add('movementLines', MovementLines);
             Item.Add('actualArrival', FormatDate(TransferReceiptHeader."Receipt Date"));
             Item.Add('relatedDocumentNo', TransferReceiptHeader."Transfer Order No.");
             AddSALPlanContext(Item, SourceType::TransferOrder, TransferReceiptHeader."Transfer Order No.", true);
@@ -427,6 +452,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         PurchReceiptHeader: Record "Purch. Rcpt. Header";
         PurchReceiptLine: Record "Purch. Rcpt. Line";
         Item: JsonObject;
+        MovementLines: JsonArray;
         AddedForSource: Integer;
         LineCount: Integer;
         ReceivedQuantity: Decimal;
@@ -442,16 +468,20 @@ page 58006 "SAL Stock & Logistics Monitor"
             PurchReceiptLine.SetFilter("No.", '<>%1', '');
             LineCount := 0;
             ReceivedQuantity := 0;
+            Clear(MovementLines);
             if PurchReceiptLine.FindSet() then
                 repeat
                     LineCount += 1;
                     ReceivedQuantity += PurchReceiptLine.Quantity;
+                    AddMovementLine(MovementLines, PurchReceiptLine."No.", PurchReceiptLine.Description, PurchReceiptLine."Variant Code",
+                        PurchReceiptLine.Quantity, PurchReceiptLine."Unit of Measure Code", 'Received', 0);
                 until PurchReceiptLine.Next() = 0;
 
             Clear(Item);
             AddCommonItem(Item, 'Posted Purchase Receipt', PurchReceiptHeader."No.", 'Inbound', 'arrived', 'Arrived', 'Posted',
                 PurchReceiptHeader."Buy-from Vendor Name", 'Vendor', PurchReceiptHeader."Location Code", 'Not supplied', '', '',
                 0D, 0D, ReceivedQuantity, LineCount);
+            Item.Add('movementLines', MovementLines);
             Item.Add('actualArrival', FormatDate(PurchReceiptHeader."Posting Date"));
             Item.Add('relatedDocumentNo', PurchReceiptHeader."Order No.");
             AddNoSALPlanContext(Item, 'Not applicable / not confirmed');
@@ -485,6 +515,20 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('eta', FormatDate(ETA));
         Item.Add('quantity', Quantity);
         Item.Add('lineCount', LineCount);
+    end;
+
+    local procedure AddMovementLine(var MovementLines: JsonArray; ItemNo: Code[20]; Description: Text; VariantCode: Code[10]; Quantity: Decimal; UnitOfMeasureCode: Code[10]; QuantityBasis: Text; InTransitQuantity: Decimal)
+    var
+        MovementLine: JsonObject;
+    begin
+        MovementLine.Add('itemNo', ItemNo);
+        MovementLine.Add('description', Description);
+        MovementLine.Add('variantCode', VariantCode);
+        MovementLine.Add('quantity', Quantity);
+        MovementLine.Add('unitOfMeasure', UnitOfMeasureCode);
+        MovementLine.Add('quantityBasis', QuantityBasis);
+        MovementLine.Add('inTransitQuantity', InTransitQuantity);
+        MovementLines.Add(MovementLine);
     end;
 
     local procedure RegisterForwardItem(PlannedDate: Date; ShippingAgentCode: Code[10]; BookingReference: Text)
