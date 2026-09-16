@@ -7,6 +7,8 @@
         query: '',
         direction: 'all',
         view: 'all',
+        layout: 'queue',
+        calendarCursor: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         compact: false,
         fullscreenPending: false,
         fullscreenNotice: ''
@@ -166,7 +168,14 @@
                     '<button type="button" data-view="unconsigned" aria-pressed="false">Unconsigned</button>',
                     '<button type="button" data-view="exceptions" aria-pressed="false">Data gaps</button>',
                 '</nav>',
-                '<div class="frm-layout">',
+                '<section class="frm-viewbar">',
+                    '<div><strong>Packing &amp; logistics</strong><span>Switch between the operational queue and planned movement calendar.</span></div>',
+                    '<div class="frm-view-toggle" id="frm-view-toggle">',
+                        '<button type="button" data-layout="queue" aria-pressed="true">Queue &amp; details</button>',
+                        '<button type="button" data-layout="calendar" aria-pressed="false">Calendar</button>',
+                    '</div>',
+                '</section>',
+                '<div class="frm-layout" id="frm-layout">',
                     '<aside class="frm-queue">',
                         '<div class="frm-search"><span>⌕</span><input id="frm-search" type="search" placeholder="Order, plan, customer, destination or reference"></div>',
                         '<div class="frm-directions" id="frm-directions">',
@@ -180,6 +189,20 @@
                     '</aside>',
                     '<main class="frm-detail" id="frm-detail"></main>',
                 '</div>',
+                '<section class="frm-calendar-view" id="frm-calendar-view" hidden>',
+                    '<div class="frm-calendar-head">',
+                        '<div><span class="frm-eyebrow">MOVEMENT CALENDAR</span><h2 id="frm-calendar-title">Calendar</h2>',
+                        '<p>Planned dispatches, expected arrivals and posted arrivals from the same monitor data.</p></div>',
+                        '<div class="frm-calendar-actions">',
+                            '<button class="frm-button" type="button" data-action="calendar-prev">Previous</button>',
+                            '<button class="frm-button" type="button" data-action="calendar-today">Today</button>',
+                            '<button class="frm-button" type="button" data-action="calendar-next">Next</button>',
+                        '</div>',
+                    '</div>',
+                    '<div class="frm-calendar-legend"><span class="is-dispatch">Dispatch / ETD</span><span class="is-eta">Expected arrival</span><span class="is-arrived">Posted arrival</span></div>',
+                    '<div class="frm-calendar-grid" id="frm-calendar-grid"></div>',
+                    '<div class="frm-calendar-note" id="frm-calendar-note"></div>',
+                '</section>',
                 '<div class="frm-toast" id="frm-toast"></div>',
             '</div>'
         ].join('');
@@ -190,11 +213,17 @@
             company: host.querySelector('#frm-company'),
             kpis: host.querySelector('#frm-kpis'),
             tabs: host.querySelector('#frm-tabs'),
+            viewToggle: host.querySelector('#frm-view-toggle'),
+            layout: host.querySelector('#frm-layout'),
             search: host.querySelector('#frm-search'),
             directions: host.querySelector('#frm-directions'),
             count: host.querySelector('#frm-count'),
             list: host.querySelector('#frm-list'),
             detail: host.querySelector('#frm-detail'),
+            calendarView: host.querySelector('#frm-calendar-view'),
+            calendarTitle: host.querySelector('#frm-calendar-title'),
+            calendarGrid: host.querySelector('#frm-calendar-grid'),
+            calendarNote: host.querySelector('#frm-calendar-note'),
             toast: host.querySelector('#frm-toast')
         };
         host.addEventListener('click', handleClick);
@@ -236,8 +265,94 @@
         renderKpis();
         renderList();
         renderDetail();
+        renderCalendar();
+        syncLayout();
         elements.root.classList.toggle('is-compact', state.compact);
         syncFullscreen();
+    }
+
+    function syncLayout() {
+        const showCalendar = state.layout === 'calendar';
+        elements.layout.hidden = showCalendar;
+        elements.calendarView.hidden = !showCalendar;
+        elements.viewToggle.querySelectorAll('[data-layout]').forEach(function (button) {
+            button.setAttribute('aria-pressed', String(button.dataset.layout === state.layout));
+        });
+    }
+
+    function parseDate(value) {
+        const parts = text(value).slice(0, 10).split('-');
+        if (parts.length !== 3)
+            return null;
+        const result = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return Number.isNaN(result.getTime()) ? null : result;
+    }
+
+    function dateKey(value) {
+        const parsed = value instanceof Date ? value : parseDate(value);
+        if (!parsed)
+            return '';
+        return [parsed.getFullYear(), String(parsed.getMonth() + 1).padStart(2, '0'), String(parsed.getDate()).padStart(2, '0')].join('-');
+    }
+
+    function movementEvents() {
+        const events = [];
+        filteredItems().forEach(function (item) {
+            if (item.etd)
+                events.push({ date: text(item.etd).slice(0, 10), kind: 'dispatch', label: 'Dispatch', item: item });
+            if (item.actualArrival)
+                events.push({ date: text(item.actualArrival).slice(0, 10), kind: 'arrived', label: 'Arrived', item: item });
+            else if (item.eta)
+                events.push({ date: text(item.eta).slice(0, 10), kind: 'eta', label: 'ETA', item: item });
+        });
+        return events.filter(function (event) { return Boolean(parseDate(event.date)); });
+    }
+
+    function renderCalendar() {
+        const cursor = state.calendarCursor;
+        const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+        const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+        const gridStart = new Date(monthStart);
+        gridStart.setDate(monthStart.getDate() - ((monthStart.getDay() + 6) % 7));
+        const events = movementEvents();
+        const eventsByDate = {};
+        events.forEach(function (event) {
+            if (!eventsByDate[event.date])
+                eventsByDate[event.date] = [];
+            eventsByDate[event.date].push(event);
+        });
+        elements.calendarTitle.textContent = new Intl.DateTimeFormat('en-AU', { month: 'long', year: 'numeric' }).format(monthStart);
+        const headings = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function (day) {
+            return '<div class="frm-calendar-weekday">' + day + '</div>';
+        });
+        const cells = [];
+        for (let index = 0; index < 42; index += 1) {
+            const current = new Date(gridStart);
+            current.setDate(gridStart.getDate() + index);
+            const key = dateKey(current);
+            const dayEvents = eventsByDate[key] || [];
+            const outside = current < monthStart || current > monthEnd;
+            const today = key === dateKey(new Date());
+            const shown = dayEvents.slice(0, 4).map(function (event) {
+                const item = event.item;
+                return '<button type="button" class="frm-calendar-event is-' + event.kind + '" data-action="open-source" data-source-type="' +
+                    escapeHtml(item.sourceType) + '" data-document-no="' + escapeHtml(item.documentNo) + '" title="' +
+                    escapeHtml(event.label + ' · ' + item.documentNo + ' · ' + (item.destination || item.party || '')) + '"><span>' +
+                    escapeHtml(event.label) + '</span><strong>' + escapeHtml(item.documentNo) + '</strong><small>' +
+                    escapeHtml(item.destination || item.party || '') + '</small></button>';
+            }).join('');
+            cells.push('<div class="frm-calendar-day' + (outside ? ' is-outside' : '') + (today ? ' is-today' : '') + '"><div class="frm-calendar-date"><strong>' +
+                current.getDate() + '</strong><span>' + (dayEvents.length ? dayEvents.length + ' movement' + (dayEvents.length === 1 ? '' : 's') : '') +
+                '</span></div>' + shown + (dayEvents.length > 4 ? '<div class="frm-calendar-more">+' + (dayEvents.length - 4) + ' more</div>' : '') + '</div>');
+        }
+        elements.calendarGrid.innerHTML = headings.concat(cells).join('');
+        const monthEvents = events.filter(function (event) {
+            const value = parseDate(event.date);
+            return value && value >= monthStart && value <= monthEnd;
+        });
+        const dateless = filteredItems().filter(function (item) { return !item.etd && !item.eta && !item.actualArrival; }).length;
+        elements.calendarNote.textContent = monthEvents.length + ' dated movement milestone' + (monthEvents.length === 1 ? '' : 's') +
+            ' in this month' + (dateless ? ' · ' + dateless + ' filtered record' + (dateless === 1 ? '' : 's') + ' need a dispatch or arrival date.' : '.');
     }
 
     function countWhere(predicate) {
@@ -487,7 +602,7 @@
     }
 
     function handleClick(event) {
-        const target = event.target.closest('[data-action], [data-view], [data-direction]');
+        const target = event.target.closest('[data-action], [data-view], [data-direction], [data-layout]');
         if (!target) return;
         if (target.dataset.action === 'fullscreen') {
             toggleFullscreen();
@@ -499,6 +614,18 @@
         }
         if (target.dataset.action === 'refresh') {
             invoke('RefreshRequested', []);
+            return;
+        }
+        if (target.dataset.action === 'calendar-prev' || target.dataset.action === 'calendar-next') {
+            const step = target.dataset.action === 'calendar-prev' ? -1 : 1;
+            state.calendarCursor = new Date(state.calendarCursor.getFullYear(), state.calendarCursor.getMonth() + step, 1);
+            renderCalendar();
+            return;
+        }
+        if (target.dataset.action === 'calendar-today') {
+            const today = new Date();
+            state.calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+            renderCalendar();
             return;
         }
         if (target.dataset.action === 'select') {
@@ -520,8 +647,20 @@
             elements.tabs.querySelectorAll('[data-view]').forEach(function (button) {
                 button.setAttribute('aria-pressed', String(button === target));
             });
-            renderList();
-            renderDetail();
+            renderAll();
+            return;
+        }
+        if (target.dataset.layout) {
+            state.layout = target.dataset.layout;
+            if (state.layout === 'calendar') {
+                state.query = '';
+                state.direction = 'all';
+                elements.search.value = '';
+                elements.directions.querySelectorAll('[data-direction]').forEach(function (button) {
+                    button.setAttribute('aria-pressed', String(button.dataset.direction === 'all'));
+                });
+            }
+            renderAll();
             return;
         }
         if (target.dataset.direction) {
@@ -529,16 +668,14 @@
             elements.directions.querySelectorAll('[data-direction]').forEach(function (button) {
                 button.setAttribute('aria-pressed', String(button === target));
             });
-            renderList();
-            renderDetail();
+            renderAll();
         }
     }
 
     function handleInput(event) {
         if (event.target === elements.search) {
             state.query = event.target.value || '';
-            renderList();
-            renderDetail();
+            renderAll();
         }
     }
 
