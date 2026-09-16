@@ -628,13 +628,13 @@
     }
 
     function marketerFact(header) {
-        const confirmed = header.marketerConfirmed === true;
-        const label = confirmed ? (header.marketerDescription || header.marketerCustomerNo) : 'Select marketer';
+        const selected = text(header.marketerCode).toLowerCase();
         return [
             '<div class="sal-fact"><span>Marketer</span>',
-                '<button type="button" class="sal-link-button sal-marketer-control" data-action="select-marketer" data-server-action>',
-                    escapeHtml(label),
-                '</button>',
+                '<div class="sal-marketer-toggle" role="group" aria-label="Plan marketer">',
+                    '<button type="button" class="sal-marketer-option' + (selected === 'tac' ? ' is-active' : '') + '" data-action="save-marketer" data-marketer="TAC" data-server-action aria-pressed="' + String(selected === 'tac') + '">TAC</button>',
+                    '<button type="button" class="sal-marketer-option' + (selected === 'costa' ? ' is-active' : '') + '" data-action="save-marketer" data-marketer="Costa" data-server-action aria-pressed="' + String(selected === 'costa') + '">Costa</button>',
+                '</div>',
             '</div>'
         ].join('');
     }
@@ -1206,8 +1206,8 @@
             invoke('SavePriorityRequested', [priority ? Number(priority.value) : 10], true);
             return;
         }
-        if (action === 'select-marketer') {
-            openNative('SelectMarketerRequested', [], true);
+        if (action === 'save-marketer') {
+            invoke('SaveMarketerRequested', [target.dataset.marketer || ''], true);
             return;
         }
         if (action === 'add-pallet') {

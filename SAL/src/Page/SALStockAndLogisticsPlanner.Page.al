@@ -153,9 +153,9 @@ page 58007 "SAL Stock & Logistics Planner"
                     SavePriority(Priority);
                 end;
 
-                trigger SelectMarketerRequested()
+                trigger SaveMarketerRequested(Marketer: Text)
                 begin
-                    SelectMarketer();
+                    SaveMarketer(Marketer);
                 end;
 
                 trigger SaveRoutingRequested(SourceLineNo: Integer; ExecutionRoute: Text; FacilityWorkType: Text)
@@ -643,6 +643,7 @@ page 58007 "SAL Stock & Logistics Planner"
         Header.Add('dispatchDate', FormatDate(PlanHeader."Dispatch Date"));
         Header.Add('marketerCustomerNo', PlanHeader."Marketer Customer No.");
         Header.Add('marketerDescription', PlanHeader."Marketer Description");
+        Header.Add('marketerCode', GetMarketerCode(PlanHeader."Marketer Description"));
         Header.Add('marketerConfirmed', PlanHeader."Marketer Confirmed");
         Header.Add('sourceCount', PlanHeader."No. of Sources");
         Header.Add('palletCount', PlanHeader."No. of Pallets");
@@ -1405,27 +1406,70 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen(StrSubstNo(PriorityUpdatedMsg, NewPriority), false);
     end;
 
-    local procedure SelectMarketer()
+    local procedure SaveMarketer(Marketer: Text)
     var
         MarketerCustomer: Record Customer;
         PlanHeader: Record "SAL Plan Header";
-        CustomerList: Page "Customer List";
     begin
         GetSelectedDraft(PlanHeader);
+        if not ResolveMarketerCustomer(Marketer, MarketerCustomer) then
+            Error(MarketerMappingErr, Marketer);
 
-        if (PlanHeader."Marketer Customer No." <> '') and MarketerCustomer.Get(PlanHeader."Marketer Customer No.") then
-            CustomerList.SetRecord(MarketerCustomer);
-        CustomerList.LookupMode(true);
-        if CustomerList.RunModal() <> Action::LookupOK then begin
-            LoadScreen('', false);
-            exit;
-        end;
-
-        CustomerList.GetRecord(MarketerCustomer);
         PlanHeader.Validate("Marketer Customer No.", MarketerCustomer."No.");
         PlanHeader."Marketer Confirmed" := true;
         PlanHeader.Modify(true);
-        LoadScreen(StrSubstNo(MarketerUpdatedMsg, MarketerCustomer.Name), false);
+        LoadScreen(StrSubstNo(MarketerUpdatedMsg, GetMarketerCode(MarketerCustomer.Name)), false);
+    end;
+
+    local procedure ResolveMarketerCustomer(Marketer: Text; var MarketerCustomer: Record Customer): Boolean
+    var
+        ProductGroup: Record "SAL Product Group";
+    begin
+        if (UpperCase(Marketer) <> 'TAC') and (UpperCase(Marketer) <> 'COSTA') then
+            Error(MarketerChoiceErr, Marketer);
+
+        ProductGroup.SetFilter("Marketer Customer No.", '<>%1', '');
+        if ProductGroup.FindSet() then
+            repeat
+                ProductGroup.CalcFields("Marketer Description");
+                if IsMarketerMatch(Marketer, ProductGroup."Marketer Description") and
+                   MarketerCustomer.Get(ProductGroup."Marketer Customer No.")
+                then
+                    exit(true);
+            until ProductGroup.Next() = 0;
+
+        MarketerCustomer.Reset();
+        if MarketerCustomer.FindSet() then
+            repeat
+                if IsMarketerMatch(Marketer, MarketerCustomer.Name) then
+                    exit(true);
+            until MarketerCustomer.Next() = 0;
+
+        exit(false);
+    end;
+
+    local procedure IsMarketerMatch(Marketer: Text; MarketerName: Text): Boolean
+    var
+        NormalizedName: Text;
+    begin
+        NormalizedName := UpperCase(MarketerName);
+        case UpperCase(Marketer) of
+            'TAC':
+                exit(((StrPos(NormalizedName, 'AVOCADO') > 0) and (StrPos(NormalizedName, 'COLLECTIVE') > 0)) or
+                     (NormalizedName = 'TAC') or (CopyStr(NormalizedName, 1, 4) = 'TAC '));
+            'COSTA':
+                exit(StrPos(NormalizedName, 'COSTA') > 0);
+        end;
+        exit(false);
+    end;
+
+    local procedure GetMarketerCode(MarketerName: Text): Text
+    begin
+        if IsMarketerMatch('TAC', MarketerName) then
+            exit('TAC');
+        if IsMarketerMatch('Costa', MarketerName) then
+            exit('Costa');
+        exit('');
     end;
 
     local procedure OpenSource(SourceLineNo: Integer)
@@ -1495,6 +1539,8 @@ page 58007 "SAL Stock & Logistics Planner"
         PalletsAddedMsg: Label '%1 physical pallet(s) added.', Comment = '%1 = pallet count';
         PriorityUpdatedMsg: Label 'Plan priority updated to %1 (1 is highest).', Comment = '%1 = priority';
         MarketerUpdatedMsg: Label 'Plan marketer confirmed as %1.', Comment = '%1 = marketer customer name';
+        MarketerChoiceErr: Label '%1 is not a supported marketer. Select TAC or Costa.', Comment = '%1 = supplied marketer';
+        MarketerMappingErr: Label 'No BC customer mapping was found for marketer %1. Add TAC or Costa as the marketer on a SAL product group, then try again.', Comment = '%1 = marketer choice';
         PalletTypeErr: Label '%1 is not a valid SAL pallet type.', Comment = '%1 = supplied pallet type';
         PlanNotDraftErr: Label 'Plan %1 version %2 is %3. Only Draft plans can be changed.', Comment = '%1 = plan no., %2 = version no., %3 = status';
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';

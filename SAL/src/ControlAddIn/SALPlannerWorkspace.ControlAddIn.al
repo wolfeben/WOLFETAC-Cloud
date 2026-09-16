@@ -42,7 +42,7 @@ controladdin "SAL Planner Workspace"
     event ConvertRemainingToFillRequested(SourceLineNo: Integer; FillGroupCode: Text; Quantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text);
     event OpenFillGroupsRequested();
     event SavePriorityRequested(Priority: Integer);
-    event SelectMarketerRequested();
+    event SaveMarketerRequested(Marketer: Text);
     event SaveRoutingRequested(SourceLineNo: Integer; ExecutionRoute: Text; FacilityWorkType: Text);
     event OpenSourceRequested(SourceLineNo: Integer);
 }
