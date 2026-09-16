@@ -44,5 +44,6 @@ controladdin "SAL Planner Workspace"
     event SavePriorityRequested(Priority: Integer);
     event SaveMarketerRequested(Marketer: Text);
     event SaveRoutingRequested(SourceLineNo: Integer; ExecutionRoute: Text; FacilityWorkType: Text);
+    event SaveShipFromRequested(SourceLineNo: Integer; LocationCode: Text);
     event OpenSourceRequested(SourceLineNo: Integer);
 }

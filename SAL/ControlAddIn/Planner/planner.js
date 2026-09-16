@@ -2,7 +2,7 @@
     'use strict';
 
     const localState = {
-        data: { schemaVersion: 2, queue: [], fillGroups: [], plan: null, capabilities: {} },
+        data: { schemaVersion: 2, queue: [], fillGroups: [], shipFromLocations: [], plan: null, capabilities: {} },
         lastGood: null,
         query: '',
         marketer: 'all',
@@ -213,7 +213,7 @@
                 '</header>',
                 '<nav class="sal-flow" aria-label="Planning workflow">',
                     '<span class="sal-step" data-step="demand"><span class="sal-step-number">1</span>Select demand</span>',
-                    '<span class="sal-step" data-step="route"><span class="sal-step-number">2</span>Set route</span>',
+                    '<span class="sal-step" data-step="route"><span class="sal-step-number">2</span>Set ship-from</span>',
                     '<span class="sal-step" data-step="pallet"><span class="sal-step-number">3</span>Build pallet plan</span>',
                     '<span class="sal-step" data-step="validate"><span class="sal-step-number">4</span>Validate</span>',
                     '<span class="sal-step" data-step="release"><span class="sal-step-number">5</span>Release</span>',
@@ -534,7 +534,7 @@
                     fact('Pallets', String((plan.pallets || []).length)),
                 '</div>',
             '</section>',
-            renderRouteCard(selectedSource, sources, caps),
+            renderRouteCard(selectedSource, sources, caps, localState.data.shipFromLocations || []),
             '<div class="sal-tabs" role="tablist">',
                 tabButton('plan', 'Plan'),
                 tabButton('source', 'Demand'),
@@ -659,12 +659,12 @@
         return documents.slice(0, 3).join(' · ') + (documents.length > 3 ? ' +' + (documents.length - 3) : '');
     }
 
-    function renderRouteCard(source, sources, caps) {
+    function renderRouteCard(source, sources, caps, locations) {
         const canEdit = caps && caps.canEdit === true;
         if (!source) {
             return [
                 '<section class="sal-route-card">',
-                    '<div class="sal-route-copy"><strong>Fulfilment route</strong><small>Add demand before confirming the route and Packing Facility work.</small></div>',
+                    '<div class="sal-route-copy"><strong>Ship from location</strong><small>Add demand before choosing the location supplying the order.</small></div>',
                     '<button type="button" class="sal-button" data-action="add-demand" data-server-action>Add demand</button>',
                 '</section>'
             ].join('');
@@ -676,43 +676,49 @@
                 escapeHtml(item.documentNo + ' · ' + item.itemNo) + '</option>';
         }).join('');
 
+        const locationOptionsHtml = shipFromLocationOptions(source.sourceLocationCode, locations);
+
         return [
             '<section class="sal-route-card">',
                 '<div class="sal-route-copy">',
-                    '<strong>Fulfilment route · ', escapeHtml(source.documentNo), ' / ', escapeHtml(source.itemNo), '</strong>',
-                    '<small>Route is confirmed per demand line. ', sources.length > 1 ? 'Choose the source line before changing it.' : '', '</small>',
+                    '<strong>Ship from location · ', escapeHtml(source.documentNo), ' / ', escapeHtml(source.itemNo), '</strong>',
+                    '<small>Choose the BC location supplying this line. Manjimup is the TAC Packing Shed; Dons Fort and Vertex are Queensland sources and must exist as BC locations before use. ', sources.length > 1 ? 'Choose the source line before changing it.' : '', '</small>',
                 '</div>',
                 '<div class="sal-route-controls">',
                     sources.length > 1 ? '<select id="sal-source-picker" aria-label="Source line">' + sourceOptions + '</select>' : '',
-                    '<select id="sal-route-select" aria-label="Execution route"', canEdit ? '' : ' disabled', '>', routeOptions(source.executionRoute), '</select>',
-                    '<select id="sal-work-select" aria-label="Facility work type"', canEdit ? '' : ' disabled', '>', workOptions(source.facilityWorkType), '</select>',
-                    canEdit ? '<button type="button" class="sal-button is-primary" data-action="save-route" data-server-action>Confirm route</button>' : '<span class="sal-chip">Released version · read only</span>',
+                    '<select id="sal-ship-from-select" aria-label="Ship from location"', canEdit ? '' : ' disabled', '>', locationOptionsHtml, '</select>',
+                    canEdit ? '<button type="button" class="sal-button is-primary" data-action="save-ship-from" data-server-action>Confirm ship-from</button>' : '<span class="sal-chip">Released version · read only</span>',
                 '</div>',
             '</section>'
         ].join('');
     }
 
-    function option(value, current) {
-        return '<option value="' + escapeHtml(value) + '"' + (text(value) === text(current) ? ' selected' : '') + '>' + escapeHtml(value) + '</option>';
-    }
+    function shipFromLocationOptions(current, locations) {
+        const available = Array.isArray(locations) ? locations.slice() : [];
+        available.sort(function (left, right) {
+            if (left.isManjimup !== right.isManjimup)
+                return left.isManjimup ? -1 : 1;
+            return text(left.name || left.code).localeCompare(text(right.name || right.code));
+        });
 
-    function routeOptions(current) {
-        return [
-            'Manjimup Pack',
-            'Manjimup Existing Stock',
-            'External DC Fulfilment',
-            'Inter-DC Transfer',
-            'No Facility Action'
-        ].map(function (value) { return option(value, current); }).join('');
-    }
-
-    function workOptions(current) {
-        return [
-            'Pack New',
-            'Match Existing',
-            'Repack or Relabel',
-            'None'
-        ].map(function (value) { return option(value, current); }).join('');
+        const options = ['<option value="">Select ship-from location</option>'];
+        available.forEach(function (location) {
+            const label = location.isManjimup ?
+                'TAC Packing Shed · ' + location.code :
+                (location.name ? location.name + ' · ' + location.code : location.code);
+            options.push('<option value="' + escapeHtml(location.code) + '"' +
+                (text(location.code) === text(current) ? ' selected' : '') + '>' + escapeHtml(label) + '</option>');
+        });
+        const normalizedLocations = available.map(function (location) {
+            return (text(location.code) + text(location.name)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+        if (!normalizedLocations.some(function (value) { return value.indexOf('DONSFORT') >= 0; }))
+            options.push('<option value="" disabled>Dons Fort · BC location setup required</option>');
+        if (!normalizedLocations.some(function (value) { return value.indexOf('VERTEX') >= 0; }))
+            options.push('<option value="" disabled>Vertex · BC location setup required</option>');
+        if (!available.length)
+            options.push('<option value="" disabled>No BC locations are set up</option>');
+        return options.join('');
     }
 
     function renderPlan(plan, caps) {
@@ -1194,13 +1200,15 @@
             invoke('RefreshDemandRequested', [], true);
             return;
         }
-        if (action === 'save-route') {
-            const route = elements.host.querySelector('#sal-route-select');
-            const work = elements.host.querySelector('#sal-work-select');
-            invoke('SaveRoutingRequested', [
+        if (action === 'save-ship-from') {
+            const location = elements.host.querySelector('#sal-ship-from-select');
+            if (!location || !location.value) {
+                showToast('Choose a ship-from location first.', true);
+                return;
+            }
+            invoke('SaveShipFromRequested', [
                 Number(localState.activeSourceLine),
-                route ? route.value : '',
-                work ? work.value : ''
+                location.value
             ], true);
             return;
         }

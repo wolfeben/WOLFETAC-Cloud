@@ -163,6 +163,11 @@ page 58007 "SAL Stock & Logistics Planner"
                     SaveRouting(SourceLineNo, ExecutionRoute, FacilityWorkType);
                 end;
 
+                trigger SaveShipFromRequested(SourceLineNo: Integer; LocationCode: Text)
+                begin
+                    SaveShipFrom(SourceLineNo, LocationCode);
+                end;
+
                 trigger OpenSourceRequested(SourceLineNo: Integer)
                 begin
                     OpenSource(SourceLineNo);
@@ -196,6 +201,7 @@ page 58007 "SAL Stock & Logistics Planner"
     var
         Capabilities: JsonObject;
         FillGroups: JsonArray;
+        ShipFromLocations: JsonArray;
         Queue: JsonArray;
         Root: JsonObject;
         SelectedHeader: Record "SAL Plan Header";
@@ -210,6 +216,8 @@ page 58007 "SAL Stock & Logistics Planner"
 
         BuildQueue(Queue);
         Root.Add('queue', Queue);
+        BuildShipFromLocations(ShipFromLocations);
+        Root.Add('shipFromLocations', ShipFromLocations);
 
         if TryGetSelectedPlan(SelectedHeader) then begin
             SelectedKey.Add('planNo', SelectedHeader."No.");
@@ -227,6 +235,22 @@ page 58007 "SAL Stock & Logistics Planner"
         Root.Add('fillGroups', FillGroups);
         Root.Add('capabilities', Capabilities);
         Root.WriteTo(StateJson);
+    end;
+
+    local procedure BuildShipFromLocations(var ShipFromLocations: JsonArray)
+    var
+        Location: Record Location;
+        LocationItem: JsonObject;
+    begin
+        Location.SetCurrentKey(Code);
+        if Location.FindSet() then
+            repeat
+                Clear(LocationItem);
+                LocationItem.Add('code', Location.Code);
+                LocationItem.Add('name', Location.Name);
+                LocationItem.Add('isManjimup', IsManjimupLocation(Location));
+                ShipFromLocations.Add(LocationItem);
+            until Location.Next() = 0;
     end;
 
     local procedure BuildQueue(var Queue: JsonArray)
@@ -1386,6 +1410,46 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen('Route confirmed for the selected demand line.', false);
     end;
 
+    local procedure SaveShipFrom(SourceLineNo: Integer; LocationCodeText: Text)
+    var
+        Location: Record Location;
+        PlanHeader: Record "SAL Plan Header";
+        PlanSource: Record "SAL Plan Source";
+        LocationCode: Code[10];
+    begin
+        GetSelectedDraft(PlanHeader);
+        if not PlanSource.Get(PlanHeader."No.", PlanHeader."Version No.", SourceLineNo) then
+            Error(SourceNotFoundErr, SourceLineNo);
+
+        LocationCode := CopyStr(LocationCodeText, 1, MaxStrLen(LocationCode));
+        if not Location.Get(LocationCode) then
+            Error(ShipFromLocationErr, LocationCodeText);
+
+        PlanSource.Validate("Source Location Code", Location.Code);
+        if IsManjimupLocation(Location) then begin
+            PlanSource.Validate("Execution Route", PlanSource."Execution Route"::ManjimupPack);
+            PlanSource.Validate("Facility Work Type", PlanSource."Facility Work Type"::PackNew);
+        end else
+            if PlanSource."Source Type" = PlanSource."Source Type"::TransferOrder then begin
+                PlanSource.Validate("Execution Route", PlanSource."Execution Route"::InterDCTransfer);
+                PlanSource.Validate("Facility Work Type", PlanSource."Facility Work Type"::None);
+            end else begin
+                PlanSource.Validate("Execution Route", PlanSource."Execution Route"::ExternalDCFulfilment);
+                PlanSource.Validate("Facility Work Type", PlanSource."Facility Work Type"::None);
+            end;
+
+        PlanSource."Routing Confirmed" := true;
+        PlanSource.Modify(true);
+        LoadScreen(StrSubstNo(ShipFromUpdatedMsg, Location.Code, Location.Name), false);
+    end;
+
+    local procedure IsManjimupLocation(Location: Record Location): Boolean
+    begin
+        exit(
+            (StrPos(UpperCase(Location.Code), 'MANJ') > 0) or
+            (StrPos(UpperCase(Location.Name), 'MANJIMUP') > 0));
+    end;
+
     local procedure SavePriority(NewPriority: Integer)
     var
         PlanHeader: Record "SAL Plan Header";
@@ -1545,6 +1609,8 @@ page 58007 "SAL Stock & Logistics Planner"
         PlanNotDraftErr: Label 'Plan %1 version %2 is %3. Only Draft plans can be changed.', Comment = '%1 = plan no., %2 = version no., %3 = status';
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';
         RouteErr: Label '%1 is not a valid execution route.', Comment = '%1 = supplied route';
+        ShipFromLocationErr: Label 'BC location %1 does not exist. Set up Dons Fort or Vertex as a Business Central location before selecting it.', Comment = '%1 = location code';
+        ShipFromUpdatedMsg: Label 'Ship-from location confirmed as %1 · %2.', Comment = '%1 = location code, %2 = location name';
         SourceNotFoundErr: Label 'Source line %1 no longer exists.', Comment = '%1 = source line number';
         StandardPalletAllocationErr: Label 'Standard pallet %1 already has its one component. Use a Custom or Mixed pallet for additional components.', Comment = '%1 = pallet no.';
         WorkTypeErr: Label '%1 is not a valid facility work type.', Comment = '%1 = supplied work type';
