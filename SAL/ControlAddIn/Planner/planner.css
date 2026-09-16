@@ -741,6 +741,19 @@ body {
     color: var(--sal-ink);
 }
 
+.sal-marketer-control {
+    width: 100%;
+    margin-top: 3px;
+    padding: 5px 7px;
+    overflow: hidden;
+    color: var(--sal-teal-dark);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .sal-route-card {
     display: grid;
     grid-template-columns: 1fr;

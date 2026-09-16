@@ -133,6 +133,11 @@ page 58007 "SAL Stock & Logistics Planner"
                     SavePriority(Priority);
                 end;
 
+                trigger SelectMarketerRequested()
+                begin
+                    SelectMarketer();
+                end;
+
                 trigger SaveRoutingRequested(SourceLineNo: Integer; ExecutionRoute: Text; FacilityWorkType: Text)
                 begin
                     SaveRouting(SourceLineNo, ExecutionRoute, FacilityWorkType);
@@ -1269,6 +1274,29 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen(StrSubstNo(PriorityUpdatedMsg, NewPriority), false);
     end;
 
+    local procedure SelectMarketer()
+    var
+        MarketerCustomer: Record Customer;
+        PlanHeader: Record "SAL Plan Header";
+        CustomerList: Page "Customer List";
+    begin
+        GetSelectedDraft(PlanHeader);
+
+        if (PlanHeader."Marketer Customer No." <> '') and MarketerCustomer.Get(PlanHeader."Marketer Customer No.") then
+            CustomerList.SetRecord(MarketerCustomer);
+        CustomerList.LookupMode(true);
+        if CustomerList.RunModal() <> Action::LookupOK then begin
+            LoadScreen('', false);
+            exit;
+        end;
+
+        CustomerList.GetRecord(MarketerCustomer);
+        PlanHeader.Validate("Marketer Customer No.", MarketerCustomer."No.");
+        PlanHeader."Marketer Confirmed" := true;
+        PlanHeader.Modify(true);
+        LoadScreen(StrSubstNo(MarketerUpdatedMsg, MarketerCustomer.Name), false);
+    end;
+
     local procedure OpenSource(SourceLineNo: Integer)
     var
         PlanHeader: Record "SAL Plan Header";
@@ -1334,6 +1362,7 @@ page 58007 "SAL Stock & Logistics Planner"
         PalletTargetErr: Label 'Target quantity must be greater than zero.';
         PalletsAddedMsg: Label '%1 physical pallet(s) added.', Comment = '%1 = pallet count';
         PriorityUpdatedMsg: Label 'Plan priority updated to %1 (1 is highest).', Comment = '%1 = priority';
+        MarketerUpdatedMsg: Label 'Plan marketer confirmed as %1.', Comment = '%1 = marketer customer name';
         PalletTypeErr: Label '%1 is not a valid SAL pallet type.', Comment = '%1 = supplied pallet type';
         PlanNotDraftErr: Label 'Plan %1 version %2 is %3. Only Draft plans can be changed.', Comment = '%1 = plan no., %2 = version no., %3 = status';
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';

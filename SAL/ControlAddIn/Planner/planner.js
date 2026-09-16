@@ -507,7 +507,7 @@
                 '</div>',
                 '<div class="sal-facts">',
                     caps.canEdit ? priorityFact(header.priority) : fact('Priority (1 highest)', header.priority || 'Not set'),
-                    fact('Marketer', header.marketerDescription || 'Not confirmed'),
+                    caps.canEdit ? marketerFact(header) : fact('Marketer', header.marketerDescription || 'Not confirmed'),
                     fact('Required finish', dateLabel(header.requiredFinishDate)),
                     fact('Dispatch', dateLabel(header.dispatchDate)),
                     fact('Pallets', String((plan.pallets || []).length)),
@@ -540,6 +540,18 @@
                     '<select id="sal-priority-select" aria-label="Plan priority">', options.join(''), '</select>',
                     '<button type="button" class="sal-link-button" data-action="save-priority" data-server-action>Save</button>',
                 '</div>',
+            '</div>'
+        ].join('');
+    }
+
+    function marketerFact(header) {
+        const confirmed = header.marketerConfirmed === true;
+        const label = confirmed ? (header.marketerDescription || header.marketerCustomerNo) : 'Select marketer';
+        return [
+            '<div class="sal-fact"><span>Marketer</span>',
+                '<button type="button" class="sal-link-button sal-marketer-control" data-action="select-marketer" data-server-action>',
+                    escapeHtml(label),
+                '</button>',
             '</div>'
         ].join('');
     }
@@ -1048,6 +1060,10 @@
         if (action === 'save-priority') {
             const priority = elements.host.querySelector('#sal-priority-select');
             invoke('SavePriorityRequested', [priority ? Number(priority.value) : 10], true);
+            return;
+        }
+        if (action === 'select-marketer') {
+            openNative('SelectMarketerRequested', [], true);
             return;
         }
         if (action === 'add-pallet') {
