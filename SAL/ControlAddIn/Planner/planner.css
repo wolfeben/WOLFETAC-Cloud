@@ -440,17 +440,53 @@ body {
     padding: 12px 12px 8px;
 }
 
+.sal-new-demand {
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid var(--sal-line);
+    border-radius: 8px;
+    background: var(--sal-soft);
+}
+
+.sal-new-demand-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--sal-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
+
 .sal-new-demand-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-    margin-top: 10px;
 }
 
-.sal-new-demand-actions .sal-link-button {
+.sal-create-order-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     min-height: 32px;
     padding: 6px;
+    border: 1px solid var(--sal-teal);
+    border-radius: 6px;
+    color: var(--sal-teal-dark);
+    background: #fff;
+    font-size: 10px;
     font-weight: 600;
+    cursor: pointer;
+}
+
+.sal-create-order-button:hover {
+    background: var(--sal-teal-soft);
+}
+
+.sal-create-order-button span {
+    font-size: 14px;
+    line-height: 1;
 }
 
 .sal-queue-top {
