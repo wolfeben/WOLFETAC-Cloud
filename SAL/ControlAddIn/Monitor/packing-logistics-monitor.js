@@ -313,6 +313,7 @@
     function renderAll() {
         const limitNote = state.data.projectionLimited ? ' · current snapshot, up to ' + number(state.data.projectionLimit) + ' records' : '';
         elements.company.textContent = text(state.data.company || 'Business Central') + ' · as at ' + text(state.data.asOf || 'now') + limitNote;
+        syncViewControls();
         renderKpis();
         renderList();
         renderDetail();
@@ -320,6 +321,12 @@
         syncLayout();
         elements.root.classList.toggle('is-compact', state.compact);
         syncFullscreen();
+    }
+
+    function syncViewControls() {
+        elements.tabs.querySelectorAll('[data-view]').forEach(function (button) {
+            button.setAttribute('aria-pressed', String(button.dataset.view === state.view));
+        });
     }
 
     function syncLayout() {
@@ -413,21 +420,22 @@
 
     function renderKpis() {
         const cards = [
-            ['Awaiting plan', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'awaiting-plan'; }), 'Released demand without an active SAL plan'],
-            ['Planning', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'planning'; }), 'Draft SAL plans in this projected snapshot'],
-            ['Yet to pack', '—', 'Requires facility acknowledgement and zero progress'],
-            ['Packing', '—', 'Requires authoritative on-prem scan progress'],
-            ['Ready', '—', 'Requires authoritative physical completion'],
-            ['Dispatched', countWhere(function (item) { return item.stageKey === 'dispatched'; }), 'Posted Sales Shipment evidence'],
-            ['In transit', countWhere(function (item) { return item.stageKey === 'in-transit'; }), 'Transfer quantity recorded in transit'],
-            ['Arrived', countWhere(function (item) { return item.stageKey === 'arrived'; }), 'Posted receipt evidence'],
-            ['Data gaps', countWhere(isDataGap), 'Missing Cloud data; facility exceptions unavailable']
+            ['awaiting-plan', 'Awaiting plan', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'awaiting-plan'; }), 'Released demand without an active SAL plan'],
+            ['planning', 'Planning', countWhere(function (item) { return isLivePlanningDemand(item) && item.packingStatusKey === 'planning'; }), 'Draft SAL plans in this projected snapshot'],
+            ['yet-to-pack', 'Yet to pack', '—', 'Requires facility acknowledgement and zero progress'],
+            ['packing', 'Packing', '—', 'Requires authoritative on-prem scan progress'],
+            ['ready', 'Ready', '—', 'Requires authoritative physical completion'],
+            ['dispatched', 'Dispatched', countWhere(function (item) { return item.stageKey === 'dispatched'; }), 'Posted Sales Shipment evidence'],
+            ['in-transit', 'In transit', countWhere(function (item) { return item.stageKey === 'in-transit'; }), 'Transfer quantity recorded in transit'],
+            ['arrived', 'Arrived', countWhere(function (item) { return item.stageKey === 'arrived'; }), 'Posted receipt evidence'],
+            ['exceptions', 'Data gaps', countWhere(isDataGap), 'Missing Cloud data; facility exceptions unavailable']
         ];
         elements.kpis.innerHTML = cards.map(function (card) {
-            const unknown = card[1] === '—';
-            return '<article class="frm-kpi' + (unknown ? ' is-unknown' : '') + '"><span>' +
-                escapeHtml(card[0]) + '</span><strong>' + escapeHtml(unknown ? card[1] : number(card[1])) + '</strong><small>' +
-                escapeHtml(card[2]) + '</small></article>';
+            const unknown = card[2] === '—';
+            return '<button type="button" class="frm-kpi' + (unknown ? ' is-unknown' : '') + '" data-view="' +
+                escapeHtml(card[0]) + '" aria-pressed="' + String(state.view === card[0]) + '" title="Show ' +
+                escapeHtml(card[1]) + ' movements"><span>' + escapeHtml(card[1]) + '</span><strong>' +
+                escapeHtml(unknown ? card[2] : number(card[2])) + '</strong><small>' + escapeHtml(card[3]) + '</small></button>';
         }).join('');
     }
 
@@ -471,6 +479,9 @@
 
     function matchesView(item) {
         if (state.view === 'all') return true;
+        if (state.view === 'awaiting-plan') return isLivePlanningDemand(item) && item.packingStatusKey === 'awaiting-plan';
+        if (state.view === 'planning') return isLivePlanningDemand(item) && item.packingStatusKey === 'planning';
+        if (state.view === 'yet-to-pack') return item.packingStatusKey === 'yet-to-pack' && item.packingProgressKnown;
         if (state.view === 'packing') return isPackingDemand(item);
         if (state.view === 'ready') return item.packingStatusKey === 'ready-to-dispatch' && item.packingProgressKnown;
         if (state.view === 'dispatched') return item.stageKey === 'dispatched';
@@ -517,8 +528,8 @@
     }
 
     function emptyMessage() {
-        if (state.view === 'ready')
-            return 'Ready-to-dispatch status is unavailable until the Packing Facility completion feed is connected.';
+        if (['yet-to-pack', 'packing', 'ready'].indexOf(state.view) >= 0)
+            return 'This packing status is unavailable until the Packing Facility acknowledgement and scan feed is connected.';
         if (state.view === 'unconsigned')
             return 'Unconsigned pallet data is owned on-prem and is not connected to Cloud yet.';
         return 'No movements match this view.';
@@ -712,9 +723,6 @@
         }
         if (target.dataset.view) {
             state.view = target.dataset.view;
-            elements.tabs.querySelectorAll('[data-view]').forEach(function (button) {
-                button.setAttribute('aria-pressed', String(button === target));
-            });
             renderAll();
             return;
         }
