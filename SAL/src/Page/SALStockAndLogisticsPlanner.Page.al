@@ -163,9 +163,9 @@ page 58007 "SAL Stock & Logistics Planner"
                     SaveRouting(SourceLineNo, ExecutionRoute, FacilityWorkType);
                 end;
 
-                trigger SaveShipFromRequested(SourceLineNo: Integer; LocationCode: Text)
+                trigger SaveShipFromAllRequested(LocationCode: Text)
                 begin
-                    SaveShipFrom(SourceLineNo, LocationCode);
+                    SaveShipFromAll(LocationCode);
                 end;
 
                 trigger OpenSourceRequested(SourceLineNo: Integer)
@@ -1405,12 +1405,13 @@ page 58007 "SAL Stock & Logistics Planner"
 
         PlanSource.Validate("Execution Route", ExecutionRoute);
         PlanSource.Validate("Facility Work Type", FacilityWorkType);
-        PlanSource."Routing Confirmed" := true;
         PlanSource.Modify(true);
+        PlanSource."Routing Confirmed" := true;
+        PlanSource.Modify(false);
         LoadScreen('Route confirmed for the selected demand line.', false);
     end;
 
-    local procedure SaveShipFrom(SourceLineNo: Integer; LocationCodeText: Text)
+    local procedure SaveShipFromAll(LocationCodeText: Text)
     var
         Location: Record Location;
         PlanHeader: Record "SAL Plan Header";
@@ -1418,13 +1419,23 @@ page 58007 "SAL Stock & Logistics Planner"
         LocationCode: Code[10];
     begin
         GetSelectedDraft(PlanHeader);
-        if not PlanSource.Get(PlanHeader."No.", PlanHeader."Version No.", SourceLineNo) then
-            Error(SourceNotFoundErr, SourceLineNo);
-
         LocationCode := CopyStr(LocationCodeText, 1, MaxStrLen(LocationCode));
         if not Location.Get(LocationCode) then
             Error(ShipFromLocationErr, LocationCodeText);
 
+        PlanSource.SetRange("Plan No.", PlanHeader."No.");
+        PlanSource.SetRange("Version No.", PlanHeader."Version No.");
+        if not PlanSource.FindSet(true) then
+            Error(ShipFromNoDemandErr);
+        repeat
+            ApplyShipFrom(PlanSource, Location);
+        until PlanSource.Next() = 0;
+
+        LoadScreen(StrSubstNo(ShipFromUpdatedMsg, Location.Code, Location.Name), false);
+    end;
+
+    local procedure ApplyShipFrom(var PlanSource: Record "SAL Plan Source"; Location: Record Location)
+    begin
         PlanSource.Validate("Source Location Code", Location.Code);
         if IsManjimupLocation(Location) then begin
             PlanSource.Validate("Execution Route", PlanSource."Execution Route"::ManjimupPack);
@@ -1438,9 +1449,9 @@ page 58007 "SAL Stock & Logistics Planner"
                 PlanSource.Validate("Facility Work Type", PlanSource."Facility Work Type"::None);
             end;
 
-        PlanSource."Routing Confirmed" := true;
         PlanSource.Modify(true);
-        LoadScreen(StrSubstNo(ShipFromUpdatedMsg, Location.Code, Location.Name), false);
+        PlanSource."Routing Confirmed" := true;
+        PlanSource.Modify(false);
     end;
 
     local procedure IsManjimupLocation(Location: Record Location): Boolean
@@ -1609,8 +1620,9 @@ page 58007 "SAL Stock & Logistics Planner"
         PlanNotDraftErr: Label 'Plan %1 version %2 is %3. Only Draft plans can be changed.', Comment = '%1 = plan no., %2 = version no., %3 = status';
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';
         RouteErr: Label '%1 is not a valid execution route.', Comment = '%1 = supplied route';
+        ShipFromNoDemandErr: Label 'Add demand lines before confirming the ship-from location.';
         ShipFromLocationErr: Label 'BC location %1 does not exist. Set up Dons Fort or Vertex as a Business Central location before selecting it.', Comment = '%1 = location code';
-        ShipFromUpdatedMsg: Label 'Ship-from location confirmed as %1 · %2.', Comment = '%1 = location code, %2 = location name';
+        ShipFromUpdatedMsg: Label 'Ship-from location confirmed as %1 · %2 for all demand lines.', Comment = '%1 = location code, %2 = location name';
         SourceNotFoundErr: Label 'Source line %1 no longer exists.', Comment = '%1 = source line number';
         StandardPalletAllocationErr: Label 'Standard pallet %1 already has its one component. Use a Custom or Mixed pallet for additional components.', Comment = '%1 = pallet no.';
         WorkTypeErr: Label '%1 is not a valid facility work type.', Comment = '%1 = supplied work type';

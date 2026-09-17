@@ -196,7 +196,7 @@
                     '<div class="sal-heading">',
                         '<span class="sal-eyebrow">The Avocados Collective</span>',
                         '<strong>Stock &amp; Logistics Planner</strong>',
-                        '<small>Route demand. Build physical pallet plans. Release clear facility work.</small>',
+                        '<small>Choose ship-from. Build physical pallet plans. Release clear facility work.</small>',
                     '</div>',
                     '<div class="sal-utility-actions">',
                         '<div class="sal-header-buttons">',
@@ -512,9 +512,6 @@
         const header = plan.header;
         const caps = localState.data.capabilities || {};
         const sources = plan.sources || [];
-        const selectedSource = sources.find(function (source) {
-            return Number(source.lineNo) === Number(localState.activeSourceLine);
-        }) || sources[0] || null;
 
         elements.workspace.innerHTML = [
             '<section class="sal-order-card">',
@@ -534,7 +531,7 @@
                     fact('Pallets', String((plan.pallets || []).length)),
                 '</div>',
             '</section>',
-            renderRouteCard(selectedSource, sources, caps, localState.data.shipFromLocations || []),
+            renderShipFromCard(sources, caps, localState.data.shipFromLocations || []),
             '<div class="sal-tabs" role="tablist">',
                 tabButton('plan', 'Plan'),
                 tabButton('source', 'Demand'),
@@ -659,9 +656,9 @@
         return documents.slice(0, 3).join(' · ') + (documents.length > 3 ? ' +' + (documents.length - 3) : '');
     }
 
-    function renderRouteCard(source, sources, caps, locations) {
+    function renderShipFromCard(sources, caps, locations) {
         const canEdit = caps && caps.canEdit === true;
-        if (!source) {
+        if (!sources || !sources.length) {
             return [
                 '<section class="sal-route-card">',
                     '<div class="sal-route-copy"><strong>Ship from location</strong><small>Add demand before choosing the location supplying the order.</small></div>',
@@ -670,24 +667,22 @@
             ].join('');
         }
 
-        const sourceOptions = sources.map(function (item) {
-            return '<option value="' + escapeHtml(item.lineNo) + '"' +
-                (Number(item.lineNo) === Number(source.lineNo) ? ' selected' : '') + '>' +
-                escapeHtml(item.documentNo + ' · ' + item.itemNo) + '</option>';
-        }).join('');
-
-        const locationOptionsHtml = shipFromLocationOptions(source.sourceLocationCode, locations);
+        const locationCodes = sources.map(function (source) { return text(source.sourceLocationCode); })
+            .filter(function (value, index, values) { return value && values.indexOf(value) === index; });
+        const currentLocationCode = locationCodes.length === 1 ? locationCodes[0] : '';
+        const locationOptionsHtml = shipFromLocationOptions(currentLocationCode, locations);
+        const existingDifference = locationCodes.length > 1 ?
+            ' The current lines have different source locations; confirming this replaces them with one location.' : '';
 
         return [
             '<section class="sal-route-card">',
                 '<div class="sal-route-copy">',
-                    '<strong>Ship from location · ', escapeHtml(source.documentNo), ' / ', escapeHtml(source.itemNo), '</strong>',
-                    '<small>Choose the BC location supplying this line. Manjimup is the TAC Packing Shed; Dons Fort and Vertex are Queensland sources and must exist as BC locations before use. ', sources.length > 1 ? 'Choose the source line before changing it.' : '', '</small>',
+                    '<strong>Ship from location · all ', escapeHtml(sources.length), ' demand line', sources.length === 1 ? '' : 's', '</strong>',
+                    '<small>Choose once for the whole SAL plan. Manjimup is the TAC Packing Shed; Dons Fort and Vertex are Queensland sources and must exist as BC locations before use.', existingDifference, '</small>',
                 '</div>',
                 '<div class="sal-route-controls">',
-                    sources.length > 1 ? '<select id="sal-source-picker" aria-label="Source line">' + sourceOptions + '</select>' : '',
                     '<select id="sal-ship-from-select" aria-label="Ship from location"', canEdit ? '' : ' disabled', '>', locationOptionsHtml, '</select>',
-                    canEdit ? '<button type="button" class="sal-button is-primary" data-action="save-ship-from" data-server-action>Confirm ship-from</button>' : '<span class="sal-chip">Released version · read only</span>',
+                    canEdit ? '<button type="button" class="sal-button is-primary" data-action="save-ship-from" data-server-action>Apply to all lines</button>' : '<span class="sal-chip">Released version · read only</span>',
                 '</div>',
             '</section>'
         ].join('');
@@ -853,8 +848,8 @@
                                 '<small>Exact ', escapeHtml(number(exactPlanned)), ' / ', escapeHtml(number(exactTarget)),
                                 fillTarget > 0 ? '<br>Fill ' + escapeHtml(number(fillPlanned)) + ' / ' + escapeHtml(number(fillTarget)) + ' · ' + escapeHtml(source.fillGroupCode) : '',
                                 '<br>BC outstanding snapshot ', escapeHtml(number(source.remainingQuantity)), '</small></span>',
-                            '<span>', escapeHtml(source.executionRoute), '</span>',
-                            '<span>', source.routingConfirmed ? 'Confirmed' : 'Review route', '</span>',
+                            '<span>', escapeHtml(source.sourceLocationCode || 'Ship-from not set'), '</span>',
+                            '<span>', source.routingConfirmed ? 'Ship-from confirmed' : 'Review ship-from', '</span>',
                             '<div class="sal-source-actions">',
                                 canConvert ? '<button type="button" class="sal-button is-fill" data-action="convert-fill" data-source-line="' + escapeHtml(source.lineNo) + '" data-server-action>Convert remaining to fill</button>' : '',
                                 '<button type="button" class="sal-link-button" data-action="open-source" data-source-line="', escapeHtml(source.lineNo), '">Open source</button>',
@@ -925,7 +920,7 @@
                 '<div class="sal-checks">',
                     check('Demand added', readiness.hasDemand, readiness.hasDemand ? 'Valid' : 'Add source lines'),
                     check('Marketer confirmed', readiness.marketerConfirmed, readiness.marketerConfirmed ? 'Valid' : 'Review in details'),
-                    check('Routes confirmed', readiness.routesConfirmed, readiness.routesConfirmed ? 'Valid' : 'Confirm each source'),
+                    check('Ship-from confirmed', readiness.routesConfirmed, readiness.routesConfirmed ? 'Applied to all lines' : 'Choose once for the plan'),
                     check('Physical pallet plan', readiness.hasPallets, readiness.hasPallets ? 'Set' : 'Add pallets'),
                     check('Required quantities', readiness.quantitiesBalanced, readiness.quantitiesBalanced ? 'Balanced' : 'Allocation differs'),
                 '</div>',
@@ -1030,11 +1025,6 @@
     }
 
     function handleChange(event) {
-        if (event.target && event.target.id === 'sal-source-picker') {
-            localState.activeSourceLine = Number(event.target.value || 0);
-            renderWorkspace();
-            return;
-        }
         if (event.target && event.target.id === 'sal-dialog-pallet-type') {
             const target = elements.dialog.querySelector('#sal-dialog-target-quantity');
             const palletCount = elements.dialog.querySelector('#sal-dialog-pallet-count');
@@ -1206,10 +1196,7 @@
                 showToast('Choose a ship-from location first.', true);
                 return;
             }
-            invoke('SaveShipFromRequested', [
-                Number(localState.activeSourceLine),
-                location.value
-            ], true);
+            invoke('SaveShipFromAllRequested', [location.value], true);
             return;
         }
         if (action === 'save-priority') {

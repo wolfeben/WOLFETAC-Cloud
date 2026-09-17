@@ -266,7 +266,7 @@ codeunit 58001 "SAL Plan Management"
         CancelledEventTypeTxt: Label 'Cancelled', Locked = true;
         CancelledSuggestionTxt: Label 'This plan version is cancelled and is retained for audit history.';
         ConfirmMarketerSuggestionTxt: Label 'Confirm the commercial marketer before planning pallets.';
-        ConfirmRoutingSuggestionTxt: Label 'Confirm the execution route and Packing Facility work for every demand line.';
+        ConfirmRoutingSuggestionTxt: Label 'Choose the ship-from location once for the whole SAL plan.';
         DraftPlanRequiredErr: Label 'Plan %1 version %2 is %3. This action requires a Draft plan.', Comment = '%1 = plan no., %2 = version no., %3 = status';
         DraftVersionExistsErr: Label 'Plan %1 already has Draft version %2. Complete or remove that draft before creating another version.', Comment = '%1 = plan no., %2 = version no.';
         PreviousVersionNotFoundErr: Label 'Plan %1 previous version %2 does not exist.', Comment = '%1 = plan no., %2 = previous version no.';
