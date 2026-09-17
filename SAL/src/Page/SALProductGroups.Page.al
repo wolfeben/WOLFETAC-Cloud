@@ -271,8 +271,13 @@ page 58012 "SAL Product Groups"
             Member.SetRange("Variant Code", '');
             Member.SetRange("Unit of Measure Code", UomCode);
             if not Member.FindFirst() then begin
+                // Init preserves primary-key values on a reused record variable. Clear the
+                // record so OnInsert can allocate the next member line instead of trying
+                // to reuse the last line visited while deactivating or matching members.
+                Clear(Member);
                 Member.Init();
                 Member."Group Code" := ProductGroup.Code;
+                Member."Line No." := 0;
                 Member.Validate("Item No.", ItemNo);
                 Member.Validate("Unit of Measure Code", UomCode);
                 Member."Default Pallet Quantity" := ProductGroup."Default Pallet Quantity";
