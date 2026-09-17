@@ -155,3 +155,7 @@ A separate test app, `WOLFETAC Cloud Tests`, lives under `Test/SAL` and depends 
 4. Obsolete published objects using AL obsoletion properties and an upgrade path; do not delete them casually.
 5. Check downloaded dependency symbols and installed tenant extensions before the first publication.
 6. Any change to the domain bands requires a recorded architecture decision.
+
+## Pool E2E test data 2026-09-17
+
+Reserve **59350-59399** for TAC Pool E2E Test Data (WOLFE), separate app at PoolE2E. Table/page/management codeunit/permission set 59350 and executor codeunit 59351. Every mutation is restricted to Pool_Sandbox / LIVE APMS; standard source documents post through installed BC/engine routines. No engine modifications. Publication validates tenant collisions.

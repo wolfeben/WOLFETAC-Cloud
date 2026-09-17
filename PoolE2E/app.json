@@ -1,0 +1,17 @@
+{
+  "id": "73d8df71-2874-4c7f-9ae3-ea20b8d21f04",
+  "name": "TAC Pool E2E Test Data",
+  "publisher": "WOLFE",
+  "version": "0.1.0.6",
+  "brief": "Sandbox-only pooling test sources and execution evidence",
+  "application": "28.3.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [{ "from": 59350, "to": 59399 }],
+  "dependencies": [
+    {"id":"29ca3407-aebd-4c07-a273-bf9c72e2e66d", "name":"Avocados Core", "publisher":"The Avocados Collective", "version":"1.0.0.41"},
+    {"id":"7ce03a80-b797-4aac-af41-7eaa96351ca5", "name":"TAC Pool Master", "publisher":"DIY-ERP", "version":"2.0.0.2"}
+  ],
+  "resourceExposurePolicy": {"allowDebugging":true,"allowDownloadingSource":true,"includeSourceInSymbolFile":true},
+  "features": ["NoImplicitWith"]
+}
