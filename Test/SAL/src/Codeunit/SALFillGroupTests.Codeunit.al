@@ -433,6 +433,38 @@ codeunit 58801 "SAL Fill Group Tests"
     end;
 
     [Test]
+    procedure OverallPalletLimitAppliesAcrossRepeatedFillConversions()
+    var
+        PlanHeader: Record "SAL Plan Header";
+        PlanSource: Record "SAL Plan Source";
+        ProductGroup: Record "SAL Product Group";
+        ResultPlanHeader: Record "SAL Plan Header";
+    begin
+        // [GIVEN] a fill layout allowing two 160-tray pallets overall
+        CreatePlanWithSalesDemand(480, PlanHeader, PlanSource);
+        CreateFillGroup(PlanHeader."Marketer Customer No.", true, 3, ProductGroup);
+        ProductGroup."Maximum Total Pallets" := 2;
+        ProductGroup.Modify(true);
+
+        // [WHEN] two separate conversions allocate one pallet-equivalent each
+        ConvertToFill(PlanHeader, PlanSource, ProductGroup.Code, 160, true, BuildMembersJson(ProductGroup.Code), ResultPlanHeader);
+        ConvertToFill(ResultPlanHeader, PlanSource, ProductGroup.Code, 160, true, BuildMembersJson(ProductGroup.Code), ResultPlanHeader);
+
+        // [THEN] the snapshotted overall limit is retained and a third conversion is rejected
+        PlanSource.Get(ResultPlanHeader."No.", ResultPlanHeader."Version No.", PlanSource."Line No.");
+        AssertThat(PlanSource."Fill Group Default Pallet Qty." = 160, 'expected the fill layout pallet quantity to be snapshotted');
+        AssertThat(PlanSource."Fill Maximum Total Pallets" = 2, 'expected the overall pallet limit to be snapshotted');
+        AssertThat(PlanSource."Fill Target Quantity" = 320, 'expected two pallet-equivalents across repeated fill conversions');
+        AssertThat(
+            not TryConvertToFill(
+                ResultPlanHeader, PlanSource, ProductGroup.Code, 1, true,
+                BuildMembersJson(ProductGroup.Code), ResultPlanHeader),
+            'expected a repeated conversion above the overall pallet limit to be rejected');
+        PlanSource.Get(ResultPlanHeader."No.", ResultPlanHeader."Version No.", PlanSource."Line No.");
+        AssertThat(PlanSource."Fill Target Quantity" = 320, 'expected the failed conversion to leave the fill target unchanged');
+    end;
+
+    [Test]
     procedure MarketerMismatchedFillGroupCannotBeSelected()
     var
         OtherMarketer: Record Customer;

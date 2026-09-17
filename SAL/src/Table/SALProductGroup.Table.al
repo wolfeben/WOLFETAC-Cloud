@@ -51,6 +51,14 @@ table 58008 "SAL Product Group"
             MinValue = 0;
             ToolTip = 'Specifies the default trays or units per pallet when a member does not have its own default.';
         }
+        field(8; "Maximum Total Pallets"; Decimal)
+        {
+            Caption = 'Maximum Total Pallets';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            MinValue = 0;
+            ToolTip = 'Specifies the maximum pallet-equivalent quantity that this fill layout may allocate across all products and repeated fill conversions. Zero means no overall cap.';
+        }
     }
 
     keys

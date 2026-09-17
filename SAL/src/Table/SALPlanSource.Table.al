@@ -247,6 +247,24 @@ table 58002 "SAL Plan Source"
             TableRelation = Customer."No.";
             ToolTip = 'Specifies the marketer captured when the exact balance was converted to a fill group.';
         }
+        field(38; "Fill Group Default Pallet Qty."; Decimal)
+        {
+            Caption = 'Fill Group Default Pallet Quantity';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            Editable = false;
+            MinValue = 0;
+            ToolTip = 'Specifies the trays or units per pallet captured from the fill layout for enforcing its total pallet limit.';
+        }
+        field(39; "Fill Maximum Total Pallets"; Decimal)
+        {
+            Caption = 'Fill Maximum Total Pallets';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            Editable = false;
+            MinValue = 0;
+            ToolTip = 'Specifies the overall pallet limit captured from the fill layout. Zero means no overall cap.';
+        }
     }
 
     keys

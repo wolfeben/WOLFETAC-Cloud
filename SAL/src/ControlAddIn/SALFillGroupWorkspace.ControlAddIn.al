@@ -18,6 +18,6 @@ controladdin "SAL Fill Group Workspace"
 
     event ControlReady();
     event RefreshRequested();
-    event SaveTemplateRequested(GroupCode: Text; Description: Text; MarketerCustomerNo: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MembersJson: Text);
+    event SaveTemplateRequested(GroupCode: Text; Description: Text; MarketerCustomerNo: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MaximumTotalPallets: Decimal; MembersJson: Text);
     event SetTemplateActiveRequested(GroupCode: Text; Active: Boolean);
 }

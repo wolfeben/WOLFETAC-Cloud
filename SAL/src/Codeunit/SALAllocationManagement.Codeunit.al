@@ -20,6 +20,8 @@ codeunit 58006 "SAL Allocation Management"
         if AllowMixed and not ProductGroup."Allow Mixed Pallets" then
             Error(MixedNotAllowedErr, FillGroupCode);
 
+        ValidateGroupPalletCapacity(
+            CurrentPlanHeader, PlanSource, ProductGroup, PlanSource."Fill Target Quantity" + ConvertQuantity);
         ApplyMemberSelection(CurrentPlanHeader, PlanSource, ProductGroup, MembersJson);
         ValidateSelectedCapacity(CurrentPlanHeader, PlanSource, PlanSource."Fill Target Quantity" + ConvertQuantity);
 
@@ -29,6 +31,10 @@ codeunit 58006 "SAL Allocation Management"
             PlanSource."Fulfilment Mode" := PlanSource."Fulfilment Mode"::Hybrid;
         PlanSource."Fill Group Code" := ProductGroup.Code;
         PlanSource."Fill Marketer Customer No." := ProductGroup."Marketer Customer No.";
+        if PlanSource."Fill Target Quantity" = 0 then begin
+            PlanSource."Fill Group Default Pallet Qty." := ProductGroup."Default Pallet Quantity";
+            PlanSource."Fill Maximum Total Pallets" := ProductGroup."Maximum Total Pallets";
+        end;
         PlanSource."Fill Target Quantity" += ConvertQuantity;
         PlanSource."Fill Allows Mixed Pallets" := AllowMixed;
         PlanSource."Fill Conversion Reason" := CopyStr(Reason, 1, MaxStrLen(PlanSource."Fill Conversion Reason"));
@@ -50,6 +56,7 @@ codeunit 58006 "SAL Allocation Management"
         PlanComponent: Record "SAL Plan Component";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
+        AggregatePlannedQuantity: Decimal;
         EffectiveMaximum: Decimal;
     begin
         LockAndGetPlan(PlanHeader);
@@ -77,7 +84,8 @@ codeunit 58006 "SAL Allocation Management"
 
         FillMember.CalcFields("Planned Quantity");
         EffectiveMaximum := GetEffectiveMaximum(FillMember);
-        if (EffectiveMaximum > 0) and (FillMember."Planned Quantity" + Quantity > EffectiveMaximum) then
+        AggregatePlannedQuantity := GetAggregateProductPlannedQuantity(FillMember);
+        if (EffectiveMaximum > 0) and (AggregatePlannedQuantity + Quantity > EffectiveMaximum) then
             Error(MemberMaximumExceededErr, FillMember."Item No.", EffectiveMaximum);
 
         ValidatePalletMix(PlanSource, PlanPallet, FillMember);
@@ -128,6 +136,8 @@ codeunit 58006 "SAL Allocation Management"
             PlanSource."Fill Group Code" := '';
             PlanSource."Fill Marketer Customer No." := '';
             PlanSource."Fill Allows Mixed Pallets" := false;
+            PlanSource."Fill Group Default Pallet Qty." := 0;
+            PlanSource."Fill Maximum Total Pallets" := 0;
             FillMember.SetRange("Plan No.", PlanHeader."No.");
             FillMember.SetRange("Version No.", PlanHeader."Version No.");
             FillMember.SetRange("Source Line No.", SourceLineNo);
@@ -395,6 +405,67 @@ codeunit 58006 "SAL Allocation Management"
         end;
     end;
 
+    local procedure GetAggregateProductPlannedQuantity(CurrentFillMember: Record "SAL Plan Fill Member") AggregateQuantity: Decimal
+    var
+        FillMember: Record "SAL Plan Fill Member";
+    begin
+        FillMember.SetRange("Plan No.", CurrentFillMember."Plan No.");
+        FillMember.SetRange("Version No.", CurrentFillMember."Version No.");
+        FillMember.SetRange("Group Code", CurrentFillMember."Group Code");
+        FillMember.SetRange("Item No.", CurrentFillMember."Item No.");
+        FillMember.SetRange("Variant Code", CurrentFillMember."Variant Code");
+        FillMember.SetRange("Unit of Measure Code", CurrentFillMember."Unit of Measure Code");
+        if FillMember.FindSet() then
+            repeat
+                FillMember.CalcFields("Planned Quantity");
+                AggregateQuantity += FillMember."Planned Quantity";
+            until FillMember.Next() = 0;
+    end;
+
+    local procedure ValidateGroupPalletCapacity(PlanHeader: Record "SAL Plan Header"; CurrentPlanSource: Record "SAL Plan Source"; ProductGroup: Record "SAL Product Group"; ProposedFillTarget: Decimal)
+    var
+        PlanSource: Record "SAL Plan Source";
+        DefaultPalletQuantity: Decimal;
+        MaximumTotalPallets: Decimal;
+        SourcePalletQuantity: Decimal;
+        TotalPalletEquivalents: Decimal;
+    begin
+        MaximumTotalPallets := ProductGroup."Maximum Total Pallets";
+        DefaultPalletQuantity := ProductGroup."Default Pallet Quantity";
+        if (CurrentPlanSource."Fill Target Quantity" > 0) and
+           (CurrentPlanSource."Fill Group Default Pallet Qty." > 0)
+        then begin
+            MaximumTotalPallets := CurrentPlanSource."Fill Maximum Total Pallets";
+            DefaultPalletQuantity := CurrentPlanSource."Fill Group Default Pallet Qty.";
+        end;
+        if MaximumTotalPallets <= 0 then
+            exit;
+        if DefaultPalletQuantity <= 0 then
+            Error(GroupPalletQuantityRequiredErr, ProductGroup.Code);
+
+        PlanSource.SetRange("Plan No.", PlanHeader."No.");
+        PlanSource.SetRange("Version No.", PlanHeader."Version No.");
+        PlanSource.SetRange("Fill Group Code", ProductGroup.Code);
+        if PlanSource.FindSet() then
+            repeat
+                if PlanSource."Line No." = CurrentPlanSource."Line No." then begin
+                    SourcePalletQuantity := DefaultPalletQuantity;
+                    TotalPalletEquivalents += ProposedFillTarget / SourcePalletQuantity;
+                end else
+                    if PlanSource."Fill Target Quantity" > 0 then begin
+                        SourcePalletQuantity := PlanSource."Fill Group Default Pallet Qty.";
+                        if SourcePalletQuantity <= 0 then
+                            SourcePalletQuantity := DefaultPalletQuantity;
+                        TotalPalletEquivalents += PlanSource."Fill Target Quantity" / SourcePalletQuantity;
+                    end;
+            until PlanSource.Next() = 0;
+
+        if CurrentPlanSource."Fill Group Code" = '' then
+            TotalPalletEquivalents += ProposedFillTarget / DefaultPalletQuantity;
+        if TotalPalletEquivalents > MaximumTotalPallets then
+            Error(GroupPalletLimitExceededErr, ProductGroup.Code, MaximumTotalPallets, TotalPalletEquivalents);
+    end;
+
     local procedure LockAndGetPlan(var PlanHeader: Record "SAL Plan Header")
     var
         PlanNo: Code[20];
@@ -437,6 +508,8 @@ codeunit 58006 "SAL Allocation Management"
         FillTargetExceededErr: Label 'Source line %1 fill target is %2 units, but this component would bring the fill allocation to %3.', Comment = '%1 = source line, %2 = target, %3 = new planned total';
         DuplicateMemberSelectionErr: Label 'Fill member line %1 was supplied more than once.', Comment = '%1 = member line no.';
         GroupMemberNotFoundErr: Label 'Fill group member line %1 does not exist in group %2.', Comment = '%1 = member line, %2 = group code';
+        GroupPalletLimitExceededErr: Label 'Fill group %1 allows at most %2 pallets in total, but this change would allocate %3 pallet equivalents across its fill lines.', Comment = '%1 = fill group code, %2 = maximum pallets, %3 = proposed pallet equivalents';
+        GroupPalletQuantityRequiredErr: Label 'Fill group %1 needs a default pallet quantity before its overall pallet limit can be enforced.', Comment = '%1 = fill group code';
         MarketerMismatchErr: Label 'Fill group %1 is for marketer %2 and cannot be used on a plan for marketer %3.', Comment = '%1 = group code, %2 = group marketer, %3 = plan marketer';
         MemberMaximumExceededErr: Label 'Fill member %1 exceeds its maximum allocation of %2 units.', Comment = '%1 = item, %2 = maximum';
         MemberMaximumBelowPlannedErr: Label 'The maximum for fill member %1 cannot be reduced below its already planned quantity of %2.', Comment = '%1 = item, %2 = planned';

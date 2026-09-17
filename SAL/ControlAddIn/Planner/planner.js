@@ -1388,7 +1388,8 @@
         const options = groups.map(function (group) {
             const memberCount = (group.members || []).length;
             return '<option value="' + escapeHtml(group.code) + '">' + escapeHtml(group.code) + ' · ' +
-                escapeHtml(group.description || 'Fill group') + ' · ' + memberCount + ' eligible SKU' + (memberCount === 1 ? '' : 's') + '</option>';
+                escapeHtml(group.description || 'Fill group') + ' · ' + memberCount + ' eligible SKU' + (memberCount === 1 ? '' : 's') +
+                (Number(group.maximumTotalPallets || 0) > 0 ? ' · max ' + escapeHtml(number(group.maximumTotalPallets)) + ' pallets total' : '') + '</option>';
         }).join('');
         openDialog([
             '<div class="sal-dialog is-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
@@ -1474,10 +1475,26 @@
         const quantity = Number(dialogValue('#sal-dialog-fill-quantity')) || 0;
         const exactRemaining = source ? Math.max(0, Number(source.exactRemainingQuantity || 0)) : 0;
         const selectedCount = elements.dialog.querySelectorAll('.sal-fill-member-select:checked').length;
+        const group = selectedTemplateGroup(dialogValue('#sal-dialog-fill-group'));
+        let groupPalletsAfter = 0;
+        if (source && group) {
+            (localState.data.plan.sources || []).forEach(function (candidate) {
+                if (text(candidate.fillGroupCode).toLowerCase() !== text(group.code).toLowerCase())
+                    return;
+                const palletQuantity = Number(candidate.fillGroupDefaultPalletQuantity || group.defaultPalletQuantity || 0);
+                if (Number(candidate.lineNo) !== Number(source.lineNo) && palletQuantity > 0)
+                    groupPalletsAfter += Number(candidate.fillTargetQuantity || 0) / palletQuantity;
+            });
+            const currentPalletQuantity = Number(source.fillGroupDefaultPalletQuantity || group.defaultPalletQuantity || 0);
+            if (currentPalletQuantity > 0)
+                groupPalletsAfter += (Number(source.fillTargetQuantity || 0) + quantity) / currentPalletQuantity;
+        }
         impact.innerHTML = [
             '<div><span>Exact balance after</span><strong>', escapeHtml(number(Math.max(0, exactRemaining - quantity))), '</strong></div>',
             '<div><span>Fill target after</span><strong>', escapeHtml(number((source ? Number(source.fillTargetQuantity || 0) : 0) + quantity)), '</strong></div>',
-            '<div><span>Eligible SKUs</span><strong>', escapeHtml(selectedCount), '</strong></div>'
+            '<div><span>Eligible SKUs</span><strong>', escapeHtml(selectedCount), '</strong></div>',
+            group && Number(group.maximumTotalPallets || 0) > 0 ?
+                '<div><span>Layout pallets after</span><strong>' + escapeHtml(number(groupPalletsAfter, 2)) + ' / ' + escapeHtml(number(group.maximumTotalPallets)) + '</strong></div>' : ''
         ].join('');
     }
 

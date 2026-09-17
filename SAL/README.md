@@ -25,6 +25,8 @@ Freight and arrival dates now appear inside page 58006 through its Calendar togg
 
 Page 58012 is the graphical Fill Group Layouts workspace. SAL administrators can start from Premium supermarket, Class 1 mix, Export 28/30 or blank layouts; filter live BC inventory items by product type and size; set per-SKU quantity or pallet caps; and save the selection as a reusable marketer-specific fill group.
 
+Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
+
 Movement source lines (app version 1.1.0.2):
 
 - Calendar cards include a compact preview of the underlying BC item/size lines.

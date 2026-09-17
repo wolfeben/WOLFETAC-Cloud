@@ -104,6 +104,12 @@ page 58015 "SAL Plan Sources"
                     Editable = false;
                     ToolTip = 'Shows the flexible quantity assigned to eligible fill products and sizes.';
                 }
+                field("Fill Maximum Total Pallets"; Rec."Fill Maximum Total Pallets")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Shows the total pallet-equivalent limit captured from the selected fill layout.';
+                }
                 field("Unit of Measure Code"; Rec."Unit of Measure Code")
                 {
                     ApplicationArea = All;

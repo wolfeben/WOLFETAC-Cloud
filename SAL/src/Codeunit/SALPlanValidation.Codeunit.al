@@ -88,6 +88,7 @@ codeunit 58002 "SAL Plan Validation"
     var
         FillMember: Record "SAL Plan Fill Member";
         PlanHeader: Record "SAL Plan Header";
+        AggregatePlannedQuantity: Decimal;
         EffectiveMaximum: Decimal;
     begin
         PlanSource.TestField("Fill Group Code");
@@ -102,6 +103,7 @@ codeunit 58002 "SAL Plan Validation"
         PlanHeader.Get(PlanSource."Plan No.", PlanSource."Version No.");
         if PlanSource."Fill Marketer Customer No." <> PlanHeader."Marketer Customer No." then
             Error(FillMarketerMismatchErr, PlanSource."Line No.", PlanSource."Fill Marketer Customer No.", PlanHeader."Marketer Customer No.");
+        ValidateFillGroupPalletLimit(PlanSource);
 
         FillMember.SetRange("Plan No.", PlanSource."Plan No.");
         FillMember.SetRange("Version No.", PlanSource."Version No.");
@@ -119,8 +121,9 @@ codeunit 58002 "SAL Plan Validation"
             if (FillMember."Minimum Quantity" > 0) and (FillMember."Planned Quantity" < FillMember."Minimum Quantity") then
                 Error(FillMemberMinimumErr, FillMember."Item No.", FillMember."Minimum Quantity", FillMember."Planned Quantity");
             EffectiveMaximum := GetEffectiveMaximum(FillMember);
-            if (EffectiveMaximum > 0) and (FillMember."Planned Quantity" > EffectiveMaximum) then
-                Error(FillMemberMaximumErr, FillMember."Item No.", EffectiveMaximum, FillMember."Planned Quantity");
+            AggregatePlannedQuantity := GetAggregateProductPlannedQuantity(FillMember);
+            if (EffectiveMaximum > 0) and (AggregatePlannedQuantity > EffectiveMaximum) then
+                Error(FillMemberMaximumErr, FillMember."Item No.", EffectiveMaximum, AggregatePlannedQuantity);
         until FillMember.Next() = 0;
     end;
 
@@ -351,6 +354,54 @@ codeunit 58002 "SAL Plan Validation"
         end;
     end;
 
+    local procedure GetAggregateProductPlannedQuantity(CurrentFillMember: Record "SAL Plan Fill Member") AggregateQuantity: Decimal
+    var
+        FillMember: Record "SAL Plan Fill Member";
+    begin
+        FillMember.SetRange("Plan No.", CurrentFillMember."Plan No.");
+        FillMember.SetRange("Version No.", CurrentFillMember."Version No.");
+        FillMember.SetRange("Group Code", CurrentFillMember."Group Code");
+        FillMember.SetRange("Item No.", CurrentFillMember."Item No.");
+        FillMember.SetRange("Variant Code", CurrentFillMember."Variant Code");
+        FillMember.SetRange("Unit of Measure Code", CurrentFillMember."Unit of Measure Code");
+        if FillMember.FindSet() then
+            repeat
+                FillMember.CalcFields("Planned Quantity");
+                AggregateQuantity += FillMember."Planned Quantity";
+            until FillMember.Next() = 0;
+    end;
+
+    local procedure ValidateFillGroupPalletLimit(CurrentPlanSource: Record "SAL Plan Source")
+    var
+        PlanSource: Record "SAL Plan Source";
+        SourcePalletQuantity: Decimal;
+        TotalPalletEquivalents: Decimal;
+    begin
+        if CurrentPlanSource."Fill Maximum Total Pallets" <= 0 then
+            exit;
+        CurrentPlanSource.TestField("Fill Group Default Pallet Qty.");
+
+        PlanSource.SetRange("Plan No.", CurrentPlanSource."Plan No.");
+        PlanSource.SetRange("Version No.", CurrentPlanSource."Version No.");
+        PlanSource.SetRange("Fill Group Code", CurrentPlanSource."Fill Group Code");
+        if PlanSource.FindSet() then
+            repeat
+                if PlanSource."Fill Target Quantity" > 0 then begin
+                    SourcePalletQuantity := PlanSource."Fill Group Default Pallet Qty.";
+                    if SourcePalletQuantity <= 0 then
+                        SourcePalletQuantity := CurrentPlanSource."Fill Group Default Pallet Qty.";
+                    TotalPalletEquivalents += PlanSource."Fill Target Quantity" / SourcePalletQuantity;
+                end;
+            until PlanSource.Next() = 0;
+
+        if TotalPalletEquivalents > CurrentPlanSource."Fill Maximum Total Pallets" then
+            Error(
+                FillGroupPalletLimitErr,
+                CurrentPlanSource."Fill Group Code",
+                CurrentPlanSource."Fill Maximum Total Pallets",
+                TotalPalletEquivalents);
+    end;
+
     local procedure ValidateMarketerCustomer(MarketerCustomerNo: Code[20])
     var
         Customer: Record Customer;
@@ -381,6 +432,7 @@ codeunit 58002 "SAL Plan Validation"
         ExactModeErr: Label 'Source line %1 has no fill target and must remain Exact SKU.', Comment = '%1 = source line no.';
         ExactSourceTotalErr: Label 'Source line %1 requires %2 exact units but its exact pallet components total %3.', Comment = '%1 = source line, %2 = exact target, %3 = exact planned';
         FillMarketerMismatchErr: Label 'Source line %1 fill marketer %2 does not match plan marketer %3.', Comment = '%1 = source line, %2 = fill marketer, %3 = plan marketer';
+        FillGroupPalletLimitErr: Label 'Fill group %1 allows at most %2 pallets in total, but this plan contains %3 pallet equivalents across its fill lines.', Comment = '%1 = fill group code, %2 = maximum pallets, %3 = planned pallet equivalents';
         FillMemberGroupErr: Label 'Fill member line %1 does not match the fill group on source line %2.', Comment = '%1 = member line, %2 = source line';
         FillMemberMaximumErr: Label 'Fill member %1 allows at most %2 units but %3 are planned.', Comment = '%1 = item, %2 = maximum, %3 = planned';
         FillMemberMinimumErr: Label 'Fill member %1 requires at least %2 units but only %3 are planned.', Comment = '%1 = item, %2 = minimum, %3 = planned';

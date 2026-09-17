@@ -621,6 +621,7 @@ page 58007 "SAL Stock & Logistics Planner"
                 FillGroup.Add('marketerDescription', ProductGroup."Marketer Description");
                 FillGroup.Add('allowMixedPallets', ProductGroup."Allow Mixed Pallets");
                 FillGroup.Add('defaultPalletQuantity', ProductGroup."Default Pallet Quantity");
+                FillGroup.Add('maximumTotalPallets', ProductGroup."Maximum Total Pallets");
                 BuildFillGroupMembers(ProductGroup.Code, Members);
                 FillGroup.Add('members', Members);
                 FillGroups.Add(FillGroup);
@@ -715,6 +716,8 @@ page 58007 "SAL Stock & Logistics Planner"
                 Source.Add('fillConversionReason', PlanSource."Fill Conversion Reason");
                 Source.Add('fillConvertedAt', FormatDateTime(PlanSource."Fill Converted At"));
                 Source.Add('fillConvertedBy', PlanSource."Fill Converted By");
+                Source.Add('fillGroupDefaultPalletQuantity', PlanSource."Fill Group Default Pallet Qty.");
+                Source.Add('fillMaximumTotalPallets', PlanSource."Fill Maximum Total Pallets");
                 Source.Add('exactTargetQuantity', ExactTargetQuantity);
                 Source.Add('exactPlannedQuantity', PlanSource."Exact Planned Quantity");
                 Source.Add('exactRemainingQuantity', ExactTargetQuantity - PlanSource."Exact Planned Quantity");

@@ -79,7 +79,7 @@ table 58009 "SAL Product Group Member"
             DataClassification = CustomerContent;
             DecimalPlaces = 0 : 5;
             MinValue = 0;
-            ToolTip = 'Specifies the maximum pallet-equivalent allocation for this member. Zero means no pallet cap.';
+            ToolTip = 'Specifies the maximum pallet-equivalent allocation for this product across fill lines using the layout in one SAL plan. Zero means no product pallet cap.';
         }
         field(10; "Default Pallet Quantity"; Decimal)
         {

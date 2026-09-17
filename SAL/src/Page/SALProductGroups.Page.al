@@ -25,9 +25,9 @@ page 58012 "SAL Product Groups"
                     LoadScreen('Fill group layouts refreshed.', false);
                 end;
 
-                trigger SaveTemplateRequested(GroupCode: Text; Description: Text; MarketerCustomerNo: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MembersJson: Text)
+                trigger SaveTemplateRequested(GroupCode: Text; Description: Text; MarketerCustomerNo: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MaximumTotalPallets: Decimal; MembersJson: Text)
                 begin
-                    SaveTemplate(GroupCode, Description, MarketerCustomerNo, AllowMixedPallets, DefaultPalletQuantity, MembersJson);
+                    SaveTemplate(GroupCode, Description, MarketerCustomerNo, AllowMixedPallets, DefaultPalletQuantity, MaximumTotalPallets, MembersJson);
                 end;
 
                 trigger SetTemplateActiveRequested(GroupCode: Text; Active: Boolean)
@@ -84,6 +84,7 @@ page 58012 "SAL Product Groups"
                 Group.Add('marketerDescription', ProductGroup."Marketer Description");
                 Group.Add('allowMixedPallets', ProductGroup."Allow Mixed Pallets");
                 Group.Add('defaultPalletQuantity', ProductGroup."Default Pallet Quantity");
+                Group.Add('maximumTotalPallets', ProductGroup."Maximum Total Pallets");
                 BuildMembers(ProductGroup.Code, Members);
                 Group.Add('members', Members);
                 Groups.Add(Group);
@@ -180,7 +181,7 @@ page 58012 "SAL Product Groups"
             (NormalizedName = 'TAC') or (CopyStr(NormalizedName, 1, 4) = 'TAC '));
     end;
 
-    local procedure SaveTemplate(GroupCodeText: Text; DescriptionText: Text; MarketerCustomerNoText: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MembersJson: Text)
+    local procedure SaveTemplate(GroupCodeText: Text; DescriptionText: Text; MarketerCustomerNoText: Text; AllowMixedPallets: Boolean; DefaultPalletQuantity: Decimal; MaximumTotalPallets: Decimal; MembersJson: Text)
     var
         Customer: Record Customer;
         ProductGroup: Record "SAL Product Group";
@@ -201,6 +202,8 @@ page 58012 "SAL Product Groups"
             Error(MarketerRequiredErr);
         if DefaultPalletQuantity <= 0 then
             Error(PalletQuantityErr);
+        if MaximumTotalPallets < 0 then
+            Error(MaximumTotalPalletsErr);
 
         IsNew := not ProductGroup.Get(GroupCode);
         if IsNew then begin
@@ -212,6 +215,7 @@ page 58012 "SAL Product Groups"
         ProductGroup.Validate("Marketer Customer No.", MarketerCustomerNo);
         ProductGroup.Validate("Allow Mixed Pallets", AllowMixedPallets);
         ProductGroup.Validate("Default Pallet Quantity", DefaultPalletQuantity);
+        ProductGroup.Validate("Maximum Total Pallets", MaximumTotalPallets);
         ProductGroup.Validate(Active, true);
         ProductGroup.Modify(true);
 
@@ -315,6 +319,7 @@ page 58012 "SAL Product Groups"
         MemberJsonErr: Label 'The selected fill group products could not be read.';
         NoMembersErr: Label 'Select at least one eligible product or size before saving the layout.';
         PalletQuantityErr: Label 'Enter a default pallet quantity greater than zero.';
+        MaximumTotalPalletsErr: Label 'The maximum total pallets cannot be negative. Use zero for no overall limit.';
         TemplatePermissionErr: Label 'You need the SAL Administrator permission set to maintain fill group layouts.';
         TemplateSavedMsg: Label 'Fill group layout %1 saved.', Comment = '%1 = fill group code';
         TemplateStatusMsg: Label 'Fill group layout %1 status updated.', Comment = '%1 = fill group code';

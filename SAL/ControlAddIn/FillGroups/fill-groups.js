@@ -71,16 +71,18 @@
             marketerCustomerNo: marketers.length ? marketers[0].customerNo : '',
             allowMixedPallets: false,
             defaultPalletQuantity: 160,
+            maximumTotalPallets: 0,
             members: {}
         };
         const items = state.data.items || [];
         if (preset === 'premium') {
             draft.code = uniqueCode('SUPERMKT-PREM');
             draft.description = 'Supermarket Premium Fill';
+            draft.maximumTotalPallets = 30;
             state.type = 'premium';
             items.forEach(function (item) {
                 if (itemFacts(item).types.indexOf('premium') >= 0)
-                    draft.members[item.itemNo] = memberDraft(item, 0, 0);
+                    draft.members[item.itemNo] = memberDraft(item, 0, 5);
             });
         } else if (preset === 'class1') {
             draft.code = uniqueCode('CLASS1-MIX');
@@ -146,6 +148,7 @@
             marketerCustomerNo: group.marketerCustomerNo,
             allowMixedPallets: Boolean(group.allowMixedPallets),
             defaultPalletQuantity: Number(group.defaultPalletQuantity || 160),
+            maximumTotalPallets: Number(group.maximumTotalPallets || 0),
             members: {}
         };
         (group.members || []).forEach(function (member) {
@@ -216,10 +219,12 @@
                     return '<option value="' + esc(marketer.customerNo) + '"' + (marketer.customerNo === draft.marketerCustomerNo ? ' selected' : '') + '>' + esc(marketer.name) + '</option>';
                 }).join(''), '</select></label>',
                 '<label>Default trays / pallet<input id="fg-pallet-qty" type="number" min="1" step="1" value="', esc(draft.defaultPalletQuantity), '"></label>',
+                '<label>Total fill pallet limit<input id="fg-total-pallet-limit" type="number" min="0" step="1" value="', esc(draft.maximumTotalPallets), '"><small>0 = no overall cap</small></label>',
                 '<label class="fg-check"><input id="fg-mixed" type="checkbox"', draft.allowMixedPallets ? ' checked' : '', '>Allow mixed products or sizes on one pallet</label>',
             '</div>',
             '<div class="fg-picker-head"><div><h3>Eligible products and sizes</h3><p>Filter the item catalogue, then tick exactly what this layout may use.</p></div>',
-                '<span class="fg-selected-count">', selectedCount, ' selected</span></div>',
+                '<div class="fg-picker-actions"><label>Max pallets per selected SKU · all fills<input id="fg-bulk-max-pallets" type="number" min="0" step="1" value="5"></label>',
+                '<button class="fg-secondary" data-action="apply-member-cap">Apply</button><span class="fg-selected-count">', selectedCount, ' selected</span></div></div>',
             '<div class="fg-filters">',
                 '<label>Find product<input id="fg-query" value="', esc(state.query), '" placeholder="Item, description or category"></label>',
                 '<label>Product type<select id="fg-type">', typeOptions(), '</select></label>',
@@ -273,7 +278,7 @@
                     '<div class="fg-tags">', facts.types.map(function (type) { return '<span>' + esc(type === 'class1' ? 'Class 1' : type) + '</span>'; }).join(''), facts.size ? '<span>Size ' + esc(facts.size) + '</span>' : '', '<span>', esc(item.uom || 'units'), '</span></div>',
                     '<div class="fg-item-limits">',
                         '<label>Max qty<input class="fg-max-qty" type="number" min="0" step="1" value="', esc(member ? member.maximumQuantity : 0), '"', member ? '' : ' disabled', '></label>',
-                        '<label>Max pallets<input class="fg-max-pallets" type="number" min="0" step="1" value="', esc(member ? member.maximumPallets : 0), '"', member ? '' : ' disabled', '></label>',
+                        '<label>Product max pallets<input class="fg-max-pallets" type="number" min="0" step="1" value="', esc(member ? member.maximumPallets : 0), '"', member ? '' : ' disabled', '></label>',
                     '</div>',
                 '</article>'
             ].join('');
@@ -296,6 +301,7 @@
         state.draft.description = (host.querySelector('#fg-name') || {}).value || '';
         state.draft.marketerCustomerNo = (host.querySelector('#fg-marketer') || {}).value || '';
         state.draft.defaultPalletQuantity = Number((host.querySelector('#fg-pallet-qty') || {}).value || 0);
+        state.draft.maximumTotalPallets = Number((host.querySelector('#fg-total-pallet-limit') || {}).value || 0);
         state.draft.allowMixedPallets = Boolean((host.querySelector('#fg-mixed') || {}).checked);
     }
 
@@ -313,7 +319,7 @@
             return;
         }
         invoke('SaveTemplateRequested', [state.draft.code, state.draft.description, state.draft.marketerCustomerNo,
-            state.draft.allowMixedPallets, state.draft.defaultPalletQuantity, JSON.stringify(members)]);
+            state.draft.allowMixedPallets, state.draft.defaultPalletQuantity, state.draft.maximumTotalPallets, JSON.stringify(members)]);
     }
 
     function handleClick(event) {
@@ -331,6 +337,12 @@
             render();
         } else if (action === 'save-template')
             saveTemplate();
+        else if (action === 'apply-member-cap') {
+            captureHeaderFields();
+            const cap = Number((host.querySelector('#fg-bulk-max-pallets') || {}).value || 0);
+            Object.keys(state.draft.members).forEach(function (itemNo) { state.draft.members[itemNo].maximumPallets = cap; });
+            render();
+        }
         else if (action === 'toggle-active')
             invoke('SetTemplateActiveRequested', [state.selectedCode, !currentGroupActive()]);
     }
