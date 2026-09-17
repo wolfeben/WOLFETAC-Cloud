@@ -1,7 +1,7 @@
 controladdin "SAL Planner Workspace"
 {
-    MinimumHeight = 480;
-    RequestedHeight = 720;
+    MinimumHeight = 640;
+    RequestedHeight = 1080;
     MinimumWidth = 320;
     RequestedWidth = 1920;
     HorizontalStretch = true;

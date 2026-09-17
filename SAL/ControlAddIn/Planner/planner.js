@@ -1628,7 +1628,7 @@
                 escapeHtml(choice.label) + ' — ' + escapeHtml(choice.detail) + '</option>';
         }).join('');
         openDialog([
-            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+            '<div class="sal-dialog is-component-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
                 '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Pallet ', escapeHtml(palletNo), '</span><h2 id="sal-dialog-title">Add product / size</h2></div>',
                 '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
                 '<p class="sal-dialog-intro">Choose an exact demand item or an eligible member of a converted fill group. Every physical pallet still records its actual product and quantity.</p>',
