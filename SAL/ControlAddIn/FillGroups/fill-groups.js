@@ -190,7 +190,6 @@
                 '<div id="fg-toast" class="fg-toast" hidden></div>',
             '</main>'
         ].join('');
-        bindDynamicValues();
     }
 
     function groupCard(group) {
@@ -285,10 +284,10 @@
         }).join('');
     }
 
-    function bindDynamicValues() {
-        const query = host.querySelector('#fg-query');
-        if (query)
-            query.focus({ preventScroll: true });
+    function refreshItemGrid() {
+        const itemGrid = host.querySelector('.fg-item-grid');
+        if (itemGrid)
+            itemGrid.innerHTML = renderItems();
     }
 
     function currentGroupActive() {
@@ -375,7 +374,7 @@
             state.type = (host.querySelector('#fg-type') || {}).value || 'all';
             state.size = (host.querySelector('#fg-size') || {}).value || 'all';
             state.selectedOnly = Boolean((host.querySelector('#fg-selected-only') || {}).checked);
-            render();
+            refreshItemGrid();
         }
     }
 
@@ -383,7 +382,9 @@
         if (event.target.id === 'fg-query') {
             captureHeaderFields();
             state.query = event.target.value || '';
-            render();
+            // Updating only the results keeps the live search input, focus and
+            // caret intact while the user types.
+            refreshItemGrid();
         }
     }
 
