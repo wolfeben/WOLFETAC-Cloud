@@ -128,6 +128,11 @@ page 58007 "SAL Stock & Logistics Planner"
                     AddFillComponent(PalletNo, SourceLineNo, FillMemberLineNo, Quantity);
                 end;
 
+                trigger AddFlexibleFillComponentRequested(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal)
+                begin
+                    AddFlexibleFillComponent(PalletNo, SourceLineNo, Quantity);
+                end;
+
                 trigger DeleteComponentRequested(PalletNo: Integer; LineNo: Integer)
                 begin
                     DeleteComponent(PalletNo, LineNo);
@@ -813,6 +818,8 @@ page 58007 "SAL Stock & Logistics Planner"
     var
         Component: JsonObject;
         PlanComponent: Record "SAL Plan Component";
+        PlanSource: Record "SAL Plan Source";
+        IsFlexibleFill: Boolean;
     begin
         PlanComponent.SetRange("Plan No.", PlanHeader."No.");
         PlanComponent.SetRange("Version No.", PlanHeader."Version No.");
@@ -824,6 +831,16 @@ page 58007 "SAL Stock & Logistics Planner"
                 Component.Add('sourceLineNo', PlanComponent."Source Line No.");
                 Component.Add('fulfilmentMode', Format(PlanComponent."Fulfilment Mode"));
                 Component.Add('fillMemberLineNo', PlanComponent."Fill Member Line No.");
+                IsFlexibleFill :=
+                    (PlanComponent."Fulfilment Mode" = PlanComponent."Fulfilment Mode"::FillGroup) and
+                    (PlanComponent."Fill Member Line No." = 0);
+                Component.Add('isFlexibleFill', IsFlexibleFill);
+                if IsFlexibleFill and
+                   PlanSource.Get(PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.")
+                then
+                    Component.Add('fillGroupCode', PlanSource."Fill Group Code")
+                else
+                    Component.Add('fillGroupCode', '');
                 Component.Add('itemNo', PlanComponent."Item No.");
                 Component.Add('itemDescription', PlanComponent.Description);
                 Component.Add('variantCode', PlanComponent."Variant Code");
@@ -1353,6 +1370,16 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen(StrSubstNo(FillComponentAddedMsg, PalletNo), false);
     end;
 
+    local procedure AddFlexibleFillComponent(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal)
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        PlanHeader: Record "SAL Plan Header";
+    begin
+        GetSelectedDraft(PlanHeader);
+        AllocationManagement.AddFlexibleFillComponent(PlanHeader, PalletNo, SourceLineNo, Quantity);
+        LoadScreen(StrSubstNo(FlexibleFillComponentAddedMsg, PalletNo), false);
+    end;
+
     local procedure ConvertRemainingToFill(SourceLineNo: Integer; FillGroupCodeText: Text; Quantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text)
     var
         AllocationManagement: Codeunit "SAL Allocation Management";
@@ -1595,6 +1622,7 @@ page 58007 "SAL Stock & Logistics Planner"
         SelectedVersionNo: Integer;
         ComponentAddedMsg: Label 'Component added to pallet %1.', Comment = '%1 = pallet number';
         FillComponentAddedMsg: Label 'Fill component added to pallet %1.', Comment = '%1 = pallet number';
+        FlexibleFillComponentAddedMsg: Label 'Flexible fill instruction added to pallet %1. Packing can resolve any eligible product or size.', Comment = '%1 = pallet number';
         FillConvertedMsg: Label '%1 units converted to fill group %2.', Comment = '%1 = quantity, %2 = fill group code';
         FillTargetAdjustedMsg: Label 'Fill target adjusted to %1 units.', Comment = '%1 = new fill target quantity';
         ComponentNotFoundErr: Label 'Pallet %1 component line %2 no longer exists.', Comment = '%1 = pallet number, %2 = line number';

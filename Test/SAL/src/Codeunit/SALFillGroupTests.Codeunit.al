@@ -566,6 +566,38 @@ codeunit 58801 "SAL Fill Group Tests"
     end;
 
     [Test]
+    procedure FlexibleFillPalletValidatesWithoutPreselectedSku()
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        PlanComponent: Record "SAL Plan Component";
+        PlanHeader: Record "SAL Plan Header";
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+        ProductGroup: Record "SAL Product Group";
+        ResultPlanHeader: Record "SAL Plan Header";
+    begin
+        // [GIVEN] a source balance converted to a fill group and one Standard physical pallet
+        CreatePlanWithSalesDemand(160, PlanHeader, PlanSource);
+        CreateFillGroup(PlanHeader."Marketer Customer No.", true, 3, ProductGroup);
+        ConvertToFill(PlanHeader, PlanSource, ProductGroup.Code, 160, true, BuildMembersJson(ProductGroup.Code), ResultPlanHeader);
+        PlanSource.Get(ResultPlanHeader."No.", ResultPlanHeader."Version No.", PlanSource."Line No.");
+        CreatePallet(ResultPlanHeader, 160, PlanPallet."Pallet Type"::Standard, PlanPallet);
+
+        // [WHEN] the planner leaves the actual eligible SKU for packing to resolve
+        AllocationManagement.AddFlexibleFillComponent(ResultPlanHeader, PlanPallet."Pallet No.", PlanSource."Line No.", 160);
+
+        // [THEN] the balanced plan validates without inventing an item allocation
+        PlanComponent.SetRange("Plan No.", ResultPlanHeader."No.");
+        PlanComponent.SetRange("Version No.", ResultPlanHeader."Version No.");
+        PlanComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+        AssertThat(PlanComponent.FindFirst(), 'expected a flexible fill component');
+        AssertThat(PlanComponent."Fulfilment Mode" = PlanComponent."Fulfilment Mode"::FillGroup, 'expected fill-group fulfilment mode');
+        AssertThat(PlanComponent."Fill Member Line No." = 0, 'expected no preselected fill member');
+        AssertThat(PlanComponent."Item No." = '', 'expected the actual product to remain unresolved');
+        AssertThat(TryValidatePlan(ResultPlanHeader), 'expected an unresolved flexible fill pallet to validate');
+    end;
+
+    [Test]
     procedure ReleasedPlanConversionIsBlockedUntilCompletionFeedExists()
     var
         OriginalPlanHeader: Record "SAL Plan Header";

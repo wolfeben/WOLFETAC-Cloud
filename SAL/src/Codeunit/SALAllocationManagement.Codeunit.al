@@ -100,6 +100,53 @@ codeunit 58006 "SAL Allocation Management"
         PlanComponent.Insert(true);
     end;
 
+    procedure AddFlexibleFillComponent(var PlanHeader: Record "SAL Plan Header"; PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal)
+    var
+        PlanComponent: Record "SAL Plan Component";
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+    begin
+        LockAndGetPlan(PlanHeader);
+        if PlanHeader.Status <> PlanHeader.Status::Draft then
+            Error(DraftRequiredErr, PlanHeader."No.", PlanHeader."Version No.", PlanHeader.Status);
+        if Quantity <= 0 then
+            Error(PositiveQuantityErr);
+        if not PlanPallet.Get(PlanHeader."No.", PlanHeader."Version No.", PalletNo) then
+            Error(PalletNotFoundErr, PalletNo);
+        if PlanPallet."Pallet Type" <> PlanPallet."Pallet Type"::Standard then
+            Error(FlexibleFillStandardPalletErr, PalletNo);
+        PlanPallet.CalcFields("Planned Quantity", "No. of Components");
+        if PlanPallet."No. of Components" > 0 then
+            Error(FlexibleFillEmptyPalletErr, PalletNo);
+        if PlanPallet."Planned Quantity" + Quantity > PlanPallet."Target Quantity" then
+            Error(PalletTargetExceededErr, PalletNo, PlanPallet."Target Quantity", PlanPallet."Planned Quantity" + Quantity);
+        if not PlanSource.Get(PlanHeader."No.", PlanHeader."Version No.", SourceLineNo) then
+            Error(SourceNotFoundErr, SourceLineNo);
+        if PlanSource."Fill Target Quantity" <= 0 then
+            Error(SourceNotFillErr, SourceLineNo);
+
+        PlanSource.CalcFields("Fill Planned Quantity");
+        if PlanSource."Fill Planned Quantity" + Quantity > PlanSource."Fill Target Quantity" then
+            Error(FillTargetExceededErr, SourceLineNo, PlanSource."Fill Target Quantity", PlanSource."Fill Planned Quantity" + Quantity);
+
+        PlanComponent.Init();
+        PlanComponent."Plan No." := PlanHeader."No.";
+        PlanComponent."Version No." := PlanHeader."Version No.";
+        PlanComponent."Pallet No." := PalletNo;
+        PlanComponent.Validate("Source Line No.", SourceLineNo);
+        PlanComponent."Fulfilment Mode" := PlanComponent."Fulfilment Mode"::FillGroup;
+        PlanComponent."Fill Member Line No." := 0;
+        PlanComponent."Item No." := '';
+        PlanComponent."Variant Code" := '';
+        PlanComponent."Unit of Measure Code" := PlanSource."Unit of Measure Code";
+        PlanComponent.Description := CopyStr(
+            StrSubstNo(FlexibleFillDescriptionTxt, PlanSource."Fill Group Code"),
+            1,
+            MaxStrLen(PlanComponent.Description));
+        PlanComponent.Validate(Quantity, Quantity);
+        PlanComponent.Insert(true);
+    end;
+
     procedure AdjustFillTarget(var PlanHeader: Record "SAL Plan Header"; SourceLineNo: Integer; NewFillTarget: Decimal; Reason: Text)
     var
         FillMember: Record "SAL Plan Fill Member";
@@ -503,6 +550,9 @@ codeunit 58006 "SAL Allocation Management"
         FillAdjustedDescriptionTxt: Label 'Source line %1 fill target reduced from %2 to %3. Reason: %4', Comment = '%1 = source line, %2 = old target, %3 = new target, %4 = reason';
         FillAdjustedEventTypeTxt: Label 'Fill Adjusted', Locked = true;
         FillGroupNotFoundErr: Label 'Fill group %1 does not exist.', Comment = '%1 = fill group code';
+        FlexibleFillDescriptionTxt: Label 'Fill %1 - any eligible product or size', Comment = '%1 = fill group code';
+        FlexibleFillEmptyPalletErr: Label 'Pallet %1 already has a component. A flexible fill instruction must be the only component on its pallet.', Comment = '%1 = pallet no.';
+        FlexibleFillStandardPalletErr: Label 'Pallet %1 must be Standard to use an unresolved flexible fill instruction. Use explicit products for Custom or Mixed pallets.', Comment = '%1 = pallet no.';
         FillMemberNotFoundErr: Label 'Fill member line %1 does not exist for source line %2.', Comment = '%1 = member line no., %2 = source line no.';
         FillMemberUOMMismatchErr: Label 'Fill member %1 uses unit %2, but the source demand uses %3. Fill quantities must use the same unit.', Comment = '%1 = item, %2 = member UOM, %3 = source UOM';
         FillTargetExceededErr: Label 'Source line %1 fill target is %2 units, but this component would bring the fill allocation to %3.', Comment = '%1 = source line, %2 = target, %3 = new planned total';

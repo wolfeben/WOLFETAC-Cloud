@@ -788,7 +788,9 @@
             '<button type="button" class="sal-link-button" data-action="add-component" data-pallet-no="' + escapeHtml(pallet.palletNo) + '" data-server-action>Add component</button>' +
             '<button type="button" class="sal-link-button" data-action="delete-pallet" data-pallet-no="' + escapeHtml(pallet.palletNo) + '" data-server-action>Remove</button></div>' : '';
         const productSummary = components.length ?
-            components.map(function (component) { return component.itemNo; }).filter(function (value, index, array) {
+            components.map(function (component) {
+                return component.isFlexibleFill ? 'Fill · ' + component.fillGroupCode : component.itemNo;
+            }).filter(function (value, index, array) {
                 return array.indexOf(value) === index;
             }).join(' + ') : 'No components';
         return [
@@ -804,9 +806,11 @@
                 components.length ? '<div class="sal-components">' + components.map(function (component) {
                     return [
                         '<div class="sal-component">',
-                            '<strong>', escapeHtml(component.itemNo), component.variantCode ? ' · ' + escapeHtml(component.variantCode) : '', '</strong>',
+                            '<strong>', component.isFlexibleFill ?
+                                escapeHtml('Fill ' + component.fillGroupCode + ' · Any eligible product / size') :
+                                escapeHtml(component.itemNo) + (component.variantCode ? ' · ' + escapeHtml(component.variantCode) : ''), '</strong>',
                             '<span>', escapeHtml(number(component.quantity)), ' ', escapeHtml(component.uom || 'units'),
-                                ' · ', escapeHtml(component.fulfilmentMode === 'Fill Group' ? 'Fill group' : 'Exact SKU'), '</span>',
+                                ' · ', component.isFlexibleFill ? 'Resolved by packing' : escapeHtml(component.fulfilmentMode === 'Fill Group' ? 'Fill group' : 'Exact SKU'), '</span>',
                             canEdit ? '<button type="button" class="sal-link-button" data-action="delete-component" data-pallet-no="' + escapeHtml(pallet.palletNo) +
                                 '" data-line-no="' + escapeHtml(component.lineNo) + '" data-server-action>Remove</button>' : '',
                         '</div>'
@@ -1593,7 +1597,13 @@
                     defaultQuantity: Math.min(160, exactRemaining)
                 });
             const fillRemaining = Math.max(0, Number(source.fillRemainingQuantity || 0));
-            if (fillRemaining > 0)
+            if (fillRemaining > 0) {
+                choices.push({
+                    value: 'fill-any|' + source.lineNo + '|0',
+                    label: source.documentNo + ' · Fill ' + source.fillGroupCode + ' · Any eligible product / size',
+                    detail: number(fillRemaining) + ' ' + (source.uom || 'units') + ' remaining · actual SKU resolved by packing',
+                    defaultQuantity: Math.min(Number(source.fillGroupDefaultPalletQuantity || 160), fillRemaining)
+                });
                 (source.fillMembers || []).forEach(function (member) {
                     const memberAllowance = Number(member.effectiveMaximumQuantity || 0) > 0 ?
                         Math.max(0, Number(member.remainingAllowance || 0)) : fillRemaining;
@@ -1607,6 +1617,7 @@
                         defaultQuantity: Math.min(Number(member.defaultPalletQuantity || 160), available)
                     });
                 });
+            }
         });
         if (!choices.length) {
             showToast('All demand is already allocated, or the fill group has no available member capacity.', true);
@@ -1705,7 +1716,7 @@
         const fillMemberLineNo = Number(choice[2]);
         const quantity = Number(dialogValue('#sal-dialog-component-quantity'));
         if (!Number.isSafeInteger(palletNo) || palletNo <= 0 || !Number.isSafeInteger(sourceLineNo) || sourceLineNo <= 0 ||
-            !['exact', 'fill'].includes(mode)) {
+            !['exact', 'fill', 'fill-any'].includes(mode)) {
             showDialogError('Choose a valid pallet and product / size.');
             return;
         }
@@ -1718,7 +1729,9 @@
             return;
         }
         closeDialog();
-        if (mode === 'fill')
+        if (mode === 'fill-any')
+            invoke('AddFlexibleFillComponentRequested', [palletNo, sourceLineNo, quantity], true);
+        else if (mode === 'fill')
             invoke('AddFillComponentRequested', [palletNo, sourceLineNo, fillMemberLineNo, quantity], true);
         else
             invoke('AddComponentRequested', [palletNo, sourceLineNo, quantity], true);

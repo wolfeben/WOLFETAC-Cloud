@@ -37,6 +37,7 @@ controladdin "SAL Planner Workspace"
     event DeletePalletRequested(PalletNo: Integer);
     event AddComponentRequested(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal);
     event AddFillComponentRequested(PalletNo: Integer; SourceLineNo: Integer; FillMemberLineNo: Integer; Quantity: Decimal);
+    event AddFlexibleFillComponentRequested(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal);
     event DeleteComponentRequested(PalletNo: Integer; LineNo: Integer);
     event AdjustFillTargetRequested(SourceLineNo: Integer; NewFillTarget: Decimal; Reason: Text);
     event ConvertRemainingToFillRequested(SourceLineNo: Integer; FillGroupCode: Text; Quantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text);

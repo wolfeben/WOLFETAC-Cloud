@@ -90,6 +90,7 @@ codeunit 58002 "SAL Plan Validation"
         PlanHeader: Record "SAL Plan Header";
         AggregatePlannedQuantity: Decimal;
         EffectiveMaximum: Decimal;
+        HasFlexibleFill: Boolean;
     begin
         PlanSource.TestField("Fill Group Code");
         PlanSource.TestField("Fill Marketer Customer No.");
@@ -104,6 +105,7 @@ codeunit 58002 "SAL Plan Validation"
         if PlanSource."Fill Marketer Customer No." <> PlanHeader."Marketer Customer No." then
             Error(FillMarketerMismatchErr, PlanSource."Line No.", PlanSource."Fill Marketer Customer No.", PlanHeader."Marketer Customer No.");
         ValidateFillGroupPalletLimit(PlanSource);
+        HasFlexibleFill := HasFlexibleFillAllocation(PlanSource);
 
         FillMember.SetRange("Plan No.", PlanSource."Plan No.");
         FillMember.SetRange("Version No.", PlanSource."Version No.");
@@ -118,7 +120,10 @@ codeunit 58002 "SAL Plan Validation"
                     FillMemberUOMMismatchErr,
                     FillMember."Item No.", FillMember."Unit of Measure Code", PlanSource."Unit of Measure Code");
             FillMember.CalcFields("Planned Quantity");
-            if (FillMember."Minimum Quantity" > 0) and (FillMember."Planned Quantity" < FillMember."Minimum Quantity") then
+            if not HasFlexibleFill and
+               (FillMember."Minimum Quantity" > 0) and
+               (FillMember."Planned Quantity" < FillMember."Minimum Quantity")
+            then
                 Error(FillMemberMinimumErr, FillMember."Item No.", FillMember."Minimum Quantity", FillMember."Planned Quantity");
             EffectiveMaximum := GetEffectiveMaximum(FillMember);
             AggregatePlannedQuantity := GetAggregateProductPlannedQuantity(FillMember);
@@ -241,6 +246,7 @@ codeunit 58002 "SAL Plan Validation"
         FirstVariantCode: Code[10];
         HasDifferentProduct: Boolean;
         PlannedQuantity: Decimal;
+        FlexibleComponentCount: Integer;
     begin
         if PlanPallet."Target Quantity" <= 0 then
             Error(PalletTargetErr, PlanPallet."Pallet No.");
@@ -252,7 +258,10 @@ codeunit 58002 "SAL Plan Validation"
             Error(PalletNoComponentsErr, PlanPallet."Pallet No.");
         repeat
             PlanComponent.TestField("Source Line No.");
-            PlanComponent.TestField("Item No.");
+            if IsFlexibleFillComponent(PlanComponent) then
+                FlexibleComponentCount += 1
+            else
+                PlanComponent.TestField("Item No.");
             PlanComponent.TestField("Unit of Measure Code");
             if PlanComponent.Quantity <= 0 then
                 Error(ComponentQuantityErr, PlanPallet."Pallet No.", PlanComponent."Line No.");
@@ -266,6 +275,12 @@ codeunit 58002 "SAL Plan Validation"
                 if (PlanComponent."Item No." <> FirstItemNo) or (PlanComponent."Variant Code" <> FirstVariantCode) then
                     HasDifferentProduct := true;
         until PlanComponent.Next() = 0;
+
+        if (FlexibleComponentCount > 0) and
+           ((FlexibleComponentCount <> 1) or (ComponentCount <> 1) or
+            (PlanPallet."Pallet Type" <> PlanPallet."Pallet Type"::Standard))
+        then
+            Error(FlexibleFillPalletErr, PlanPallet."Pallet No.");
 
         if not QuantitiesEqual(PlannedQuantity, PlanPallet."Target Quantity") then
             Error(PalletTotalErr, PlanPallet."Pallet No.", PlanPallet."Target Quantity", PlannedQuantity);
@@ -308,6 +323,13 @@ codeunit 58002 "SAL Plan Validation"
                 begin
                     if PlanSource."Fill Target Quantity" <= 0 then
                         Error(ComponentSourceNotFillErr, PlanComponent."Pallet No.", PlanComponent."Line No.", PlanSource."Line No.");
+                    if IsFlexibleFillComponent(PlanComponent) then begin
+                        if (PlanComponent."Item No." <> '') or (PlanComponent."Variant Code" <> '') or
+                           (PlanComponent."Unit of Measure Code" <> PlanSource."Unit of Measure Code")
+                        then
+                            Error(FlexibleFillComponentErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
+                        exit;
+                    end;
                     PlanComponent.TestField("Fill Member Line No.");
                     if not FillMember.Get(
                         PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.", PlanComponent."Fill Member Line No.")
@@ -322,6 +344,25 @@ codeunit 58002 "SAL Plan Validation"
             else
                 Error(ComponentModeErr, PlanComponent."Pallet No.", PlanComponent."Line No.");
         end;
+    end;
+
+    local procedure IsFlexibleFillComponent(PlanComponent: Record "SAL Plan Component"): Boolean
+    begin
+        exit(
+            (PlanComponent."Fulfilment Mode" = PlanComponent."Fulfilment Mode"::FillGroup) and
+            (PlanComponent."Fill Member Line No." = 0));
+    end;
+
+    local procedure HasFlexibleFillAllocation(PlanSource: Record "SAL Plan Source"): Boolean
+    var
+        PlanComponent: Record "SAL Plan Component";
+    begin
+        PlanComponent.SetRange("Plan No.", PlanSource."Plan No.");
+        PlanComponent.SetRange("Version No.", PlanSource."Version No.");
+        PlanComponent.SetRange("Source Line No.", PlanSource."Line No.");
+        PlanComponent.SetRange("Fulfilment Mode", PlanComponent."Fulfilment Mode"::FillGroup);
+        PlanComponent.SetRange("Fill Member Line No.", 0);
+        exit(not PlanComponent.IsEmpty());
     end;
 
     local procedure ValidateFillMixPermissions(PlanPallet: Record "SAL Plan Pallet")
@@ -433,6 +474,8 @@ codeunit 58002 "SAL Plan Validation"
         ExactSourceTotalErr: Label 'Source line %1 requires %2 exact units but its exact pallet components total %3.', Comment = '%1 = source line, %2 = exact target, %3 = exact planned';
         FillMarketerMismatchErr: Label 'Source line %1 fill marketer %2 does not match plan marketer %3.', Comment = '%1 = source line, %2 = fill marketer, %3 = plan marketer';
         FillGroupPalletLimitErr: Label 'Fill group %1 allows at most %2 pallets in total, but this plan contains %3 pallet equivalents across its fill lines.', Comment = '%1 = fill group code, %2 = maximum pallets, %3 = planned pallet equivalents';
+        FlexibleFillComponentErr: Label 'Pallet %1 component line %2 is a flexible fill instruction and must not contain a preselected item or variant.', Comment = '%1 = pallet no., %2 = component line no.';
+        FlexibleFillPalletErr: Label 'Pallet %1 has an unresolved flexible fill instruction. It must be the only component on a Standard pallet.', Comment = '%1 = pallet no.';
         FillMemberGroupErr: Label 'Fill member line %1 does not match the fill group on source line %2.', Comment = '%1 = member line, %2 = source line';
         FillMemberMaximumErr: Label 'Fill member %1 allows at most %2 units but %3 are planned.', Comment = '%1 = item, %2 = maximum, %3 = planned';
         FillMemberMinimumErr: Label 'Fill member %1 requires at least %2 units but only %3 are planned.', Comment = '%1 = item, %2 = minimum, %3 = planned';
