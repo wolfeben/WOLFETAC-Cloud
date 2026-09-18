@@ -1,2 +1,5 @@
 build/
 .alpackages/
+# Live setup snapshots and generated local manifests are evidence, not source.
+/week-*-preflight.json
+/week-*-draft-manifest.json
