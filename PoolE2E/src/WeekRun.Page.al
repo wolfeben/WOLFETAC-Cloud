@@ -50,6 +50,11 @@ page 59353 "WLF Pool Week Test Run"
                 Caption = 'Post next 50 pallet contributions'; ApplicationArea = All; Image = OutputJournal;
                 trigger OnAction() begin M.RunOutputs(50); Contents := M.Snapshot(); end;
             }
+            action(CompleteSourceDimensions)
+            {
+                Caption = 'Complete missing pool source dimensions'; ApplicationArea = All; Image = Dimensions;
+                trigger OnAction() begin M.CompleteSourceDimensions(); Contents := M.Snapshot(); end;
+            }
             action(FinishPilot)
             {
                 Caption = 'Finish next order through pooling'; ApplicationArea = All; Image = Post;

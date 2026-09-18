@@ -109,7 +109,7 @@ codeunit 59355 "WLF Pool Week Production"
 
     local procedure ApplyReceiptDimensions(R: Record "WLF Pool Week Run"; var C: Record "Prod. Order Component")
     var E: Record "Item Ledger Entry"; D: Record "Dimension Set Entry"; L: Record "Prod. Order Line";
-        S: Record "Inventory Setup"; NewSet: Integer;
+        S: Record "Inventory Setup"; NewSet: Integer; PoolDims: Codeunit "TAC Pool Dimension Mgt";
     begin
         // A native batch component need not inherit the selected receipt's dimensions.
         // Carry the actual receipt dimensions into consumption; never guess a block/value.
@@ -125,8 +125,57 @@ codeunit 59355 "WLF Pool Week Production"
             NewSet := M.WithDimension(L."Dimension Set ID", D."Dimension Code", D."Dimension Value Code");
             D.Get(E."Dimension Set ID", S."TAC Grower Dimension Code");
             NewSet := M.WithDimension(NewSet, D."Dimension Code", D."Dimension Value Code");
+            D.Get(E."Dimension Set ID", PoolDims.GrowerPoolTypeDimensionCode());
+            NewSet := M.WithDimension(NewSet, D."Dimension Code", D."Dimension Value Code");
+            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeDimensionCode());
+            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeCategoryDimensionCode());
+            PoolDims.ValidatePoolDimensionValues(NewSet);
             L.Validate("Dimension Set ID", NewSet); L.Modify(true);
         until L.Next() = 0;
+    end;
+
+    procedure CompletePoolSourceDimensions(var R: Record "WLF Pool Week Run")
+    var P: Record "Production Order"; L: Record "Prod. Order Line"; E: Record "Item Ledger Entry";
+        D: Record "Dimension Set Entry"; VendorDefault: Record "Default Dimension"; V: Record Vendor;
+        PoolDims: Codeunit "TAC Pool Dimension Mgt"; DimCode: Code[20]; ExistingValue: Code[20]; Changed: Integer; NewSet: Integer;
+    begin
+        CheckOrder(R); R.TestField("Consumption Verified", true); R.TestField("Output Pieces Verified", 27);
+        P.Get(P.Status::Released, R."Batch No.");
+        E.Get(R."Receipt Entry No."); E.TestField("Source No.", R."Grower No."); E.TestField("Lot No.", R."Delivery Lot No.");
+        DimCode := PoolDims.GrowerPoolTypeDimensionCode();
+        D.Get(E."Dimension Set ID", DimCode); D.TestField("Dimension Value Code");
+        VendorDefault.Get(Database::Vendor, R."Grower No.", DimCode);
+        VendorDefault.TestField("Dimension Value Code", D."Dimension Value Code");
+        V.Get(R."Grower No."); V.TestField("Grower Pool Type", PoolDims.MapGrowerPoolType(D."Dimension Value Code"));
+        L.SetRange(Status, P.Status); L.SetRange("Prod. Order No.", P."No.");
+        if L.Count() <> 9 then Error('Expected the nine prepared production lines.');
+        if L.FindSet(true) then repeat
+            L.TestField("Remaining Quantity", 0); L.TestField("Finished Quantity", L.Quantity);
+            ExistingValue := PoolDims.GetDimensionValue(L."Dimension Set ID", DimCode);
+            if (ExistingValue <> '') and (ExistingValue <> D."Dimension Value Code") then
+                Error('Order %1 line %2 has a conflicting grower pool-type dimension.', L."Prod. Order No.", L."Line No.");
+            NewSet := L."Dimension Set ID";
+            if ExistingValue = '' then NewSet := M.WithDimension(NewSet, DimCode, D."Dimension Value Code");
+            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeDimensionCode());
+            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeCategoryDimensionCode());
+            if NewSet <> L."Dimension Set ID" then begin
+                L.Validate("Dimension Set ID", NewSet);
+                L.Modify(true); Changed += 1;
+            end;
+            PoolDims.ValidatePoolDimensionValues(L."Dimension Set ID");
+        until L.Next() = 0;
+        // Complete source data only; posted inventory and pooling code are unchanged.
+        SaveResult(R, CopyStr(StrSubstNo('%1 production source lines completed from original receipt and matching grower/item defaults. %2=%3. Posted inventory dimensions are unchanged.', Changed, DimCode, D."Dimension Value Code"), 1, 2048));
+    end;
+
+    local procedure WithSourceItemDimension(DimensionSetID: Integer; ItemNo: Code[20]; DimensionCode: Code[20]): Integer
+    var ItemDefault: Record "Default Dimension"; PoolDims: Codeunit "TAC Pool Dimension Mgt"; ExistingValue: Code[20];
+    begin
+        ItemDefault.Get(Database::Item, ItemNo, DimensionCode); ItemDefault.TestField("Dimension Value Code");
+        ExistingValue := PoolDims.GetDimensionValue(DimensionSetID, DimensionCode);
+        if ExistingValue = ItemDefault."Dimension Value Code" then exit(DimensionSetID);
+        if ExistingValue <> '' then Error('Item %1 source dimension %2 conflicts with its existing default.', ItemNo, DimensionCode);
+        exit(M.WithDimension(DimensionSetID, DimensionCode, ItemDefault."Dimension Value Code"));
     end;
 
     procedure OutputNext(var R: Record "WLF Pool Week Run")

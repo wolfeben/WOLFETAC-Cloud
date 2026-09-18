@@ -97,6 +97,14 @@ codeunit 59353 "WLF Pool Week Management"
         until R.Next() = 0;
     end;
 
+    procedure CompleteSourceDimensions()
+    var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer;
+    begin
+        CheckTarget(); R.SetRange("Finish Verified", false);
+        if R.FindSet() then repeat IDs.Add(R."Order Index"); until R.Next() = 0;
+        foreach N in IDs do if not RunStep(N, 8) then exit;
+    end;
+
     procedure RunFinish(Maximum: Integer)
     var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer; Count: Integer;
     begin
@@ -165,6 +173,7 @@ codeunit 59353 "WLF Pool Week Management"
         G: Record "TAC Batch Plan Grower"; Lane: Record "TAC Batch Plan Lane"; PO: Record "Production Order";
         Evidence: JsonObject; O: Record "WLF Pool Week Output"; Outputs: JsonArray; Summary: JsonObject;
         PL: Record "Prod. Order Line"; Components: Record "Prod. Order Component"; Lines: JsonArray; Detail: JsonObject;
+        PoolDims: Codeunit "TAC Pool Dimension Mgt";
     begin
         CheckTarget(); J.Add('environment', 'Pool_Sandbox'); J.Add('company', CompanyName());
         J.Add('readAt', CurrentDateTime());
@@ -217,7 +226,11 @@ codeunit 59353 "WLF Pool Week Management"
                     if PL.FindSet() then repeat
                         Clear(Detail); Detail.Add('item', PL."Item No."); Detail.Add('quantity', PL.Quantity);
                         Detail.Add('baseQuantity', PL."Quantity (Base)"); Detail.Add('finished', PL."Finished Quantity");
-                        Detail.Add('remaining', PL."Remaining Quantity"); Detail.Add('unit', PL."Unit of Measure Code"); Lines.Add(Detail);
+                        Detail.Add('remaining', PL."Remaining Quantity"); Detail.Add('unit', PL."Unit of Measure Code");
+                        Detail.Add('growerPoolType', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.GrowerPoolTypeDimensionCode()));
+                        Detail.Add('packType', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.PackTypeDimensionCode()));
+                        Detail.Add('packCategory', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.PackTypeCategoryDimensionCode()));
+                        Lines.Add(Detail);
                     until PL.Next() = 0;
                     Evidence.Add('outputLines', Lines);
                     Components.Reset(); Components.SetRange(Status, PO.Status); Components.SetRange("Prod. Order No.", PO."No.");
