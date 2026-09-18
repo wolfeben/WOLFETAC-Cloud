@@ -87,6 +87,16 @@ codeunit 59353 "WLF Pool Week Management"
         end;
     end;
 
+    procedure UsePalletDetailSerials()
+    var R: Record "WLF Pool Week Run";
+    begin
+        CheckTarget();
+        if not Confirm('Use all requested serials in native pallet detail, with one inventory output entry per pallet/order contribution, for remaining output? Already posted entries will not change.', false) then exit;
+        if R.FindSet(true) then repeat
+            R."Pallet Detail Serials Only" := true; R.Modify();
+        until R.Next() = 0;
+    end;
+
     procedure RunFinish(Maximum: Integer)
     var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer; Count: Integer;
     begin
@@ -179,6 +189,7 @@ codeunit 59353 "WLF Pool Week Management"
             Row.Add('planPrepared', R."Plan Prepared"); Row.Add('lastResult', R."Last Result");
             Row.Add('productionPrepared', R."Production Prepared"); Row.Add('consumptionVerified', R."Consumption Verified");
             Row.Add('outputPiecesVerified', R."Output Pieces Verified"); Row.Add('finishVerified', R."Finish Verified");
+            Row.Add('palletDetailSerialsOnlyForRemainingOutput', R."Pallet Detail Serials Only");
             Clear(Evidence);
             if ILE.Get(R."Receipt Entry No.") then begin
                 Evidence.Add('receivedBins', ILE.Quantity); Evidence.Add('remainingBins', ILE."Remaining Quantity");
@@ -227,7 +238,8 @@ codeunit 59353 "WLF Pool Week Management"
             Clear(Detail); Detail.Add('orderIndex', O."Order Index"); Detail.Add('item', O."Item No."); Detail.Add('slot', O.Slot);
             Detail.Add('palletAndLot', O."Pallet No."); Detail.Add('baseQuantity', O."Base Quantity"); Detail.Add('date', O."Posting Date");
             Detail.Add('serials', O."Serial Count"); Detail.Add('firstSerial', O."First Serial"); Detail.Add('lastSerial', O."Last Serial");
-            Detail.Add('verified', O.Verified); Detail.Add('entries', O."Ledger Entries"); Detail.Add('warehouseQuantity', O."Warehouse Quantity"); Outputs.Add(Detail);
+            Detail.Add('verified', O.Verified); Detail.Add('entries', O."Ledger Entries"); Detail.Add('warehouseQuantity', O."Warehouse Quantity");
+            Detail.Add('palletDetailSerialsOnly', O."Pallet Detail Serials Only"); Outputs.Add(Detail);
         until O.Next() = 0;
         J.Add('outputContributions', Outputs); J.WriteTo(Result); exit(Result);
     end;

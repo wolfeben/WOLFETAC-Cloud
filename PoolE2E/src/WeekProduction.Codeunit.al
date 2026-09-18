@@ -141,6 +141,7 @@ codeunit 59355 "WLF Pool Week Production"
         CheckOrder(R); R.TestField("Consumption Verified", true); P.Get(P.Status::Released, R."Batch No.");
         O.SetRange("Order Index", R."Order Index"); O.SetRange(Verified, false);
         if not O.FindFirst() then Error('All output pieces already verified.');
+        O."Pallet Detail Serials Only" := R."Pallet Detail Serials Only";
         CheckNewPiece(O);
         E.SetRange("Order Type", E."Order Type"::Production); E.SetRange("Order No.", R."Batch No.");
         E.SetRange("Entry Type", E."Entry Type"::Output); E.SetRange("Item No.", O."Item No."); E.SetRange("Lot No.", O."Pallet No.");
@@ -167,12 +168,13 @@ codeunit 59355 "WLF Pool Week Production"
         J.Validate("Location Code", 'MANJIMUP'); J.Validate("Bin Code", R."Receipt Bin Code");
         J.Validate("Output Quantity", O."Base Quantity"); J.TestField("Output Quantity (Base)", O."Base Quantity");
         J.Validate("Dimension Set ID", L."Dimension Set ID"); J.Validate("DIY_Pallet No.", O."Pallet No."); J.Insert(true);
-        ExpectedEntries := O."Serial Count"; if ExpectedEntries = 0 then ExpectedEntries := 1;
+        ExpectedEntries := O."Serial Count";
+        if (ExpectedEntries = 0) or O."Pallet Detail Serials Only" then ExpectedEntries := 1;
         for N := 1 to ExpectedEntries do begin
             Clear(CreateR); RE.Init(); RE."Lot No." := O."Pallet No."; RE."Package No." := O."Pallet No.";
             RE."Expiration Date" := DMY2Date(21, 10, 2026); RE."Serial No." := '';
             ExpectedQty := O."Base Quantity";
-            if O."Serial Count" > 0 then begin RE."Serial No." := SerialNo(R, O, N); ExpectedQty := 1; end;
+            if (O."Serial Count" > 0) and not O."Pallet Detail Serials Only" then begin RE."Serial No." := SerialNo(R, O, N); ExpectedQty := 1; end;
             CreateR.SetDates(0D, RE."Expiration Date");
             CreateR.CreateReservEntryFor(Database::"Item Journal Line", J."Entry Type".AsInteger(), J."Journal Template Name", J."Journal Batch Name", 0, J."Line No.", 1, ExpectedQty, ExpectedQty, RE);
             CreateR.CreateEntry(O."Item No.", '', 'MANJIMUP', 'TEST W26S21 pallet output', O."Posting Date", O."Posting Date", 0, RE."Reservation Status"::Prospect);
@@ -184,7 +186,7 @@ codeunit 59355 "WLF Pool Week Production"
         if E.FindSet() then repeat
             E.TestField("Posting Date", O."Posting Date"); E.TestField("DIY_Pallet No.", O."Pallet No.");
             E.TestField("Package No.", O."Pallet No."); E.TestField("Expiration Date", DMY2Date(21, 10, 2026));
-            if O."Serial Count" > 0 then begin
+            if (O."Serial Count" > 0) and not O."Pallet Detail Serials Only" then begin
                 E.TestField(Quantity, 1); PL.Reset(); PL.Field(1).SetRange(O."Pallet No."); PL.Field(2).SetRange(E."Serial No."); PL.FindFirst(); PL.Field(9).TestField(R."Batch No.");
                 if (E."Serial No." < O."First Serial") or (E."Serial No." > O."Last Serial") then Error('Unexpected posted serial.');
             end else E.TestField("Serial No.", '');
@@ -273,8 +275,16 @@ codeunit 59355 "WLF Pool Week Production"
     end;
 
     local procedure SerialNo(R: Record "WLF Pool Week Run"; O: Record "WLF Pool Week Output"; UnitIndex: Integer): Code[50]
-    var I: Record Item; Matches: Record Item; Julian: Integer; Sequence: Integer; S: Text;
+    var I: Record Item; Matches: Record Item; Julian: Integer; Sequence: Integer; S: Text; FirstSequence: Integer;
     begin
+        // The persisted range was allocated and checked during preparation.
+        // Reuse it without repeating the identical item/tag lookup for every tray.
+        if O."First Serial" <> '' then begin
+            if (StrLen(O."First Serial") <> 24) or (CopyStr(O."First Serial", 5, 4) <> R."Batch No.") or
+               (UnitIndex < 1) or (UnitIndex > O."Serial Count") then Error('Invalid prepared serial range.');
+            Evaluate(FirstSequence, CopyStr(O."First Serial", 17, 8));
+            exit(CopyStr(O."First Serial", 1, 16) + Pad(FirstSequence + UnitIndex - 1, 8));
+        end;
         I.Get(O."Item No."); I.TestField("DIY_Label Tag No.");
         if (StrLen(I."DIY_Label Tag No.") <> 4) or (DelChr(I."DIY_Label Tag No.", '=', '0123456789') <> '') then Error('The item needs its existing four-digit label tag.');
         Matches.SetRange("DIY_Label Tag No.", I."DIY_Label Tag No."); if Matches.Count() <> 1 then Error('Item label tag is ambiguous.');

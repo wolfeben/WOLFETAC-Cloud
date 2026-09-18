@@ -25,6 +25,11 @@ page 59353 "WLF Pool Week Test Run"
     {
         area(Processing)
         {
+            action(PalletDetailSerials)
+            {
+                Caption = 'Use pallet-detail serials for remaining output'; ApplicationArea = All; Image = Change;
+                trigger OnAction() begin M.UsePalletDetailSerials(); Contents := M.Snapshot(); end;
+            }
             action(PreparePilot)
             {
                 Caption = 'Prepare release and consume next order'; ApplicationArea = All; Image = Production;

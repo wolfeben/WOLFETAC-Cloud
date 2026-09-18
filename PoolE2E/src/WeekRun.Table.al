@@ -23,6 +23,7 @@ table 59353 "WLF Pool Week Run"
         field(17; "Consumption Verified"; Boolean) { }
         field(18; "Output Pieces Verified"; Integer) { }
         field(19; "Finish Verified"; Boolean) { }
+        field(20; "Pallet Detail Serials Only"; Boolean) { }
     }
     keys { key(PK; "Order Index") { Clustered = true; } }
 }

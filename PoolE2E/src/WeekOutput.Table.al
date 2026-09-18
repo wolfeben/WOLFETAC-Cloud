@@ -17,6 +17,7 @@ table 59354 "WLF Pool Week Output"
         field(12; "Ledger Entries"; Integer) { }
         field(13; "Warehouse Quantity"; Decimal) { DecimalPlaces = 0 : 5; }
         field(14; "Verified At"; DateTime) { }
+        field(15; "Pallet Detail Serials Only"; Boolean) { }
     }
     keys
     {
