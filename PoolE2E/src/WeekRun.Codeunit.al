@@ -60,6 +60,43 @@ codeunit 59353 "WLF Pool Week Management"
         Commit(); exit(OK);
     end;
 
+    procedure RunProduction(Maximum: Integer)
+    var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer; Count: Integer;
+    begin
+        CheckTarget(); R.SetRange("Consumption Verified", false);
+        if R.FindSet() then repeat
+            if Count < Maximum then begin IDs.Add(R."Order Index"); Count += 1; end;
+        until R.Next() = 0;
+        foreach N in IDs do begin
+            R.Get(N);
+            if not R."Production Prepared" then if not RunStep(N, 3) then exit;
+            if not RunStep(N, 4) then exit;
+            if not RunStep(N, 5) then exit;
+        end;
+    end;
+
+    procedure RunOutputs(Maximum: Integer)
+    var O: Record "WLF Pool Week Output"; R: Record "WLF Pool Week Run"; N: Integer;
+    begin
+        CheckTarget();
+        for N := 1 to Maximum do begin
+            O.Reset(); O.SetRange(Verified, false);
+            if not O.FindFirst() then exit;
+            R.Get(O."Order Index"); R.TestField("Consumption Verified", true);
+            if not RunStep(R."Order Index", 6) then exit;
+        end;
+    end;
+
+    procedure RunFinish(Maximum: Integer)
+    var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer; Count: Integer;
+    begin
+        CheckTarget(); R.SetRange("Finish Verified", false);
+        if R.FindSet() then repeat
+            if Count < Maximum then begin IDs.Add(R."Order Index"); Count += 1; end;
+        until R.Next() = 0;
+        foreach N in IDs do if not RunStep(N, 7) then exit;
+    end;
+
     procedure CheckBlock(VendorNo: Code[20]; BlockCode: Code[20])
     var R: RecordRef; D: Record "Dimension Value";
     begin
@@ -116,7 +153,8 @@ codeunit 59353 "WLF Pool Week Management"
         Extra: JsonObject; Units: JsonArray; V: Record Vendor; Vs: JsonArray; N: Integer;
         ILE: Record "Item Ledger Entry"; W: Record "Warehouse Entry"; H: Record "TAC Batch Plan Header";
         G: Record "TAC Batch Plan Grower"; Lane: Record "TAC Batch Plan Lane"; PO: Record "Production Order";
-        Evidence: JsonObject;
+        Evidence: JsonObject; O: Record "WLF Pool Week Output"; Outputs: JsonArray; Summary: JsonObject;
+        PL: Record "Prod. Order Line"; Components: Record "Prod. Order Component"; Lines: JsonArray; Detail: JsonObject;
     begin
         CheckTarget(); J.Add('environment', 'Pool_Sandbox'); J.Add('company', CompanyName());
         J.Add('readAt', CurrentDateTime());
@@ -139,6 +177,8 @@ codeunit 59353 "WLF Pool Week Management"
             Row.Add('receiptBin', R."Receipt Bin Code");
             Row.Add('receiptVerified', R."Receipt Verified"); Row.Add('plan', R."Plan No."); Row.Add('batch', R."Batch No.");
             Row.Add('planPrepared', R."Plan Prepared"); Row.Add('lastResult', R."Last Result");
+            Row.Add('productionPrepared', R."Production Prepared"); Row.Add('consumptionVerified', R."Consumption Verified");
+            Row.Add('outputPiecesVerified', R."Output Pieces Verified"); Row.Add('finishVerified', R."Finish Verified");
             Clear(Evidence);
             if ILE.Get(R."Receipt Entry No.") then begin
                 Evidence.Add('receivedBins', ILE.Quantity); Evidence.Add('remainingBins', ILE."Remaining Quantity");
@@ -160,11 +200,36 @@ codeunit 59353 "WLF Pool Week Management"
                 Lane.Reset(); Lane.SetRange("Batch Plan No.", H."No."); Lane.SetRange("Batch No.", R."Batch No.");
                 Evidence.Add('outletRows', Lane.Count());
                 PO.Reset(); PO.SetRange("No.", R."Batch No.");
-                if PO.FindFirst() then Evidence.Add('productionStatus', Format(PO.Status));
+                if PO.FindFirst() then begin
+                    Evidence.Add('productionStatus', Format(PO.Status));
+                    Clear(Lines); PL.Reset(); PL.SetRange(Status, PO.Status); PL.SetRange("Prod. Order No.", PO."No.");
+                    if PL.FindSet() then repeat
+                        Clear(Detail); Detail.Add('item', PL."Item No."); Detail.Add('quantity', PL.Quantity);
+                        Detail.Add('baseQuantity', PL."Quantity (Base)"); Detail.Add('finished', PL."Finished Quantity");
+                        Detail.Add('remaining', PL."Remaining Quantity"); Detail.Add('unit', PL."Unit of Measure Code"); Lines.Add(Detail);
+                    until PL.Next() = 0;
+                    Evidence.Add('outputLines', Lines);
+                    Components.Reset(); Components.SetRange(Status, PO.Status); Components.SetRange("Prod. Order No.", PO."No.");
+                    if Components.FindFirst() then begin
+                        Components.CalcFields("Act. Consumption (Qty)"); Evidence.Add('expectedBins', Components."Expected Quantity");
+                        Evidence.Add('consumedBins', Components."Act. Consumption (Qty)"); Evidence.Add('remainingComponentBins', Components."Remaining Quantity");
+                    end;
+                end;
             end;
             Row.Add('sourceEvidence', Evidence); A.Add(Row);
         until R.Next() = 0;
-        J.Add('deliveries', A); J.WriteTo(Result); exit(Result);
+        J.Add('deliveries', A);
+        Summary.Add('plannedContributions', O.Count()); O.SetRange(Verified, true);
+        Summary.Add('verifiedContributions', O.Count()); O.CalcSums("Serial Count", "Ledger Entries");
+        Summary.Add('verifiedSerials', O."Serial Count"); Summary.Add('verifiedOutputEntries', O."Ledger Entries");
+        J.Add('outputSummary', Summary); O.Reset();
+        if O.FindSet() then repeat
+            Clear(Detail); Detail.Add('orderIndex', O."Order Index"); Detail.Add('item', O."Item No."); Detail.Add('slot', O.Slot);
+            Detail.Add('palletAndLot', O."Pallet No."); Detail.Add('baseQuantity', O."Base Quantity"); Detail.Add('date', O."Posting Date");
+            Detail.Add('serials', O."Serial Count"); Detail.Add('firstSerial', O."First Serial"); Detail.Add('lastSerial', O."Last Serial");
+            Detail.Add('verified', O.Verified); Detail.Add('entries', O."Ledger Entries"); Detail.Add('warehouseQuantity', O."Warehouse Quantity"); Outputs.Add(Detail);
+        until O.Next() = 0;
+        J.Add('outputContributions', Outputs); J.WriteTo(Result); exit(Result);
     end;
 
     procedure OpenNextPlan()

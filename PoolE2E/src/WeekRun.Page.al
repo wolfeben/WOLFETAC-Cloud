@@ -25,6 +25,36 @@ page 59353 "WLF Pool Week Test Run"
     {
         area(Processing)
         {
+            action(PreparePilot)
+            {
+                Caption = 'Prepare release and consume next order'; ApplicationArea = All; Image = Production;
+                trigger OnAction() begin M.RunProduction(1); Contents := M.Snapshot(); end;
+            }
+            action(PrepareAll)
+            {
+                Caption = 'Prepare release and consume remaining orders'; ApplicationArea = All; Image = Production;
+                trigger OnAction() begin M.RunProduction(50); Contents := M.Snapshot(); end;
+            }
+            action(OutputPilot)
+            {
+                Caption = 'Post next pallet contribution'; ApplicationArea = All; Image = OutputJournal;
+                trigger OnAction() begin M.RunOutputs(1); Contents := M.Snapshot(); end;
+            }
+            action(OutputChunk)
+            {
+                Caption = 'Post next 50 pallet contributions'; ApplicationArea = All; Image = OutputJournal;
+                trigger OnAction() begin M.RunOutputs(50); Contents := M.Snapshot(); end;
+            }
+            action(FinishPilot)
+            {
+                Caption = 'Finish next order through pooling'; ApplicationArea = All; Image = Post;
+                trigger OnAction() begin M.RunFinish(1); Contents := M.Snapshot(); end;
+            }
+            action(FinishAll)
+            {
+                Caption = 'Finish remaining orders through pooling'; ApplicationArea = All; Image = Post;
+                trigger OnAction() begin M.RunFinish(50); Contents := M.Snapshot(); end;
+            }
             action(RefreshEvidence)
             {
                 Caption = 'Refresh evidence'; ApplicationArea = All; Image = Refresh;

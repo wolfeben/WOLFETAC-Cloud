@@ -19,6 +19,10 @@ table 59353 "WLF Pool Week Run"
         field(13; "Last Result"; Text[2048]) { }
         field(14; "Last Run"; DateTime) { }
         field(15; "Receipt Bin Code"; Code[20]) { }
+        field(16; "Production Prepared"; Boolean) { }
+        field(17; "Consumption Verified"; Boolean) { }
+        field(18; "Output Pieces Verified"; Integer) { }
+        field(19; "Finish Verified"; Boolean) { }
     }
     keys { key(PK; "Order Index") { Clustered = true; } }
 }

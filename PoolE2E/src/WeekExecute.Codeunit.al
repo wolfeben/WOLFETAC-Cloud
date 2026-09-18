@@ -6,9 +6,17 @@ codeunit 59354 "WLF Pool Week Execute"
         M.CheckTarget();
         if (Rec."Order Index" < 1) or (Rec."Order Index" > 50) then Error('Unexpected order index.');
         if Rec."Test Date" <> DMY2Date(21, 9, 2026) + ((Rec."Order Index" - 1) div 10) then Error('Unexpected test date.');
-        case Rec."Operation No." of 1: Receipt(Rec); 2: PlanDay(Rec); else Error('Unknown operation.'); end;
+        case Rec."Operation No." of
+            1: Receipt(Rec); 2: PlanDay(Rec);
+            3: Production.Prepare(Rec);
+            4: Production.ReleaseOrder(Rec);
+            5: Production.Consume(Rec);
+            6: Production.OutputNext(Rec);
+            7: Production.FinishOrder(Rec);
+            else Error('Unknown operation.');
+        end;
     end;
-    var M: Codeunit "WLF Pool Week Management";
+    var M: Codeunit "WLF Pool Week Management"; Production: Codeunit "WLF Pool Week Production";
 
     local procedure Receipt(var R: Record "WLF Pool Week Run")
     var H: Record "Purchase Header"; L: Record "Purchase Line"; I: Record Item;

@@ -45,7 +45,7 @@ Helper 0.1.0.8 adds a guarded run manifest and staged receipt/plan preparation. 
 
 0.1.0.8 installed successfully on 18 September. Its live setup snapshot found MANJIMUP has Bin Mandatory enabled. No receipt action was run with that version. The existing location card confirms CR1 (Cool Room 1) is the To-Production, From-Production and Open Shop Floor bin. Helper 0.1.0.9 uses that existing input bin through purchase-line validation and reconciles the normal warehouse posting to ten bins for each new delivery lot. It leaves warehouse setup unchanged and rejects workflows requiring separate warehouse receipt/put-away. Additional run evidence reads actual receipt quantities, warehouse quantities, batch-plan status/outlets and production order status.
 
-Consumption sequence clarification pending: the standard BC 28.3 consumption journal and Calculate Consumption report link to Released orders. The user has been asked whether bins may be allocated while Firm Planned, followed by release, consumption posting and then output. Do not silently bypass this status requirement or assume approval.
+Consumption sequence approved by the user on 18 September: prepare quantities and exact receipt tracking while Firm Planned, release through standard status management, post consumption, post output, then finish through the pooling engine.
 
 Pilot receipt in 0.1.0.9 stopped at the normal posting check, with no verified receipt: purchase setup left Qty. to Receive blank. This is a fixture-helper defect, not a pooling-engine finding. 0.1.0.10 explicitly validates Qty. to Receive = 10 and adds a JSON evidence download (BC's multiline text rendering can alter escapes in error call stacks). The live manifest retains the unsuccessful attempt. BC's live error stack identifies Base Application 28.4.53241.54676; local compilation references 28.3, so that source is a baseline reference rather than the exact installed Microsoft build.
 
@@ -57,7 +57,7 @@ The 0.1.0.10 pilot passed the inventory receipt assertions but its warehouse ass
 - Growers 100, 102, 030, 064 and 049; retain leading zeros and resolve exact existing vendor IDs.
 - Two distinct existing blocks per grower; one 10-bin delivery per block per day.
 - 50 deliveries, 500 bins, 50 production orders: one order for each delivery.
-- Create consumption journals before changing Firm Planned orders to Released, following the supported installed workflow.
+- Prepare exact bin tracking while Firm Planned, then release and post the consumption journal, as explicitly approved.
 - Complete all output before changing Released orders to Finished; finishing must invoke the installed pooling engine.
 - Unique lot and pallet identifiers; unique numeric 24-character serials for each unit on unit-counted pallets.
 - Additional mixed pallet for each of the nine items, with output from all 50 production orders. Unequal whole-unit contributions are permitted.
@@ -94,3 +94,13 @@ Use supported bin receipts, batch-plan generation, status changes, item tracking
 Mixed allocation target: 160-unit pallets give 3 units to every order plus 1 to ten orders; the 96-unit pallet gives 1 to every order plus 1 to 46 orders. Rotate remainder assignments deterministically. Each 440-kg mixed pallet gives 8.8 kg to every order, subject to the real item's supported precision.
 
 Validate receipt/consumption quantities, all 909 pallet totals, unique serials and source attribution, finished output, order status and pool-ledger quantities/charges. Report successful checks, expected exclusions, actual engine failures and unexecuted stages separately. A grade/size collision must remain recorded as an engine rejection, not bypassed.
+
+## Production posting helper 0.1.0.12
+
+Prepared in the canonical PoolE2E project; no pooling-engine changes. Public Core symbols 1.0.1.5 were found in the existing local incident-verification cache (matching app ID/version, not proof of identical cloud implementation). They expose the native ParsePalletData interface. The helper checks its live parsed item/batch/grower results before accepting output. Local Core 1.0.1.5 reference code confirms this method only creates pallet headers/lines; its separate outbound/job queue entry points are not invoked.
+
+Quantity preparation replaces the native component's zero-output/ten-per-unit placeholder with an explicit total of ten bins, assigns the exact receipt lot through normal component tracking, and preserves item dimensions. Standard status management releases the orders; normal item journal posting creates both inventory and warehouse entries. A dedicated W26S21 batch under existing production journal templates isolates these postings. Explicit status-handler commits are suppressed within the fixture transaction so failed assertions roll back that operation; business validation/subscribers remain active.
+
+Unit-counted output uses native pallet parsing with PostOutput=false, then normal output journal posting with one serial tracking entry per unit. This exercises the parser and standard posting, but is not a test of the scanner inbound-message/job-queue path. Bulk output has lot/package/pallet tracking without invented per-unit serials. All new output lots use explicit expiry 21 October 2026. Regular output posts on each delivery day; mixed contributions post 25 September. All 50 orders must complete all mixed contributions before any finish attempt.
+
+PKD-HABKBN1KPP is stored in BK with the installed engine's KG factor 9.8. A nominal 440 kg pallet is 44.89796 base BK at five-decimal quantity precision, or 440.000008 engine kg. Mixed contributions distribute base rounding cumulatively so the whole pallet reconciles to exactly 44.89796 BK. This small precision difference must be disclosed; the existing item/UOM setup is unchanged.
