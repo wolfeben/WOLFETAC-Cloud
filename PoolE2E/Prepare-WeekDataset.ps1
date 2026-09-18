@@ -77,7 +77,7 @@ $manifest=[ordered]@{
     Status='DRAFT ONLY - no Business Central records created; identifiers are not reserved'
     Environment='Pool_Sandbox'; Company='LIVE APMS'; PoolWeek='WK-2026-13'
     WeekStart='2026-09-21'; WeekEnd='2026-09-27'
-    Pending='PKD-HABKBN1KPP quantity choice and supported KG conversion; current posting workflow verification'
+    Pending='Supported KG conversion and current posting workflow verification; two 440 kg pallets per order confirmed'
     Notes=@('Actual batch and bin delivery numbers must come from BC numbering.',
         'Draft pallet identifiers require collision checks before creation.',
         'Serials must be generated after actual batch numbers are allocated and the current serial parser is verified.',
