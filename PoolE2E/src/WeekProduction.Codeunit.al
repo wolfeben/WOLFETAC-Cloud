@@ -90,6 +90,7 @@ codeunit 59355 "WLF Pool Week Production"
         C.SetRange(Status, P.Status); C.SetRange("Prod. Order No.", P."No.");
         if C.Count() <> 1 then Error('Expected exactly one component.'); C.FindFirst();
         C.TestField("Expected Quantity", 10); C.TestField("Remaining Quantity", 10);
+        ApplyReceiptDimensions(R, C);
         InitJournal(J, R, false, C."Prod. Order Line No.");
         J.Validate("Item No.", 'BIN-HASS'); J.Validate("Prod. Order Comp. Line No.", C."Line No.");
         J.Validate("Location Code", 'MANJIMUP'); J.Validate("Bin Code", R."Receipt Bin Code");
@@ -104,6 +105,28 @@ codeunit 59355 "WLF Pool Week Production"
         C.FindFirst(); C.CalcFields("Act. Consumption (Qty)"); C.TestField("Act. Consumption (Qty)", 10); C.TestField("Remaining Quantity", 0);
         R."Consumption Verified" := true;
         SaveResult(R, 'Ten bins consumed through normal journal posting; exact receipt exhausted and warehouse quantity reconciled.');
+    end;
+
+    local procedure ApplyReceiptDimensions(R: Record "WLF Pool Week Run"; var C: Record "Prod. Order Component")
+    var E: Record "Item Ledger Entry"; D: Record "Dimension Set Entry"; L: Record "Prod. Order Line";
+        S: Record "Inventory Setup"; NewSet: Integer;
+    begin
+        // A native batch component need not inherit the selected receipt's dimensions.
+        // Carry the actual receipt dimensions into consumption; never guess a block/value.
+        E.Get(R."Receipt Entry No."); NewSet := C."Dimension Set ID";
+        D.SetRange("Dimension Set ID", E."Dimension Set ID");
+        if D.FindSet() then repeat NewSet := M.WithDimension(NewSet, D."Dimension Code", D."Dimension Value Code"); until D.Next() = 0;
+        C.Validate("Dimension Set ID", NewSet); C.Modify(true);
+        S.Get(); S.TestField("TAC Block Dimension Code"); S.TestField("TAC Grower Dimension Code");
+        L.SetRange(Status, C.Status); L.SetRange("Prod. Order No.", C."Prod. Order No.");
+        if L.FindSet(true) then repeat
+            D.Get(E."Dimension Set ID", S."TAC Block Dimension Code");
+            D.TestField("Dimension Value Code", R."Block Code");
+            NewSet := M.WithDimension(L."Dimension Set ID", D."Dimension Code", D."Dimension Value Code");
+            D.Get(E."Dimension Set ID", S."TAC Grower Dimension Code");
+            NewSet := M.WithDimension(NewSet, D."Dimension Code", D."Dimension Value Code");
+            L.Validate("Dimension Set ID", NewSet); L.Modify(true);
+        until L.Next() = 0;
     end;
 
     procedure OutputNext(var R: Record "WLF Pool Week Run")
