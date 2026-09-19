@@ -185,6 +185,33 @@ codeunit 59355 "WLF Pool Week Production"
         SaveResult(R, CopyStr(StrSubstNo('%1 production source lines completed from original receipt and matching grower/item defaults. %2=%3. Posted inventory dimensions are unchanged.', Changed, DimCode, D."Dimension Value Code"), 1, 2048));
     end;
 
+    procedure ApplyProcessPackingDimensions(var R: Record "WLF Pool Week Run")
+    var P: Record "Production Order"; L: Record "Prod. Order Line";
+        PoolDims: Codeunit "TAC Pool Dimension Mgt"; PackTypeCode: Code[20]; PackCategoryCode: Code[20];
+        ExistingType: Code[20]; ExistingCategory: Code[20]; NewSet: Integer;
+    begin
+        CheckOrder(R); R.TestField("Consumption Verified", true); R.TestField("Output Pieces Verified", 27);
+        P.Get(P.Status::Released, R."Batch No.");
+        L.SetRange(Status, P.Status); L.SetRange("Prod. Order No.", P."No.");
+        L.SetRange("Item No.", 'PKD-HAKGMXPG');
+        if L.Count() <> 1 then Error('Expected one PKD-HAKGMXPG source line for order %1.', P."No.");
+        L.FindFirst(); L.TestField("Remaining Quantity", 0); L.TestField("Finished Quantity", L.Quantity);
+        if PoolDims.GetDimensionValue(L."Dimension Set ID", PoolDims.GrowerPoolTypeDimensionCode()) <> 'I' then
+            Error('Apply the approved Internal grower type before the packing correction.');
+        PackTypeCode := PoolDims.PackTypeDimensionCode(); PackCategoryCode := PoolDims.PackTypeCategoryDimensionCode();
+        ExistingType := PoolDims.GetDimensionValue(L."Dimension Set ID", PackTypeCode);
+        ExistingCategory := PoolDims.GetDimensionValue(L."Dimension Set ID", PackCategoryCode);
+        if not (ExistingType in ['', 'BK']) then Error('Unexpected existing PACK TYPE %1 on order %2.', ExistingType, P."No.");
+        if ExistingCategory <> 'KG' then Error('Expected existing PACK CAT=KG on order %1, found %2.', P."No.", ExistingCategory);
+        // User confirmed BK / KG. Fill the type while retaining the existing category.
+        NewSet := M.WithDimension(L."Dimension Set ID", PackTypeCode, 'BK');
+        PoolDims.ValidatePoolDimensionValues(NewSet);
+        if NewSet <> L."Dimension Set ID" then begin
+            L.Validate("Dimension Set ID", NewSet); L.Modify(true);
+        end;
+        SaveResult(R, 'PKD-HAKGMXPG source line uses approved PACK TYPE=BK and retains PACK CAT=KG. Item defaults and posted inventory dimensions are unchanged.');
+    end;
+
     local procedure WithSourceItemDimension(DimensionSetID: Integer; ItemNo: Code[20]; DimensionCode: Code[20]): Integer
     var ItemDefault: Record "Default Dimension"; PoolDims: Codeunit "TAC Pool Dimension Mgt"; ExistingValue: Code[20];
     begin

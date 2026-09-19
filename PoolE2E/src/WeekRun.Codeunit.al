@@ -113,6 +113,14 @@ codeunit 59353 "WLF Pool Week Management"
         foreach N in IDs do if not RunStep(N, 9) then exit;
     end;
 
+    procedure ApplyProcessPackingDimensions()
+    var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer;
+    begin
+        CheckTarget(); R.SetRange("Finish Verified", false);
+        if R.FindSet() then repeat IDs.Add(R."Order Index"); until R.Next() = 0;
+        foreach N in IDs do if not RunStep(N, 10) then exit;
+    end;
+
     procedure RunFinish(Maximum: Integer)
     var R: Record "WLF Pool Week Run"; IDs: List of [Integer]; N: Integer; Count: Integer;
     begin

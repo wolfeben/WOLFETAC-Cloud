@@ -15,6 +15,7 @@ codeunit 59354 "WLF Pool Week Execute"
             7: Production.FinishOrder(Rec);
             8: Production.CompletePoolSourceDimensions(Rec);
             9: Production.CompleteGrowerSourceDimensions(Rec);
+            10: Production.ApplyProcessPackingDimensions(Rec);
             else Error('Unknown operation.');
         end;
     end;

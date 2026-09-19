@@ -65,6 +65,11 @@ page 59353 "WLF Pool Week Test Run"
                 Caption = 'Finish next order through pooling'; ApplicationArea = All; Image = Post;
                 trigger OnAction() begin M.RunFinish(1); Contents := M.Snapshot(); end;
             }
+            action(ApplyProcessPackingDimensions)
+            {
+                Caption = 'Apply BK / KG to process-grade source lines'; ApplicationArea = All; Image = Dimensions;
+                trigger OnAction() begin M.ApplyProcessPackingDimensions(); Contents := M.Snapshot(); end;
+            }
             action(FinishAll)
             {
                 Caption = 'Finish remaining orders through pooling'; ApplicationArea = All; Image = Post;
