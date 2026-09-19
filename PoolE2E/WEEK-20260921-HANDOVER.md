@@ -40,11 +40,13 @@ PKD-HABKBN1KPP uses the existing 9.8 kg/BK conversion. Five-decimal base quantit
 
 The normal finish request for order 1207 stopped because GROWER TYPE was absent from its production source line. The data-preparation helper omitted that inherited attribute. Its completion action uses the original receipt and requires agreement with current grower defaults; it does not rewrite posted inventory.
 
-Current source evidence shows 450 production lines missing GROWER TYPE, and 50 lines for PKD-HAKGMXPG missing PACK TYPE. Packing category is populated on all 450 lines. The subsequent completion attempt found the current item default PACK TYPE for PKD-HAKGMXPG is also blank, although the earlier preflight snapshot recorded BK. The action stopped and rolled back the first order, so no partial source-dimension correction was left.
+On 19 September the user approved I (Internal) for the missing grower type. Helper 0.1.0.17 was installed and its grower-only action applied I to all 450 production source lines across the 50 orders, requiring agreement with each original receipt, current vendor default dimension and vendor Grower Pool Type. The downloaded source snapshot confirms 450 Internal lines and no errors. Packing values, quantities and posted inventory dimensions were not changed.
 
-A choice is pending: use the earlier BK value on these dataset source lines, or leave the packing type for the team to resolve. All 50 orders remain Released. No finish bypass or pooling-engine change was made, and successful pooling has not been established. Posted output retains its original dimensions.
+PACK TYPE remains missing on the 50 PKD-HAKGMXPG source lines; PACK CAT is populated on all 450 lines. The current item default was blank when source completion was attempted, although the earlier preflight snapshot recorded BK. A packing-type choice remains pending. The live PACK TYPE values inspected on 19 September are BK (Bulk), TE DOM (Domestic Tray), TE EXPORT (Export Tray), and ZE2E (TEST ONLY - ZE2E), all unblocked. BK matches the earlier setup snapshot and the requested bulk pallets, but was not selected or applied without the user's answer.
 
-The helper update is TAC Pool E2E Test Data 0.1.0.16; the installed pooling engine remains TAC Pool Master 2.0.0.2.
+All 50 orders remain Released. No finishing action or functional pooling test was run during the grower correction. No finish bypass or pooling-engine change was made, and successful pooling has not been established. Posted output retains its original dimensions, so its historical GROWER TYPE can still appear blank; the correction is on the production source used by the engine.
+
+The helper update is TAC Pool E2E Test Data 0.1.0.17; the installed pooling engine remains TAC Pool Master 2.0.0.2. Latest evidence: build/week-20260921-grower-types-applied.json, read at 2026-09-19T03:09:45.122Z. Output totals remain 1,350 contributions, 106,656 serials and 106,956 output entries.
 
 ## Find the records
 

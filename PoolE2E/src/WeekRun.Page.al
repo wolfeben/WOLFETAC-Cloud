@@ -55,6 +55,11 @@ page 59353 "WLF Pool Week Test Run"
                 Caption = 'Complete missing pool source dimensions'; ApplicationArea = All; Image = Dimensions;
                 trigger OnAction() begin M.CompleteSourceDimensions(); Contents := M.Snapshot(); end;
             }
+            action(CompleteGrowerDimensions)
+            {
+                Caption = 'Apply Internal grower type to source lines'; ApplicationArea = All; Image = Dimensions;
+                trigger OnAction() begin M.CompleteGrowerDimensions(); Contents := M.Snapshot(); end;
+            }
             action(FinishPilot)
             {
                 Caption = 'Finish next order through pooling'; ApplicationArea = All; Image = Post;

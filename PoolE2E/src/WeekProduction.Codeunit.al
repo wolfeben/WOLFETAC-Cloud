@@ -135,6 +135,16 @@ codeunit 59355 "WLF Pool Week Production"
     end;
 
     procedure CompletePoolSourceDimensions(var R: Record "WLF Pool Week Run")
+    begin
+        CompleteSourceDimensions(R, false);
+    end;
+
+    procedure CompleteGrowerSourceDimensions(var R: Record "WLF Pool Week Run")
+    begin
+        CompleteSourceDimensions(R, true);
+    end;
+
+    local procedure CompleteSourceDimensions(var R: Record "WLF Pool Week Run"; GrowerOnly: Boolean)
     var P: Record "Production Order"; L: Record "Prod. Order Line"; E: Record "Item Ledger Entry";
         D: Record "Dimension Set Entry"; VendorDefault: Record "Default Dimension"; V: Record Vendor;
         PoolDims: Codeunit "TAC Pool Dimension Mgt"; DimCode: Code[20]; ExistingValue: Code[20]; Changed: Integer; NewSet: Integer;
@@ -144,6 +154,7 @@ codeunit 59355 "WLF Pool Week Production"
         E.Get(R."Receipt Entry No."); E.TestField("Source No.", R."Grower No."); E.TestField("Lot No.", R."Delivery Lot No.");
         DimCode := PoolDims.GrowerPoolTypeDimensionCode();
         D.Get(E."Dimension Set ID", DimCode); D.TestField("Dimension Value Code");
+        if GrowerOnly then D.TestField("Dimension Value Code", 'I');
         VendorDefault.Get(Database::Vendor, R."Grower No.", DimCode);
         VendorDefault.TestField("Dimension Value Code", D."Dimension Value Code");
         V.Get(R."Grower No."); V.TestField("Grower Pool Type", PoolDims.MapGrowerPoolType(D."Dimension Value Code"));
@@ -156,15 +167,21 @@ codeunit 59355 "WLF Pool Week Production"
                 Error('Order %1 line %2 has a conflicting grower pool-type dimension.', L."Prod. Order No.", L."Line No.");
             NewSet := L."Dimension Set ID";
             if ExistingValue = '' then NewSet := M.WithDimension(NewSet, DimCode, D."Dimension Value Code");
-            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeDimensionCode());
-            NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeCategoryDimensionCode());
+            if not GrowerOnly then begin
+                NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeDimensionCode());
+                NewSet := WithSourceItemDimension(NewSet, L."Item No.", PoolDims.PackTypeCategoryDimensionCode());
+            end;
             if NewSet <> L."Dimension Set ID" then begin
                 L.Validate("Dimension Set ID", NewSet);
                 L.Modify(true); Changed += 1;
             end;
-            PoolDims.ValidatePoolDimensionValues(L."Dimension Set ID");
+            if not GrowerOnly then PoolDims.ValidatePoolDimensionValues(L."Dimension Set ID");
         until L.Next() = 0;
         // Complete source data only; posted inventory and pooling code are unchanged.
+        if GrowerOnly then begin
+            SaveResult(R, CopyStr(StrSubstNo('%1 production source lines updated: %2=I, matching original receipt and current grower defaults. Packing dimensions and posted inventory are unchanged.', Changed, DimCode), 1, 2048));
+            exit;
+        end;
         SaveResult(R, CopyStr(StrSubstNo('%1 production source lines completed from original receipt and matching grower/item defaults. %2=%3. Posted inventory dimensions are unchanged.', Changed, DimCode, D."Dimension Value Code"), 1, 2048));
     end;
 

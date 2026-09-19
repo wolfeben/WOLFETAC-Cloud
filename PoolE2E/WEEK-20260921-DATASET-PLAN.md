@@ -133,10 +133,20 @@ Helper 0.1.0.15 completes only missing production-source GROWER TYPE values from
 
 0.1.0.15 installed successfully. Its source-data completion action then detected missing PACK TYPE on the first order; the operation rolled back and no source lines were changed. Evidence: build/week-20260921-source-missing-pack-type.json. The existing items already have PACK TYPE and PACK CAT defaults. Helper 0.1.0.16 also fills these two missing attributes from each actual item's defaults, rejecting conflicts and preserving other dimensions. Its snapshot now reports grower pool type, pack type and pack category per production line. Package SHA256: C9454054F08055FAC83E4744A0D3C03704523DE18088AC44E7A60796ED27F506. Compilation again passed with only the existing ignored-text-file warning.
 
-## Current state and outstanding input (18 September, 20:06 Perth)
+## State before grower approval (18 September, 20:06 Perth)
 
 0.1.0.16 installed successfully. The live source-completion action found that item PKD-HAKGMXPG now has an empty PACK TYPE default. The earlier preflight snapshot had recorded BK for that item; do not assume it is still the intended value. The action rolled back order 1207 and stopped, leaving no partial dimension correction. Current evidence records 450 production lines missing GROWER TYPE, 50 PKD-HAKGMXPG lines missing PACK TYPE, and all 450 packing categories populated. All 50 orders remain Released; zero finished. This is a data/setup completion issue, not a new engine-defect finding.
 
 The user has been asked whether these new production source lines should use BK (the earlier recorded value) or retain the blank for team review. Do not invent a packing type or change item master setup without the answer. The requested quantity/tracking dataset is complete and has not been replayed. All browser import controllers are stopped. No pool identity collision was reached during this normal finish attempt; no functional pooling scenarios were run.
 
 Latest downloaded evidence: build/week-20260921-current-handover.json (read at 2026-09-18T12:06:20.319Z). Human-readable handover and full delivery/order map: WEEK-20260921-HANDOVER.md. Remaining work after the packing-type answer: complete source dimensions using authoritative/explicitly selected values, perform normal production finishing if the installed engine permits it, and refresh the final evidence/status. Never bypass an engine rejection or rewrite posted inventory as a shortcut.
+
+## Grower type applied (19 September, 11:09 Perth)
+
+The user explicitly approved I (Internal) and asked to see PACK TYPE options. Helper 0.1.0.17 adds a separate grower-only source action, avoiding the unrelated blank packing type. It fills only missing GROWER TYPE on the prepared production lines, requires the original receipt's I value to agree with the current vendor default and Grower Pool Type, rejects conflicting existing source values, and retains each order's transaction boundary. The full source-completion action retains its existing packing validation. No item master or posted inventory dimensions are changed.
+
+The update compiled successfully with the pre-existing AL1025 ignored-text-file warning, then installation completed in Pool_Sandbox. Package SHA256: 6CD689489D3E6441AB27B770AEFB12255773BA252F0ACD32A8C64DD980EB6A20.
+
+Execution and downloaded readback confirm all 450 production source lines now have GROWER TYPE=I, all 50 orders remain Released, and 50 PKD-HAKGMXPG lines still lack PACK TYPE. Source quantities and packing attributes match the prior evidence. All 1,350 contributions, 106,656 serials and 106,956 output entries remain recorded. Evidence: build/week-20260921-grower-types-applied.json, read at 2026-09-19T03:09:45.122Z. No production finishing or functional pooling tests were run in this correction.
+
+Live PACK TYPE choices are BK (Bulk), TE DOM (Domestic Tray), TE EXPORT (Export Tray), and ZE2E (TEST ONLY - ZE2E); all are unblocked. BK is consistent with the earlier item-default snapshot and bulk pallet request, but the user's packing choice remains outstanding. Do not infer approval from their approval of grower type I.
