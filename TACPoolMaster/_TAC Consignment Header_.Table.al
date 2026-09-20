@@ -5,7 +5,7 @@ table 50204 "TAC Consignment Header"
 
     fields
     {
-        field(1; "Consignment No."; Code[20])
+        field(1; "Consignment No."; Code[30])
         {
             Caption = 'Consignment No.';
             ToolTip = 'Specifies the unique consignment number.';
@@ -196,6 +196,7 @@ table 50204 "TAC Consignment Header"
         RoundingDiff: Decimal;
     begin
         CalcFields("Total Freight Cost", "Total Kilograms");
+        if "Total Freight Cost" = 0 then Error('Total Freight Cost cannot be zero.');
         PooLSetup.Get();
         AmountRoundingPrecision:=PooLSetup."Freight Rounding Precision";
         if AmountRoundingPrecision = 0 then AmountRoundingPrecision:=0.01;
@@ -226,7 +227,7 @@ table 50204 "TAC Consignment Header"
         end;
     end;
     // open items: more mapping rules for the consignment header!!!
-    procedure InitiateFromSalesOrer(SalesOrder: Record "Sales Header")
+    procedure InitiateFromSalesOrder(SalesOrder: Record "Sales Header")
     var
         CarrierManifest: Record "TAC Carrier Manifest";
         FreightLocation: Record "TAC Freight Location";
@@ -234,19 +235,19 @@ table 50204 "TAC Consignment Header"
         "Consignment No.":=SalesOrder."DIY_Consignment No.";
         "Sales Order No.":=SalesOrder."No.";
         insert(true);
-        FreightLocation.SetRange("BC Location Code", SalesOrder."Location Code");
+    /*FreightLocation.SetRange("BC Location Code", SalesOrder."Location Code");
         FreightLocation.SetRange(Blocked, false);
         FreightLocation.FindFirst();
         CarrierManifest.SetRange("Shipping Agent Code", SalesOrder."Shipping Agent Code");
         CarrierManifest.SetRange("Manifest Date", SalesOrder."Shipment Date");
         CarrierManifest.SetRange("From Freight Location", FreightLocation."Code");
-        if not CarrierManifest.FindFirst()then begin
+        if not CarrierManifest.FindFirst() then begin
             CarrierManifest.Init();
-            CarrierManifest."Shipping Agent Code":=SalesOrder."Shipping Agent Code";
-            CarrierManifest."From Freight Location":=FreightLocation."Code";
-            CarrierManifest."Manifest Date":=SalesOrder."Shipment Date";
+            CarrierManifest."Shipping Agent Code" := SalesOrder."Shipping Agent Code";
+            CarrierManifest."From Freight Location" := FreightLocation."Code";
+            CarrierManifest."Manifest Date" := SalesOrder."Shipment Date";
             CarrierManifest.Insert(true);
-        end;
+        end;*/
     end;
     procedure InitiateFromTransfer(TransferHeader: Record "Transfer Header")
     var
@@ -258,25 +259,30 @@ table 50204 "TAC Consignment Header"
         "Consignment No.":=TransferHeader."DIY_Consignment No.";
         "Transfer Order No.":=TransferHeader."No.";
         insert(true);
-        CarrierManifest.SetRange("Shipping Agent Code", TransferHeader."Shipping Agent Code");
-        CarrierManifest.SetRange("Manifest Date", TransferHeader."Shipment Date");
-        FreightLocation.SetRange("BC Location Code", TransferHeader."Transfer-from Code");
-        FreightLocation.SetRange(Blocked, false);
-        FreightLocation.FindFirst();
-        FromCode:=FreightLocation."Code";
-        CarrierManifest.SetRange("From Freight Location", FromCode);
-        FreightLocation.SetRange("BC Location Code", TransferHeader."Transfer-to Code");
-        FreightLocation.SetRange(Blocked, false);
-        FreightLocation.FindFirst();
-        ToCode:=FreightLocation."Code";
-        CarrierManifest.SetRange("To Freight Location", ToCode);
-        if not CarrierManifest.FindFirst()then begin
-            CarrierManifest.Init();
-            CarrierManifest."Shipping Agent Code":=TransferHeader."Shipping Agent Code";
-            CarrierManifest."Manifest Date":=TransferHeader."Shipment Date";
-            CarrierManifest."From Freight Location":=FromCode;
-            CarrierManifest."To Freight Location":=ToCode;
-            CarrierManifest.Insert(true);
-        end;
+    /*
+                CarrierManifest.SetRange("Shipping Agent Code", TransferHeader."Shipping Agent Code");
+                CarrierManifest.SetRange("Manifest Date", TransferHeader."Shipment Date");
+
+                FreightLocation.SetRange("BC Location Code", TransferHeader."Transfer-from Code");
+                FreightLocation.SetRange(Blocked, false);
+                FreightLocation.FindFirst();
+                FromCode := FreightLocation."Code";
+                CarrierManifest.SetRange("From Freight Location", FromCode);
+
+                FreightLocation.SetRange("BC Location Code", TransferHeader."Transfer-to Code");
+                FreightLocation.SetRange(Blocked, false);
+                FreightLocation.FindFirst();
+                ToCode := FreightLocation."Code";
+                CarrierManifest.SetRange("To Freight Location", ToCode);
+
+                if not CarrierManifest.FindFirst() then begin
+                    CarrierManifest.Init();
+                    CarrierManifest."Shipping Agent Code" := TransferHeader."Shipping Agent Code";
+                    CarrierManifest."Manifest Date" := TransferHeader."Shipment Date";
+                    CarrierManifest."From Freight Location" := FromCode;
+                    CarrierManifest."To Freight Location" := ToCode;
+                    CarrierManifest.Insert(true);
+                end;
+                */
     end;
 }

@@ -1,4 +1,16 @@
-# TAC Pool Master — restored source baseline
+# TAC Pool Master — local source baseline
+
+## Current baseline — 20 September 2026
+
+The canonical project now contains the 130 AL source files exported from the installed **TAC Pool Master 2.0.0.2** extension in **Pool_Sandbox** on 20 September 2026. All 130 files were verified byte-for-byte against the export. This is a source import and review only: no engine fix, compilation or deployment was performed for this import.
+
+See [LOCAL-ASSESSMENT-20260920.md](LOCAL-ASSESSMENT-20260920.md) for provenance, the confirmed production-order grower mapping defect, related source findings and the proposed correction scope.
+
+The previous local baseline was backed up before import. Two supplementary local AL files absent from the export were retained unchanged and are identified in the assessment. Existing launch settings were retained; generated build metadata was removed from the imported manifest. Old packages under build are historical and do not represent this imported source.
+
+## Historical restoration and deployment record — 13 September 2026
+
+The remaining sections describe the earlier local rebuild and deployment, not validation of the current source import.
 
 Canonical project: D:\WOLFETAC\Cloud\TACPoolMaster
 

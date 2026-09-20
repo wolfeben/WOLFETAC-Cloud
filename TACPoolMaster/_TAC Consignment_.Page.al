@@ -151,6 +151,31 @@ page 50204 "TAC Consignment"
                     CurrPage.Update(false);
                 end;
             }
+        }
+        area(Navigation)
+        {
+            action(CarrierManifests)
+            {
+                ApplicationArea = All;
+                Caption = 'Carrier Manifests';
+                Image = Route;
+                ToolTip = 'View the carrier manifests related to this consignment.';
+
+                trigger OnAction()
+                var
+                    Manifest: Record "TAC Carrier Manifest";
+                    FreightLine: Record "TAC Consignment Freight Leg";
+                    FilterText: Text;
+                begin
+                    FreightLine.SetRange("Consignment No.", Rec."Consignment No.");
+                    FreightLine.FindSet();
+                    repeat FilterText+='|' + FreightLine."Manifest No.";
+                    until FreightLine.Next() = 0;
+                    if CopyStr(FilterText, 1, 1) = '|' then FilterText:=CopyStr(FilterText, 2);
+                    Manifest.SetFilter("No.", FilterText);
+                    if Manifest.FindSet()then Page.Run(Page::"TAC Carrier Manifests", Manifest);
+                end;
+            }
             action(Dimensions)
             {
                 AccessByPermission = TableData Dimension=R;

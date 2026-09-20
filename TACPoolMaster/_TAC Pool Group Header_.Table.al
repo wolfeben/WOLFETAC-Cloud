@@ -84,6 +84,7 @@ table 50230 "TAC Pool Group Header"
     /// </summary>
     procedure FindOrCreate(NewPoolWeekCode: Code[10]; NewGrowerPoolType: Enum "TAC Grower Pool Type"): Integer var
         PoolWeek: Record "TAC Pool Week";
+        PoolGroup: Record "TAC Pool Group Header";
     begin
         // Validated before the lookup so a blank week can never resolve to a
         // group of its own. A missing Pool Week used to degrade silently to a
@@ -91,22 +92,23 @@ table 50230 "TAC Pool Group Header"
         // dimension gap or an unloaded Sheet 3.1 can still be fixed.
         if NewPoolWeekCode = '' then Error(BlankPoolWeekErr);
         if not PoolWeek.Get(NewPoolWeekCode)then Error(UnknownPoolWeekErr, NewPoolWeekCode);
-        Reset();
-        SetCurrentKey("Pool Week Code", "Grower Pool Type");
-        SetRange("Pool Week Code", NewPoolWeekCode);
-        SetRange("Grower Pool Type", NewGrowerPoolType);
-        if FindFirst()then begin
+        PoolGroup.Reset();
+        PoolGroup.SetCurrentKey("Pool Week Code", "Grower Pool Type");
+        PoolGroup.SetRange("Pool Week Code", NewPoolWeekCode);
+        PoolGroup.SetRange("Grower Pool Type", NewGrowerPoolType);
+        if PoolGroup.FindFirst()then begin
             TestStatusOpen();
-            exit("Pool Group ID");
+            exit(PoolGroup."Pool Group ID");
         end;
-        Init();
-        "Pool Week Code":=NewPoolWeekCode;
-        "Grower Pool Type":=NewGrowerPoolType;
-        Status:=Status::Open;
-        "Pool Group Code":=BuildGroupCode(PoolWeek, NewGrowerPoolType);
-        Description:=BuildGroupDescription(PoolWeek, NewGrowerPoolType);
-        Insert(true);
-        exit("Pool Group ID");
+        PoolGroup.Init();
+        PoolGroup."Pool Week Code":=NewPoolWeekCode;
+        PoolGroup."Grower Pool Type":=NewGrowerPoolType;
+        PoolGroup.Status:=Status::Open;
+        PoolGroup."Pool Group Code":=BuildGroupCode(PoolWeek, NewGrowerPoolType);
+        PoolGroup.Description:=BuildGroupDescription(PoolWeek, NewGrowerPoolType);
+        //if not PoolGroup.Get("Pool Group ID") then
+        PoolGroup.Insert(true);
+        exit(PoolGroup."Pool Group ID");
     end;
     local procedure BuildGroupCode(var PoolWeek: Record "TAC Pool Week"; GrowerPoolType: Enum "TAC Grower Pool Type"): Code[20]var
         WeekText: Text;

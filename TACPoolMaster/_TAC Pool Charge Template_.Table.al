@@ -24,6 +24,7 @@ table 50222 "TAC Pool Charge Template"
         field(4; Rate; Decimal)
         {
             Caption = 'Rate';
+            DecimalPlaces = 2: 5;
         }
         field(5; "Rate Source";Enum "TAC Pool Rate Source")
         {

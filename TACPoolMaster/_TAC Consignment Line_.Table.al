@@ -5,7 +5,7 @@ table 50206 "TAC Consignment Line"
 
     fields
     {
-        field(1; "Consignment No."; Code[20])
+        field(1; "Consignment No."; Code[30])
         {
             Caption = 'Consignment No.';
             TableRelation = "TAC Consignment Header"."Consignment No.";
@@ -124,6 +124,16 @@ table 50206 "TAC Consignment Line"
             ToolTip = 'Specifies the quantity that has been shipped but not yet invoiced for this detail line.';
             FieldClass = FlowField;
             CalcFormula = sum("Sales Shipment Line"."Qty. Shipped Not Invoiced" where("Document No."=field("Source No."), "Line No."=field("Source Line No.")));
+        }
+        field(22; "Freight Posted"; Boolean)
+        {
+            Caption = 'Freight Posted';
+            ToolTip = 'Specifies whether the freight has been posted for this detail line.';
+        }
+        field(23; "Ripening"; Boolean)
+        {
+            Caption = 'Ripening';
+            ToolTip = 'Specifies whether the ripening process has started for this detail line.';
         }
     }
     keys

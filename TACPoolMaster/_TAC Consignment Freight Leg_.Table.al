@@ -66,6 +66,11 @@ table 50205 "TAC Consignment Freight Leg"
         {
             Caption = 'Pallet Spaces';
             ToolTip = 'Specifies the pallet space count for this freight leg.';
+
+            trigger OnValidate()
+            begin
+                if "Pallet Spaces" <> xRec."Pallet Spaces" then CalculateFreightCost();
+            end;
         }
         field(9; "Freight Cost"; Decimal)
         {
@@ -92,10 +97,11 @@ table 50205 "TAC Consignment Freight Leg"
     begin
         TestField("Manifest No.");
         TestField("Pallet Spaces");
-        CalculateFreightCost();
+    //CalculateFreightCost();
     end;
     procedure CalculateFreightCost()
     begin
+        CalcFields("Pallet Space Rate");
         "Freight Cost":="Pallet Space Rate" * "Pallet Spaces" * (100 + CalcFuelChargePct()) / 100;
     end;
     procedure CalcFuelChargePct(): Decimal var

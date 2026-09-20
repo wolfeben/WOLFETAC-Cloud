@@ -2,6 +2,7 @@ table 50215 "TAC Ripening Price"
 {
     Caption = 'Ripening Price';
     DataClassification = CustomerContent;
+    ObsoleteState = Removed;
 
     fields
     {
@@ -34,8 +35,7 @@ table 50215 "TAC Ripening Price"
         {
             Caption = 'Active';
             ToolTip = 'Specifies whether the ripening price is active.';
-
-            trigger OnValidate()
+        /*trigger OnValidate()
             var
                 ExistingPrice: Record "TAC Ripening Price";
             begin
@@ -44,9 +44,10 @@ table 50215 "TAC Ripening Price"
                     ExistingPrice.SetRange("Item No.", "Item No.");
                     ExistingPrice.SetRange("Unit of Measure Code", "Unit of Measure Code");
                     ExistingPrice.SetRange(Active, true);
-                    if ExistingPrice.FindFirst()then Error('An active ripening price already exists for this combination of customer, item, and unit of measure.');
+                    if ExistingPrice.FindFirst() then
+                        Error('An active ripening price already exists for this combination of customer, item, and unit of measure.');
                 end;
-            end;
+            end;*/
         }
     }
     keys

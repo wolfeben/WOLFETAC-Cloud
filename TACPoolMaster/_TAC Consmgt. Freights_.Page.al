@@ -12,9 +12,7 @@ page 50205 "TAC Consmgt. Freights"
         {
             repeater(General)
             {
-                field("Leg No."; Rec."Leg No.")
-                {
-                }
+                //field("Leg No."; Rec."Leg No.") { }
                 field("Manifest No."; Rec."Manifest No.")
                 {
                 }

@@ -62,7 +62,7 @@ codeunit 50271 "TAC Pool Prod Order Post"
         if not HasPackedOutputLine(ProductionOrder."No.", ProductionOrderLine."Line No.", OutputItemNo)then exit;
         CalcPackedLineQuantities(ProductionOrder."No.", ProductionOrderLine."Line No.", Kgs, Units, OutputItemNo);
         if Units <= 0 then exit;
-        ProductionOrder.CalcFields("Batch Plan No.");
+        ProductionOrder.CalcFields("Batch Plan No.", "Grower ID");
         BatchPlan.Get(ProductionOrder."Batch Plan No.");
         PoolWeek.Reset();
         PoolWeek.SetFilter("Start Date", '<=%1', BatchPlan."Plan Date");
@@ -71,7 +71,9 @@ codeunit 50271 "TAC Pool Prod Order Post"
         ProductionOrder.CalcFields("Grower ID");
         DimensionMgt.ValidatePoolDimensionValues(ProductionOrderLine."Dimension Set ID");
         DimensionMgt.ResolveFromProductionOrderLine(ProductionOrderLine, //SeasonCode, PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+        GrowerCode:=ProductionOrder."Grower ID";
         PoolGroupID:=PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType);
         PoolCode:=Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), ProductionOrder."Grower ID");
         WriteTransferReceipt(ProductionOrder, ProductionOrderLine, OutputItemNo, PoolCode, PoolGroupID, GrowerCode, Kgs, Units, PostingDate);

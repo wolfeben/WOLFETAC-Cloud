@@ -21,36 +21,44 @@ codeunit 50276 "TAC Pool Dimension Mgt"
     var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; var GrowerCode: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type")
     begin
         ResolveFromDimensionSet(ProductionOrder."Dimension Set ID", //SeasonCode, //PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType);
+        ProductionOrder.CalcFields("Grower ID");
+        GrowerCode:=ProductionOrder."Grower ID";
     end;
     procedure ResolveFromDimensionSet(DimensionSetID: Integer; //var SeasonCode: Code[20];
     //var PoolWeekCode: Code[20];
-    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; var GrowerCode: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type")
+    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; //var GrowerCode: Code[20];
+    var GrowerPoolType: Enum "TAC Grower Pool Type")
     begin
         //SeasonCode := GetDimensionValue(DimensionSetID, SeasonDimensionCode());
         //PoolWeekCode := GetDimensionValue(DimensionSetID, PoolWeekDimensionCode());
         VarietyCode:=GetDimensionValue(DimensionSetID, VarietyDimensionCode());
         GradeCode:=GetDimensionValue(DimensionSetID, GradeDimensionCode());
         SizeCode:=GetDimensionValue(DimensionSetID, SizeDimensionCode());
-        GrowerCode:=GetDimensionValue(DimensionSetID, GrowerDimensionCode());
+        //GrowerCode := GetDimensionValue(DimensionSetID, GrowerDimensionCode());
         GrowerPoolType:=MapGrowerPoolType(GetDimensionValue(DimensionSetID, GrowerPoolTypeDimensionCode()));
     end;
     /// <summary>Resolves all pool matching attributes from a production output line.</summary>
     procedure ResolveFromProductionOrderLine(var ProductionOrderLine: Record "Prod. Order Line"; //var SeasonCode: Code[20]; var PoolWeekCode: Code[20]; 
-    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; var GrowerCode: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackTypeCode: Code[20]; var PackTypeCategoryCode: Code[20])
+    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; //var GrowerCode: Code[20]; 
+ var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackTypeCode: Code[20]; var PackTypeCategoryCode: Code[20])
     begin
         //ResolveFromDimensionSetWithPacking(ProductionOrderLine."Dimension Set ID", SeasonCode, PoolWeekCode, VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
         ResolveFromDimensionSetWithPacking(ProductionOrderLine."Dimension Set ID", //SeasonCode, //PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
     end;
     /// <summary>Resolves all pool matching attributes from one source dimension set.</summary>
     procedure ResolveFromDimensionSetWithPacking(DimensionSetID: Integer; //var SeasonCode: Code[20]; 
     //var PoolWeekCode: Code[20]; 
-    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; var GrowerCode: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackTypeCode: Code[20]; var PackTypeCategoryCode: Code[20])
+    var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; //var GrowerCode: Code[20];
+    var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackTypeCode: Code[20]; var PackTypeCategoryCode: Code[20])
     begin
         //ResolveFromDimensionSet(DimensionSetID, SeasonCode, PoolWeekCode, VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
         ResolveFromDimensionSet(DimensionSetID, //SeasonCode, //PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType);
         PackTypeCode:=GetDimensionValue(DimensionSetID, PackTypeDimensionCode());
         PackTypeCategoryCode:=GetDimensionValue(DimensionSetID, PackTypeCategoryDimensionCode());
     end;

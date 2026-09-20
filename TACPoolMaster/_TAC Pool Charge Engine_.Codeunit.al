@@ -232,17 +232,20 @@ codeunit 50270 "TAC Pool Charge Engine"
         exit(GradeExcl.Get(TemplateID, GradeCode));
     end;
     local procedure RipenerConditionMet(var Ctx: Record "TAC Pool Charge Context" temporary): Boolean var
-        RipeningPrice: Record "TAC Ripening Price";
+        //RipeningPrice: Record "TAC Ripening Price";
+        Ship2Address: Record "Ship-to Address";
     begin
         // Eligible only when Customer.Ripening Required = Y AND the pack type
         // category is a tray type (§6.4.1). The tray category code is a config
         // assumption (TRAY) pending confirmation — see implementation note.
         if Ctx."Customer No." = '' then exit(false);
-        RipeningPrice.SetRange("Customer No.", Ctx."Customer No.");
+        if not Ship2Address.Get(Ctx."Customer No.", Ctx."DC Code")then exit(false);
+        Ship2Address.TestField("TAC Ripening Rate");
+        /*RipeningPrice.SetRange("Customer No.", Ctx."Customer No.");
         RipeningPrice.SetRange("Item No.", Ctx."Source Item No.");
         RipeningPrice.SetRange("Unit of Measure Code", Ctx."UOM Code");
         RipeningPrice.SetRange(Active, true);
-        RipeningPrice.FindLast();
+        RipeningPrice.FindLast();*/
         exit(Ctx."Pack Type Category Code" = TrayPackTypeCategoryTok);
     end;
     local procedure PostCharge(var Template: Record "TAC Pool Charge Template"; var Ctx: Record "TAC Pool Charge Context" temporary; Mode: Enum "TAC Pool Charge Mode")
@@ -341,24 +344,20 @@ codeunit 50270 "TAC Pool Charge Engine"
     /// </summary>
     procedure ResolveRate(var Template: Record "TAC Pool Charge Template"; var Ctx: Record "TAC Pool Charge Context" temporary): Decimal var
         Customer: Record Customer;
-        RipeningPrice: Record "TAC Ripening Price";
+        //RipeningPrice: Record "TAC Ripening Price";
+        ShiptoAddress: Record "Ship-to Address";
+        RipeningPrice: Record "Item Reference";
     begin
         case Template."Rate Source" of Template."Rate Source"::Fixed: exit(Template.Rate);
         Template."Rate Source"::Customer: begin
-            if Ctx."Customer No." = '' then exit(0);
-            //if not Customer.Get(Ctx."Customer No.") then
-            //exit(0);
+            if not ShiptoAddress.Get(Ctx."Customer No.", Ctx."DC Code")then exit(0);
             // Ripener charges (Ripener Required Filter = Y) read the
             // Ripening Rate; all other Customer-source charges
             // (SR/WR/DR) read the Default Settlement Rebate Rate.
-            //if Template."Ripener Required Filter" = Template."Ripener Required Filter"::Y then
-            //exit(Customer."Ripening Rate");
-            RipeningPrice.SetRange("Customer No.", Ctx."Customer No.");
-            RipeningPrice.SetRange("Item No.", Ctx."Source Item No.");
-            RipeningPrice.SetRange("Unit of Measure Code", Ctx."UOM Code");
-            RipeningPrice.SetRange(Active, true);
-            RipeningPrice.FindLast();
-            exit(RipeningPrice."Unit Price");
+            if Template."Ripener Required Filter" = Template."Ripener Required Filter"::Y then begin
+                exit(ShiptoAddress."TAC Ripening Rate");
+            end;
+        //exit(Customer."Ripening Rate");
         end;
         Template."Rate Source"::Calculated: exit(0); // FR — computed in the close (OI-04).
         Template."Rate Source"::System: exit(0);

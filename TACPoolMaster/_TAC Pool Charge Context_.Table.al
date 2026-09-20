@@ -107,6 +107,10 @@ table 50238 "TAC Pool Charge Context"
         {
             Caption = 'UOM Code';
         }
+        field(100; "DC Code"; Code[20])
+        {
+            Caption = 'DC Code';
+        }
     }
     keys
     {

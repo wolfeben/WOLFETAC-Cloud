@@ -2,6 +2,7 @@ table 50203 "TAC Carrier Manifest"
 {
     Caption = 'Carrier Manifest';
     DataClassification = CustomerContent;
+    LookupPageId = "TAC Carrier Manifests";
 
     fields
     {

@@ -2,6 +2,7 @@ table 50208 "TAC Pool"
 {
     Caption = 'Pool';
     DataClassification = CustomerContent;
+    DrillDownPageId = "TAC Pool";
 
     fields
     {
@@ -137,7 +138,7 @@ table 50208 "TAC Pool"
         }
         key(VGS; "Pool Group ID", "Variety Code", "Grade Code", "Size Code")
         {
-            Unique = true;
+        //Unique = true;
         }
     }
     trigger OnInsert()
@@ -148,9 +149,11 @@ table 50208 "TAC Pool"
     procedure GetPoolCode(): Code[20]var
         PoolWeekText: Text[2];
     begin
-        PoolWeekText:=Format("Pool Week", 0, '');
-        if StrLen(PoolWeekText) < 2 then PoolWeekText:='0' + PoolWeekText;
-        exit(Format("Season Code") + '-' + PoolWeekText + '-' + Format("Pool Type") + '-' + Format("Variety Code") + '-' + Format("Grower No."));
+        //PoolWeekText := Format("Pool Week", 0, 9);
+        //if StrLen(PoolWeekText) < 2 then
+        //    PoolWeekText := '0' + PoolWeekText;
+        exit(Format("Season Code") + '-' + //PoolWeekText + '-' +
+ Format("Pool Week", 0, '<Filler Character,0><Integer,2>') + '-' + Format("Pool Type") + '-' + Format("Variety Code") + '-' + Format("Grower No."));
     end;
     /// <summary>
     /// Returns the Pool ID for this Group + Variety + Grade + Size, creating it
@@ -170,18 +173,19 @@ table 50208 "TAC Pool"
         if Pool.FindFirst()then exit(Pool."Pool Code");
         PoolGroup.Get(NewPoolGroupID);
         PoolWeek.Get(PoolGroup."Pool Week Code");
-        Init();
-        "Pool Group ID":=NewPoolGroupID;
-        "Season Code":=PoolWeek."Season Code";
-        "Pool Week":=PoolWeek."Week No.";
-        "Pool Type":=PoolGroup."Grower Pool Type";
-        "Variety Code":=NewVariety;
-        "Grade Code":=NewGrade;
-        "Size Code":=NewSize;
-        "Grower No.":=NewGrower;
-        Description:=CopyStr(StrSubstNo('%1 / %2 / %3 / %4', NewVariety, NewGrade, NewSize, NewGrower), 1, MaxStrLen(Description));
-        "Pool Code":=GetPoolCode();
-        if not Pool.Get("Pool Code")then Insert(true);
-        exit("Pool Code");
+        Pool.Init();
+        Pool."Pool Group ID":=NewPoolGroupID;
+        Pool."Season Code":=PoolWeek."Season Code";
+        Pool."Pool Week":=PoolWeek."Week No.";
+        Pool."Pool Type":=PoolGroup."Grower Pool Type";
+        Pool."Variety Code":=NewVariety;
+        Pool."Grade Code":=NewGrade;
+        Pool."Size Code":=NewSize;
+        Pool."Grower No.":=NewGrower;
+        Pool.Description:=CopyStr(StrSubstNo('%1 / %2 / %3 / %4', NewVariety, NewGrade, NewSize, NewGrower), 1, MaxStrLen(Pool.Description));
+        Pool."Pool Code":=Pool.GetPoolCode();
+        //if not Pool.Get("Pool Code") then
+        Pool.Insert(true);
+        exit(Pool."Pool Code");
     end;
 }

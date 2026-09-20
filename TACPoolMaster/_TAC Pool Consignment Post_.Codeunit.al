@@ -4,11 +4,12 @@ codeunit 50272 "TAC Pool Consignment Post"
     // ledger records, so invoice posters do not require Modify permission on
     // standard posted Sales Invoice Header (TableData 112).
     Permissions = tabledata "TAC Pool Setup"=R,
-        tabledata "TAC Pool Group Header"=RIMD,
-        tabledata "TAC Pool"=RIMD,
-        tabledata "TAC Pool Ledger Entry"=RIMD,
+        tabledata "TAC Pool Group Header"=RIM,
+        tabledata "TAC Pool"=RIM,
+        tabledata "TAC Pool Ledger Entry"=RIM,
         tabledata "TAC Pool Invoice Post State"=RIMD,
-        tabledata "TAC Pool Credit Memo State"=RIMD;
+        tabledata "TAC Pool Credit Memo State"=RIMD,
+        tabledata "Sales Invoice Line"=RM;
 
     // AL-08: on full settlement of a consignment Sales Invoice, write a PR
     // Pool Ledger Entry per consignment line and run the ConsignmentPost
@@ -106,15 +107,17 @@ codeunit 50272 "TAC Pool Consignment Post"
         CalcFreightStamping(Consignment, AppliedFuelSurchargePct, AppliedPalletSpaceRate);
         ConsignmentLine.SetRange("Consignment No.", Consignment."Consignment No.");
         if ConsignmentLine.FindSet()then repeat DimensionMgt.ResolveFromDimensionSet(ConsignmentLine."Dimension Set ID", //SeasonCode, PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
-                if GrowerCode = '' then GrowerCode:=ConsignmentLine."Grower No.";
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType);
+                //if GrowerCode = '' then
+                GrowerCode:=ConsignmentLine."Grower No.";
                 PoolWeek.Reset();
                 PoolWeek.SetRange("Week No.", ConsignmentLine."Pool Week");
                 PoolWeek.SetRange("Season Code", ConsignmentLine."Season Code");
                 PoolWeek.FindLast();
                 PoolGroupID:=PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType);
                 PoolCode:=Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), GrowerCode);
-                if Despatch then WriteConsignmentFreight(Consignment, ConsignmentLine, PoolCode, PoolGroupID, GrowerCode, AppliedFuelSurchargePct, AppliedPalletSpaceRate);
+                if(Despatch) and (not ConsignmentLine."Freight Posted")then WriteConsignmentFreight(Consignment, ConsignmentLine, PoolCode, PoolGroupID, GrowerCode, AppliedFuelSurchargePct, AppliedPalletSpaceRate);
                 if Post then BuildConsignmentContext(ChargeContext, Consignment, ConsignmentLine, PoolCode, PoolGroupID, GrowerCode, GrowerPoolType, VarietyCode, GradeCode, SizeCode);
                 ChargeEngine.ApplyCharges(Enum::"TAC Pool Charge Action"::ConsignmentPost, ChargeContext, Enum::"TAC Pool Charge Mode"::Write);
             until ConsignmentLine.Next() = 0;
@@ -167,6 +170,8 @@ codeunit 50272 "TAC Pool Consignment Post"
         PoolLedgerEntry."Source System ID":=ConsignmentLine.SystemId;
         PoolLedgerEntry.Insert(true);
         PostPoolLedger2GL(PoolLedgerEntry);
+        ConsignmentLine."Freight Posted":=true;
+        ConsignmentLine.Modify();
     end;
     local procedure PostPoolLedger2GL(var PoolLedgerEntry: Record "TAC Pool Ledger Entry")
     var
@@ -240,6 +245,8 @@ codeunit 50272 "TAC Pool Consignment Post"
         end;
     end;
     local procedure BuildConsignmentContext(var ChargeContext: Record "TAC Pool Charge Context" temporary; var Consignment: Record "TAC Consignment Header"; var ConsignmentLine: Record "TAC Consignment Line"; PoolCode: Code[20]; PoolGroupID: Integer; GrowerCode: Code[20]; GrowerPoolType: Enum "TAC Grower Pool Type"; VarietyCode: Code[20]; GradeCode: Code[20]; SizeCode: Code[20])
+    var
+        SalesHeader: Record "Sales Header";
     begin
         ChargeContext.Init();
         ChargeContext."Pool Code":=PoolCode;
@@ -261,6 +268,9 @@ codeunit 50272 "TAC Pool Consignment Post"
         ChargeContext."Source Line No.":=ConsignmentLine."Line No.";
         ChargeContext."Source Type":=ChargeContext."Source Type"::Consignment;
         ChargeContext."Source System ID":=ConsignmentLine.SystemId;
+        if Consignment."Sales Order No." <> '' then if SalesHeader.Get(SalesHeader."Document Type"::Order, Consignment."Sales Order No.")then begin
+                ChargeContext."DC Code":=SalesHeader."Ship-to Code";
+            end;
     end;
     local procedure MapGrowerType(GrowerPoolType: Enum "TAC Grower Pool Type"): Enum "TAC Grower Type" begin
         case GrowerPoolType of GrowerPoolType::External: exit(Enum::"TAC Grower Type"::External);
@@ -279,64 +289,140 @@ codeunit 50272 "TAC Pool Consignment Post"
         else
             Error('Grower %1 does not hold market rule %2 or it has expired.', GrowerNo);
     end;
-    procedure ProcessSettledInvoice(var SalesInvoiceHeader: Record "Sales Invoice Header")
-    var
-        SalesInvoiceLine: Record "Sales Invoice Line";
-        DimensionMgt: Codeunit "TAC Pool Dimension Mgt";
-    begin
-        // This retained API must retain the invoice-post timing and pool-owned
-        // idempotency state; it must not modify TableData 112.
-        ProcessPostedSalesInvoice(SalesInvoiceHeader."No.");
-        exit;
-        if SalesInvoiceHeader."Posted to Pools Flag" then exit; // already posted — never double-post (design §F-05)
-        SalesInvoiceLine.SetRange("Document No.", SalesInvoiceHeader."No.");
-        SalesInvoiceLine.SetRange(Type, SalesInvoiceLine.Type::Item);
-        if SalesInvoiceLine.FindSet()then repeat // Seam: a consignment line carries pool dimensions. The
-                // authoritative consignment marker is owned by
-                // sales-execution-stock (cross-engagement).
-                if DimensionMgt.HasPoolDimensions(SalesInvoiceLine."Dimension Set ID")then ProcessLine(SalesInvoiceHeader, SalesInvoiceLine);
-            until SalesInvoiceLine.Next() = 0;
-        SalesInvoiceHeader."Posted to Pools Flag":=true;
-        SalesInvoiceHeader.Modify();
-    end;
-    procedure ProcessPostedSalesShipment(ShipmentNo: Code[20])
+    procedure ProcessPostedShipment(ShipmentNo: Code[20]; SourceType: Integer)
     var
         ShipmentHeader: Record "Sales Shipment Header";
         ShipmentLine: Record "Sales Shipment Line";
         SalesLine: Record "Sales Line";
+        TransShpt: Record "Transfer Shipment Header";
+        TransShptLine: Record "Transfer Shipment Line";
+        TransLine: Record "Transfer Line";
+        ItemLedgerEntry, OutputEntry, OutputEntry2: Record "Item Ledger Entry";
+        Consignment: Record "TAC Consignment Header";
         ConsignmentLine: Record "TAC Consignment Line";
         PoolWeek: Record "TAC Pool Week";
         Pool: Record "TAC Pool";
+        PoolGroup: Record "TAC Pool Group Header";
+        BatchPallet: Record "TAC Batch Pallet" temporary;
         DimMgt: Codeunit "TAC Pool Dimension Mgt";
         DummyCode: Code[100];
+        ShptLineNo: Integer;
+        ShptUOM: Code[20];
+        ShptItem: Code[20];
+        ConsignmentNo: Code[20];
+        GradeCode: Code[20];
+        SizeCode: Code[20];
+        DimSetID: Integer;
         GrowerPoolType: Enum "TAC Grower Pool Type";
+        ILEDocType: Enum "Item Ledger Document Type";
     begin
-        if not ShipmentHeader.Get(ShipmentNo)then exit;
-        PoolWeek.SetFilter("Start Date", '<=%1', ShipmentHeader."Posting Date");
-        PoolWeek.SetFilter("End Date", '>=%1', ShipmentHeader."Posting Date");
-        PoolWeek.FindLast();
-        ShipmentLine.SetRange("Document No.", ShipmentNo);
-        ShipmentLine.SetRange(Type, ShipmentLine.Type::Item);
-        ShipmentLine.SetFilter(Quantity, '<>0');
-        if ShipmentLine.FindSet()then repeat ConsignmentLine.Init();
-                ConsignmentLine."Consignment No.":=ShipmentLine."Consignment No.";
-                ConsignmentLine."Source Type":=Database::"Sales Shipment Line";
-                ConsignmentLine."Source No.":=ShipmentLine."Document No.";
-                ConsignmentLine."Source Line No.":=ShipmentLine."Line No.";
-                ConsignmentLine."Pool Week":=PoolWeek."Week No.";
-                ConsignmentLine."Season Code":=PoolWeek."Season Code";
-                ConsignmentLine."Item No.":=ShipmentLine."No.";
-                ConsignmentLine."Unit of Measure Code":=ShipmentLine."Unit of Measure Code";
-                ConsignmentLine.Validate(Quantity, ShipmentLine.Quantity);
-                ConsignmentLine."Dimension Set ID":=ShipmentLine."Dimension Set ID";
-                ConsignmentLine.Insert();
-                DimMgt.ResolveFromDimensionSet(ShipmentLine."Dimension Set ID", ConsignmentLine."Variety Code", DummyCode, DummyCode, ConsignmentLine."Grower No.", GrowerPoolType);
-                ConsignmentLine.Modify();
-                if SalesLine.Get(SalesLine."Document Type"::Order, ShipmentLine."Order No.", ShipmentLine."Order Line No.")then begin
-                    ConsignmentLine."Estimated Price":=SalesLine."Unit Price";
-                    ConsignmentLine.Modify();
+        BatchPallet.DeleteAll();
+        ItemLedgerEntry.SetRange("Document No.", ShipmentNo);
+        case SourceType of database::"Sales Shipment Line": begin
+            if not ShipmentHeader.Get(ShipmentNo)then exit;
+            if not Consignment.Get(ShipmentHeader."DIY_Consignment No.")then exit;
+            ConsignmentNo:=ShipmentHeader."DIY_Consignment No.";
+            ILEDocType:=ILEDocType::"Sales Shipment";
+        end;
+        database::"Transfer Shipment Line": begin
+            if not TransShpt.Get(ShipmentNo)then exit;
+            if not Consignment.Get(TransShpt."DIY_Consignment No.")then exit;
+            ConsignmentNo:=TransShpt."DIY_Consignment No.";
+            ILEDocType:=ILEDocType::"Transfer Shipment";
+        end;
+        end;
+        ItemLedgerEntry.SetRange("Document Type", ILEDocType);
+        ItemLedgerEntry.SetFilter("Lot No.", '<>%1', '');
+        if ItemLedgerEntry.FindSet()then repeat //ResolveBatchPoolWeekNo(ItemLedgerEntry."Lot No.", PoolWeek);
+                //Use Pallet No. (Lot No.) to find the batches
+                OutputEntry.Reset();
+                OutputEntry.SetRange("Entry Type", OutputEntry."Entry Type"::Output);
+                OutputEntry.SetRange("Lot No.", ItemLedgerEntry."Lot No.");
+                OutputEntry.SetRange("Item No.", ItemLedgerEntry."Item No.");
+                if OutputEntry.FindSet()then repeat if not BatchPallet.Get(OutputEntry."Order No.", OutputEntry."Lot No.", ItemLedgerEntry."Document No.", ItemLedgerEntry."Document Line No.")then begin
+                            BatchPallet.Init();
+                            BatchPallet."Batch No.":=OutputEntry."Order No.";
+                            BatchPallet."Pallet No.":=OutputEntry."Lot No.";
+                            OutputEntry.CalcFields("TAC Grower No.");
+                            BatchPallet."Grower No.":=OutputEntry."TAC Grower No.";
+                            BatchPallet."Document No.":=ItemLedgerEntry."Document No.";
+                            BatchPallet."Line No.":=ItemLedgerEntry."Document Line No.";
+                            OutputEntry2.Reset();
+                            OutputEntry2.SetRange("Order No.", OutputEntry."Order No.");
+                            OutputEntry2.SetRange("Lot No.", OutputEntry."Lot No.");
+                            OutputEntry2.SetRange("Item No.", ItemLedgerEntry."Item No.");
+                            OutputEntry2.CalcSums(Quantity);
+                            BatchPallet."Quantity":=OutputEntry2."Quantity";
+                            BatchPallet.Insert();
+                        end until OutputEntry.Next() = 0;
+            until ItemLedgerEntry.Next() = 0;
+        if BatchPallet.FindSet()then repeat PoolWeek.Get(ResolveBatchPoolWeekNo(BatchPallet."Batch No."));
+                case ILEDocType of ILEDocType::"Sales Shipment": begin
+                    ShipmentLine.Get(BatchPallet."Document No.", BatchPallet."Line No.");
+                    DimSetID:=ShipmentLine."Dimension Set ID";
+                    ShptLineNo:=ShipmentLine."Line No.";
+                    ShptItem:=ShipmentLine."No.";
+                    ShptUOM:=ShipmentLine."Unit of Measure Code";
                 end;
-            until ShipmentLine.Next() = 0;
+                ILEDocType::"Transfer Shipment": begin
+                    TransShptLine.Get(BatchPallet."Document No.", BatchPallet."Line No.");
+                    DimSetID:=TransShptLine."Dimension Set ID";
+                    ShptLineNo:=TransShptLine."Line No.";
+                    ShptItem:=TransShptLine."Item No.";
+                    ShptUOM:=TransShptLine."Unit of Measure Code";
+                end;
+                end;
+                ConsignmentLine.SetRange("Consignment No.", ConsignmentNo);
+                ConsignmentLine.SetRange("Source No.", ShipmentNo);
+                ConsignmentLine.SetRange("Pool Week", PoolWeek."Week No.");
+                ConsignmentLine.SetRange("Season Code", PoolWeek."Season Code");
+                //ConsignmentLine.SetRange("Item No.", ItemLedgerEntry."Item No.");
+                ConsignmentLine.SetRange("Item No.", ShptItem);
+                if not ConsignmentLine.FindFirst()then begin
+                    ConsignmentLine.Init();
+                    ConsignmentLine."Consignment No.":=ConsignmentNo;
+                    ConsignmentLine."Source Type":=Database::"Sales Shipment Line";
+                    ConsignmentLine."Source No.":=ShipmentNo;
+                    //ConsignmentLine."Source Line No." := 0;
+                    ConsignmentLine."Source Line No.":=ItemLedgerEntry."Document Line No.";
+                    ConsignmentLine."Pool Week":=PoolWeek."Week No.";
+                    ConsignmentLine."Season Code":=PoolWeek."Season Code";
+                    ConsignmentLine."Item No.":=ShptItem;
+                    ConsignmentLine."Unit of Measure Code":=ShptUOM;
+                    ConsignmentLine."Grower No.":=BatchPallet."Grower No.";
+                    ConsignmentLine."Dimension Set ID":=DimSetID;
+                    ConsignmentLine.Insert();
+                    DimMgt.ResolveFromDimensionSet(ConsignmentLine."Dimension Set ID", ConsignmentLine."Variety Code", GradeCode, SizeCode, //DummyCode,
+ GrowerPoolType);
+                    PoolGroup.Get(PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType));
+                    Pool.Get(Pool.FindOrCreate(PoolGroup."Pool Group ID", ConsignmentLine."Variety Code", GradeCode, SizeCode, BatchPallet."Grower No."));
+                    ConsignmentLine."Pool Code":=Pool."Pool Code";
+                    ConsignmentLine."Pack Type Code":=Format(Pool."Pool Type");
+                    ConsignmentLine.Modify();
+                    if ILEDocType = ILEDocType::"Sales Shipment" then if SalesLine.Get(SalesLine."Document Type"::Order, ShipmentLine."Order No.", ShipmentLine."Order Line No.")then begin
+                            ConsignmentLine."Estimated Price":=SalesLine."Unit Price";
+                            ConsignmentLine.Modify();
+                        end;
+                end;
+                ConsignmentLine.Validate(Quantity, ConsignmentLine.Quantity + BatchPallet.Quantity);
+                ConsignmentLine.Modify();
+            until BatchPallet.Next() = 0;
+        ReleaseConsignment(Consignment);
+        DespatchConsignment(Consignment);
+    end;
+    local procedure ResolveBatchPoolWeekNo(BatchNo: Code[4]): Code[20]var
+        PoolWeek: Record "TAC Pool Week";
+        BatchLine: Record "TAC Batch Plan Grower";
+        PoolDate: Date;
+    begin
+        BatchLine.SetRange("Batch No.", BatchNo);
+        BatchLine.FindFirst();
+        BatchLine.CalcFields("Run Time");
+        PoolDate:=DT2Date(BatchLine."Run Time");
+        PoolWeek.SetFilter("Start Date", '<=%1', PoolDate);
+        PoolWeek.SetFilter("End Date", '>=%1', PoolDate);
+        PoolWeek.FindLast();
+        exit(PoolWeek.Code);
     end;
     procedure ProcessPostedSalesInvoice(SalesInvHdrNo: Code[20])
     var
@@ -351,6 +437,7 @@ codeunit 50272 "TAC Pool Consignment Post"
         SalesInvoiceLine.SetRange("Document No.", SalesInvHdrNo);
         SalesInvoiceLine.SetRange(Type, SalesInvoiceLine.Type::Item);
         SalesInvoiceLine.SetFilter("Consignment No.", '<>%1', '');
+        SalesInvoiceLine.SetFilter(Quantity, '<>0');
         if SalesInvoiceLine.FindSet()then repeat ProcessPostedSalesInvoiceLine(SalesInvoiceHeader, SalesInvoiceLine);
                 DidProcessAny:=true;
             until SalesInvoiceLine.Next() = 0;
@@ -383,8 +470,10 @@ codeunit 50272 "TAC Pool Consignment Post"
         AppliedPalletSpaceRate: Decimal;
     begin
         DimensionMgt.ResolveFromDimensionSet(ConsignmentLine."Dimension Set ID", //SeasonCode, PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
-        if GrowerCode = '' then GrowerCode:=ConsignmentLine."Grower No.";
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType);
+        //if GrowerCode = '' then
+        GrowerCode:=ConsignmentLine."Grower No.";
         PoolWeek.Reset();
         PoolWeek.SetRange("Week No.", ConsignmentLine."Pool Week");
         PoolWeek.SetRange("Season Code", ConsignmentLine."Season Code");
@@ -441,35 +530,42 @@ codeunit 50272 "TAC Pool Consignment Post"
     end;
     procedure ProcessPostedSalesCreditMemoLine(var SalesCrMemoHeader: Record "Sales Cr.Memo Header"; var SalesCrMemoLine: Record "Sales Cr.Memo Line"; AppliedInvoiceNo: Code[20])
     var
-        PoolGroup: Record "TAC Pool Group Header";
+        //PoolGroup: Record "TAC Pool Group Header";
         Pool: Record "TAC Pool";
-        PoolWeek: Record "TAC Pool Week";
+        //PoolWeek: Record "TAC Pool Week";
         ChargeContext: Record "TAC Pool Charge Context" temporary;
+        ConsignmentLine: Record "TAC Consignment Line";
         DimensionMgt: Codeunit "TAC Pool Dimension Mgt";
         ChargeEngine: Codeunit "TAC Pool Charge Engine";
-        VarietyCode: Code[20];
-        GradeCode: Code[20];
-        SizeCode: Code[20];
-        GrowerCode: Code[20];
-        PackTypeCode: Code[20];
-        PackTypeCategoryCode: Code[20];
-        GrowerPoolType: Enum "TAC Grower Pool Type";
-        PoolGroupID: Integer;
-        PoolCode: Code[20];
+        //VarietyCode: Code[20];
+        //GradeCode: Code[20];
+        //SizeCode: Code[20];
+        //GrowerCode: Code[20];
+        //PackTypeCode: Code[20];
+        //PackTypeCategoryCode: Code[20];
+        //GrowerPoolType: Enum "TAC Grower Pool Type";
+        //PoolGroupID: Integer;
+        //PoolCode: Code[20];
         Proceeds: Decimal;
         LastEntryNoBeforeCharges: Integer;
     begin
-        DimensionMgt.ResolveFromDimensionSetWithPacking(SalesCrMemoLine."Dimension Set ID", // SeasonCode, PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+        if not FindCrMemoConsignmentLine(SalesCrMemoLine, ConsignmentLine)then exit;
+        /*DimensionMgt.ResolveFromDimensionSetWithPacking(SalesCrMemoLine."Dimension Set ID",// SeasonCode, PoolWeekCode, 
+            VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+            GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
         PoolWeek.Reset();
         PoolWeek.SetRange("Week No.", SalesCrMemoLine."Pool Week");
         PoolWeek.SetRange("Season Code", SalesCrMemoLine."Season Code");
         PoolWeek.FindLast();
-        PoolGroupID:=PoolGroup.FindOrCreate(CopyStr(PoolWeek."Code", 1, 10), GrowerPoolType);
-        PoolCode:=Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), GrowerCode);
-        Proceeds:=-Abs(SalesCrMemoLine.Amount);
-        if not RevenueAlreadyPosted(PoolCode, SalesCrMemoHeader."No.", SalesCrMemoLine."Line No.")then WriteCreditRevenue(SalesCrMemoHeader, SalesCrMemoLine, PoolCode, PoolGroupID, GrowerCode, Proceeds, AppliedInvoiceNo);
-        BuildCreditContext(ChargeContext, SalesCrMemoHeader, SalesCrMemoLine, PoolCode, PoolGroupID, GrowerCode, GrowerPoolType, VarietyCode, GradeCode, SizeCode, PackTypeCode, PackTypeCategoryCode, Proceeds);
+
+        PoolGroupID := PoolGroup.FindOrCreate(CopyStr(PoolWeek."Code", 1, 10), GrowerPoolType);
+        PoolCode := Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), GrowerCode);
+        Proceeds := -Abs(SalesCrMemoLine.Amount);
+        if not RevenueAlreadyPosted(PoolCode, SalesCrMemoHeader."No.", SalesCrMemoLine."Line No.") then
+            WriteCreditRevenue(SalesCrMemoHeader, SalesCrMemoLine, PoolCode, PoolGroupID, GrowerCode, Proceeds, AppliedInvoiceNo);
+        BuildCreditContext(ChargeContext, SalesCrMemoHeader, SalesCrMemoLine, PoolCode, PoolGroupID, GrowerCode, GrowerPoolType, VarietyCode, GradeCode, SizeCode, PackTypeCode, PackTypeCategoryCode, Proceeds);*/
+        Pool.Get(ConsignmentLine."Pool Code");
+        if not RevenueAlreadyPosted(ConsignmentLine."Pool Code", SalesCrMemoHeader."No.", SalesCrMemoLine."Line No.")then WriteCreditRevenue(SalesCrMemoHeader, SalesCrMemoLine, ConsignmentLine."Pool Code", Pool."Pool Group ID", ConsignmentLine."Grower No.", Proceeds, AppliedInvoiceNo);
         LastEntryNoBeforeCharges:=LastPoolLedgerEntryNo();
         ChargeEngine.ApplyCharges(Enum::"TAC Pool Charge Action"::InvoicePost, ChargeContext, Enum::"TAC Pool Charge Mode"::Write);
         PostNewChargeEntriesToGL(LastEntryNoBeforeCharges, SalesCrMemoHeader."No.");
@@ -497,14 +593,18 @@ codeunit 50272 "TAC Pool Consignment Post"
         AmountLCY: Decimal;
         LastEntryNoBeforeCharges: Integer;
     begin
-        if not FindConsignmentLine(SalesInvoiceLine, ConsignmentLine)then exit;
+        if not FindInvoiceConsignmentLine(SalesInvoiceLine, ConsignmentLine)then exit;
         DimensionMgt.ValidatePoolDimensionValues(ConsignmentLine."Dimension Set ID");
         DimensionMgt.ResolveFromDimensionSetWithPacking(ConsignmentLine."Dimension Set ID", //SeasonCode, PoolWeekCode, 
- VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
-        if GrowerCode = '' then GrowerCode:=ConsignmentLine."Grower No.";
+ VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+ GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+        //if GrowerCode = '' then
+        GrowerCode:=ConsignmentLine."Grower No.";
         PoolWeek.Reset();
-        PoolWeek.SetRange("Week No.", SalesInvoiceLine."Pool Week");
-        PoolWeek.SetRange("Season Code", SalesInvoiceLine."Season Code");
+        //PoolWeek.SetRange("Week No.", SalesInvoiceLine."Pool Week");
+        //PoolWeek.SetRange("Season Code", SalesInvoiceLine."Season Code");
+        PoolWeek.SetRange("Week No.", ConsignmentLine."Pool Week");
+        PoolWeek.SetRange("Season Code", ConsignmentLine."Season Code");
         PoolWeek.FindLast();
         PoolGroupID:=PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType);
         PoolCode:=Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), GrowerCode);
@@ -521,8 +621,11 @@ codeunit 50272 "TAC Pool Consignment Post"
         LastEntryNoBeforeCharges:=LastPoolLedgerEntryNo();
         ChargeEngine.ApplyCharges(Enum::"TAC Pool Charge Action"::InvoicePost, ChargeContext, Enum::"TAC Pool Charge Mode"::Write);
         PostNewChargeEntriesToGL(LastEntryNoBeforeCharges, SalesInvoiceHeader."No.");
+        SalesInvoiceLine."Pool Week":=ConsignmentLine."Pool Week";
+        SalesInvoiceLine."Season Code":=ConsignmentLine."Season Code";
+        SalesInvoiceLine.Modify();
     end;
-    local procedure FindConsignmentLine(var SalesInvoiceLine: Record "Sales Invoice Line"; var ConsignmentLine: Record "TAC Consignment Line"): Boolean var
+    local procedure FindInvoiceConsignmentLine(var SalesInvoiceLine: Record "Sales Invoice Line"; var ConsignmentLine: Record "TAC Consignment Line"): Boolean var
         ConsignmentNo20: Code[20];
         LookupItemNo: Code[20];
     begin
@@ -534,6 +637,24 @@ codeunit 50272 "TAC Pool Consignment Post"
         ConsignmentLine.SetRange("Consignment No.", ConsignmentNo20);
         if SalesInvoiceLine."Pool Week" <> 0 then ConsignmentLine.SetRange("Pool Week", SalesInvoiceLine."Pool Week");
         if SalesInvoiceLine."Season Code" <> '' then ConsignmentLine.SetRange("Season Code", SalesInvoiceLine."Season Code");
+        if LookupItemNo <> '' then ConsignmentLine.SetRange("Item No.", LookupItemNo);
+        if ConsignmentLine.FindFirst()then exit(true);
+        ConsignmentLine.Reset();
+        ConsignmentLine.SetRange("Consignment No.", ConsignmentNo20);
+        exit(ConsignmentLine.FindFirst());
+    end;
+    local procedure FindCrMemoConsignmentLine(var SalesCrLine: Record "Sales Cr.Memo Line"; var ConsignmentLine: Record "TAC Consignment Line"): Boolean var
+        ConsignmentNo20: Code[20];
+        LookupItemNo: Code[20];
+    begin
+        ConsignmentNo20:=CopyStr(SalesCrLine."Consignment No.", 1, MaxStrLen(ConsignmentNo20));
+        if ConsignmentNo20 = '' then exit(false);
+        if SalesCrLine."Original Item No." <> '' then LookupItemNo:=SalesCrLine."Original Item No."
+        else
+            LookupItemNo:=SalesCrLine."No.";
+        ConsignmentLine.SetRange("Consignment No.", ConsignmentNo20);
+        if SalesCrLine."Pool Week" <> 0 then ConsignmentLine.SetRange("Pool Week", SalesCrLine."Pool Week");
+        if SalesCrLine."Season Code" <> '' then ConsignmentLine.SetRange("Season Code", SalesCrLine."Season Code");
         if LookupItemNo <> '' then ConsignmentLine.SetRange("Item No.", LookupItemNo);
         if ConsignmentLine.FindFirst()then exit(true);
         ConsignmentLine.Reset();
@@ -586,32 +707,102 @@ codeunit 50272 "TAC Pool Consignment Post"
     local procedure WriteInvoiceRevenue(var SalesInvoiceHeader: Record "Sales Invoice Header"; var SalesInvoiceLine: Record "Sales Invoice Line"; var ConsignmentLine: Record "TAC Consignment Line"; PoolCode: Code[20]; PoolGroupID: Integer; GrowerCode: Code[20]; OriginalQty: Decimal; OriginalQtyKg: Decimal; AmountLCY: Decimal)
     var
         PoolLedgerEntry: Record "TAC Pool Ledger Entry";
+        ShipmentConsignmentLine: Record "TAC Consignment Line";
+        TmpShipmentLine: Record "Sales Shipment Line" temporary;
+        ItemLedger: Record "Item Ledger Entry";
+        ValueEntry: Record "Value Entry";
+        PoolRec: Record "TAC Pool";
+        TotalBasisQty: Decimal;
+        CurrentBasisQty: Decimal;
+        RevenueQty: Decimal;
+        RevenueQtyKg: Decimal;
+        RevenueAmountLCY: Decimal;
+        PostedQty: Decimal;
+        PostedQtyKg: Decimal;
+        PostedAmountLCY: Decimal;
+        EntryPoolCode: Code[20];
+        EntryGrowerCode: Code[20];
+        EntryPoolGroupID: Integer;
+        CurrentLineNo: Integer;
+        LineCount: Integer;
     begin
-        PoolLedgerEntry.Init();
-        PoolLedgerEntry."Pool Code":=PoolCode;
-        PoolLedgerEntry."Pool Group ID":=PoolGroupID;
-        PoolLedgerEntry."Entry Type":=PoolLedgerEntry."Entry Type"::Revenue;
-        PoolLedgerEntry."Trans Type Code":=PRCodeTok;
-        PoolLedgerEntry."Document Type":=PoolLedgerEntry."Document Type"::"Sales Invoice";
-        PoolLedgerEntry."Document No.":=SalesInvoiceHeader."No.";
-        PoolLedgerEntry."Source Consignment No.":=ConsignmentLine."Consignment No.";
-        PoolLedgerEntry."Grower No.":=ConsignmentLine."Grower No.";
-        PoolLedgerEntry."Grower Code":=GrowerCode;
-        if SalesInvoiceLine."Original Item No." <> '' then PoolLedgerEntry."Item No.":=SalesInvoiceLine."Original Item No."
-        else
-            PoolLedgerEntry."Item No.":=SalesInvoiceLine."No.";
-        PoolLedgerEntry.Quantity:=OriginalQty;
-        PoolLedgerEntry."Quantity (Kg)":=OriginalQtyKg;
-        PoolLedgerEntry.Amount:=AmountLCY;
-        PoolLedgerEntry."Dimension Set ID":=ConsignmentLine."Dimension Set ID";
-        PoolLedgerEntry."Transaction Date":=SalesInvoiceHeader."Posting Date";
-        PoolLedgerEntry."Posting Date":=Today();
-        PoolLedgerEntry."Source Document No.":=SalesInvoiceHeader."No.";
-        PoolLedgerEntry."Source Line No.":=SalesInvoiceLine."Line No.";
-        PoolLedgerEntry."Source Type":=PoolLedgerEntry."Source Type"::"Sales Invoice";
-        PoolLedgerEntry."Source System ID":=SalesInvoiceLine.SystemId;
-        PoolLedgerEntry.Insert(true);
-        PostPoolLedger2GL(PoolLedgerEntry);
+        TmpShipmentLine.DeleteAll();
+        ValueEntry.SetRange("Document Type", ValueEntry."Document Type"::"Sales Invoice");
+        ValueEntry.SetRange("Document No.", SalesInvoiceHeader."No.");
+        ValueEntry.SetRange("Document Line No.", SalesInvoiceLine."Line No.");
+        if ValueEntry.FindSet()then repeat Itemledger.Get(ValueEntry."Item Ledger Entry No.");
+                if ItemLedger."Document Type" = ItemLedger."Document Type"::"Sales Shipment" then begin
+                    if not TmpShipmentLine.Get(ItemLedger."Document No.", ItemLedger."Document Line No.")then begin
+                        TmpShipmentLine.Init();
+                        TmpShipmentLine."Document No.":=ItemLedger."Document No.";
+                        TmpShipmentLine."Line No.":=ItemLedger."Document Line No.";
+                        TmpShipmentLine.Insert();
+                    end;
+                end;
+            until ValueEntry.Next() = 0;
+        tmpshipmentline.Reset();
+        if TmpShipmentLine.FindSet()then repeat ShipmentConsignmentLine.Reset();
+                ShipmentConsignmentLine.SetRange("Source No.", TmpShipmentLine."Document No.");
+                ShipmentConsignmentLine.SetRange("Source Line No.", TmpShipmentLine."Line No.");
+                //if SalesInvoiceLine."Consignment No." <> '' then
+                ShipmentConsignmentLine.SetRange("Consignment No.", SalesInvoiceLine."Consignment No.");
+                ShipmentConsignmentLine.CalcSums("Quantity (Kg)");
+                TotalBasisQty:=ShipmentConsignmentLine."Quantity (Kg)";
+                LineCount:=ShipmentConsignmentLine.Count();
+                if ShipmentConsignmentLine.findset then begin
+                    CurrentLineNo:=0;
+                    repeat CurrentBasisQty:=Abs(ShipmentConsignmentLine."Quantity (Kg)");
+                        if CurrentLineNo < LineCount then begin
+                            RevenueQty:=OriginalQty * CurrentBasisQty / TotalBasisQty;
+                            RevenueQtyKg:=OriginalQtyKg * CurrentBasisQty / TotalBasisQty;
+                            RevenueAmountLCY:=AmountLCY * CurrentBasisQty / TotalBasisQty;
+                        end
+                        else
+                        begin
+                            RevenueQty:=OriginalQty - PostedQty;
+                            RevenueQtyKg:=OriginalQtyKg - PostedQtyKg;
+                            RevenueAmountLCY:=AmountLCY - PostedAmountLCY;
+                        end;
+                        CurrentLineNo+=1;
+                        PostedQty+=RevenueQty;
+                        PostedQtyKg+=RevenueQtyKg;
+                        PostedAmountLCY+=RevenueAmountLCY;
+                        if ShipmentConsignmentLine."Pool Code" <> '' then EntryPoolCode:=ShipmentConsignmentLine."Pool Code"
+                        else
+                            EntryPoolCode:=PoolCode;
+                        EntryPoolGroupID:=PoolGroupID;
+                        if(EntryPoolCode <> '') and PoolRec.Get(EntryPoolCode)then EntryPoolGroupID:=PoolRec."Pool Group ID";
+                        if ShipmentConsignmentLine."Grower No." <> '' then EntryGrowerCode:=ShipmentConsignmentLine."Grower No."
+                        else
+                            EntryGrowerCode:=GrowerCode;
+                        PoolLedgerEntry.Init();
+                        PoolLedgerEntry."Pool Code":=EntryPoolCode;
+                        PoolLedgerEntry."Pool Group ID":=EntryPoolGroupID;
+                        PoolLedgerEntry."Entry Type":=PoolLedgerEntry."Entry Type"::Revenue;
+                        PoolLedgerEntry."Trans Type Code":=PRCodeTok;
+                        PoolLedgerEntry."Document Type":=PoolLedgerEntry."Document Type"::"Sales Invoice";
+                        PoolLedgerEntry."Document No.":=SalesInvoiceHeader."No.";
+                        PoolLedgerEntry."Source Consignment No.":=ShipmentConsignmentLine."Consignment No.";
+                        PoolLedgerEntry."Grower No.":=ShipmentConsignmentLine."Grower No.";
+                        PoolLedgerEntry."Grower Code":=EntryGrowerCode;
+                        if SalesInvoiceLine."Original Item No." <> '' then PoolLedgerEntry."Item No.":=SalesInvoiceLine."Original Item No."
+                        else
+                            PoolLedgerEntry."Item No.":=SalesInvoiceLine."No.";
+                        PoolLedgerEntry.Quantity:=RevenueQty;
+                        PoolLedgerEntry."Quantity (Kg)":=RevenueQtyKg;
+                        PoolLedgerEntry.Amount:=RevenueAmountLCY;
+                        PoolLedgerEntry."Dimension Set ID":=ShipmentConsignmentLine."Dimension Set ID";
+                        PoolLedgerEntry."Transaction Date":=SalesInvoiceHeader."Posting Date";
+                        PoolLedgerEntry."Posting Date":=Today();
+                        PoolLedgerEntry."Source Document No.":=SalesInvoiceHeader."No.";
+                        PoolLedgerEntry."Source Line No.":=SalesInvoiceLine."Line No.";
+                        PoolLedgerEntry."Source Type":=PoolLedgerEntry."Source Type"::"Sales Invoice";
+                        PoolLedgerEntry."Source System ID":=SalesInvoiceLine.SystemId;
+                        PoolLedgerEntry.Insert(true);
+                        PostPoolLedger2GL(PoolLedgerEntry);
+                    until ShipmentConsignmentLine.Next() = 0;
+                end;
+            until TmpShipmentLine.Next() = 0;
     end;
     local procedure BuildInvoicePostContext(var ChargeContext: Record "TAC Pool Charge Context" temporary; var SalesInvoiceHeader: Record "Sales Invoice Header"; var SalesInvoiceLine: Record "Sales Invoice Line"; var ConsignmentLine: Record "TAC Consignment Line"; PoolCode: Code[20]; PoolGroupID: Integer; GrowerCode: Code[20]; GrowerPoolType: Enum "TAC Grower Pool Type"; VarietyCode: Code[20]; GradeCode: Code[20]; SizeCode: Code[20]; PackTypeCode: Code[20]; PackTypeCategoryCode: Code[20]; OriginalQty: Decimal; OriginalQtyKg: Decimal; AmountLCY: Decimal)
     begin
@@ -731,41 +922,7 @@ codeunit 50272 "TAC Pool Consignment Post"
         if SalesInvoiceHeader."Currency Factor" = 0 then exit(SalesInvoiceLine.Amount);
         exit(CurrencyExchangeRate.ExchangeAmtFCYToLCY(SalesInvoiceHeader."Posting Date", SalesInvoiceHeader."Currency Code", SalesInvoiceLine.Amount, SalesInvoiceHeader."Currency Factor"));
     end;
-    local procedure ProcessLine(var SalesInvoiceHeader: Record "Sales Invoice Header"; var SalesInvoiceLine: Record "Sales Invoice Line")
-    var
-        PoolGroup: Record "TAC Pool Group Header";
-        Pool: Record "TAC Pool";
-        PoolWeek: Record "TAC Pool Week";
-        ChargeContext: Record "TAC Pool Charge Context" temporary;
-        DimensionMgt: Codeunit "TAC Pool Dimension Mgt";
-        ChargeEngine: Codeunit "TAC Pool Charge Engine";
-        //SeasonCode: Code[20];
-        //PoolWeekCode: Code[20];
-        VarietyCode: Code[20];
-        GradeCode: Code[20];
-        SizeCode: Code[20];
-        GrowerCode: Code[20];
-        GrowerPoolType: Enum "TAC Grower Pool Type";
-        PoolGroupID: Integer;
-        //PoolID: Integer;
-        PoolCode: Code[20];
-        Proceeds: Decimal;
-    begin
-        DimensionMgt.ResolveFromDimensionSet(SalesInvoiceLine."Dimension Set ID", //SeasonCode, PoolWeekCode, 
-        VarietyCode, GradeCode, SizeCode, GrowerCode, GrowerPoolType);
-        PoolWeek.Reset();
-        PoolWeek.SetRange("Week No.", SalesInvoiceLine."Pool Week");
-        PoolWeek.SetRange("Season Code", SalesInvoiceLine."Season Code");
-        PoolWeek.FindLast();
-        PoolGroupID:=PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType);
-        PoolCode:=Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), GrowerCode);
-        // Full payment: the line payment amount is the full line amount.
-        Proceeds:=SalesInvoiceLine.Amount;
-        WriteProceeds(SalesInvoiceHeader, PoolCode, PoolGroupID, GrowerCode, Proceeds);
-        BuildContext(ChargeContext, SalesInvoiceHeader, SalesInvoiceLine, PoolCode, PoolGroupID, GrowerCode, GrowerPoolType, VarietyCode, GradeCode, SizeCode, Proceeds);
-        ChargeEngine.ApplyCharges(Enum::"TAC Pool Charge Action"::ConsignmentPost, ChargeContext, Enum::"TAC Pool Charge Mode"::Write);
-    end;
-    local procedure WriteProceeds(var SalesInvoiceHeader: Record "Sales Invoice Header"; PoolCode: Code[20]; PoolGroupID: Integer; GrowerCode: Code[20]; Proceeds: Decimal)
+    local procedure WriteProceeds(var SalesInvoiceHeader: Record "Sales Invoice Header"; PoolCode: Code[20]; PoolGroupID: Integer; Proceeds: Decimal)
     var
         PoolLedgerEntry: Record "TAC Pool Ledger Entry";
     begin
@@ -773,7 +930,7 @@ codeunit 50272 "TAC Pool Consignment Post"
         PoolLedgerEntry."Pool Code":=PoolCode;
         PoolLedgerEntry."Pool Group ID":=PoolGroupID;
         PoolLedgerEntry."Trans Type Code":=PRCodeTok;
-        PoolLedgerEntry."Grower Code":=GrowerCode;
+        //PoolLedgerEntry."Grower Code" := GrowerCode;
         PoolLedgerEntry.Amount:=Proceeds; // positive: proceeds into the pool
         PoolLedgerEntry."Transaction Date":=SalesInvoiceHeader."Posting Date";
         PoolLedgerEntry."Posting Date":=Today();

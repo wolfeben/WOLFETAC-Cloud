@@ -40,6 +40,10 @@ page 50206 "TAC Consignment Lines"
                 }
                 field("Estimated Price"; Rec."Estimated Price")
                 {
+                    trigger OnValidate()
+                    begin
+                        CurrPage.Update(false);
+                    end;
                 }
                 field("Estimated Amount"; Rec.EstimatedAmount())
                 {

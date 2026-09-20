@@ -4,7 +4,9 @@ page 50207 "TAC Pools"
     Caption = 'Pools';
     PageType = List;
     SourceTable = "TAC Pool";
+    CardPageId = "TAC Pool";
     UsageCategory = Documents;
+    Editable = false;
 
     layout
     {

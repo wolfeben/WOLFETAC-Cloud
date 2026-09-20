@@ -1,17 +1,27 @@
 codeunit 50277 "TAC Pool Subscribers"
 {
-    #region EventSubscriber Codeunit 80 OnAfterPostSalesDoc
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnAfterPostSalesDoc', '', true, true)]
-    local procedure OnAfterPostSalesDoc_C80(var SalesHeader: Record "Sales Header"; var GenJnlPostLine: Codeunit "Gen. Jnl.-Post Line"; SalesShptHdrNo: Code[20]; RetRcpHdrNo: Code[20]; SalesInvHdrNo: Code[20]; SalesCrMemoHdrNo: Code[20]; CommitIsSuppressed: Boolean; InvtPickPutaway: Boolean; var CustLedgerEntry: Record "Cust. Ledger Entry"; WhseShip: Boolean; WhseReceiv: Boolean; PreviewMode: Boolean)
+    #region EventSubscriber Codeunit 5704 OnRunOnBeforeCommit
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"TransferOrder-Post Shipment", 'OnRunOnBeforeCommit', '', true, true)]
+    local procedure OnRunOnBeforeCommit_C5704(var TransferHeader: Record "Transfer Header"; var TransferShipmentHeader: Record "Transfer Shipment Header"; PostedWhseShptHeader: Record "Posted Whse. Shipment Header"; var SuppressCommit: Boolean; PreviewMode: Boolean)
     var
         PoolConsignmentPost: Codeunit "TAC Pool Consignment Post";
     begin
         if PreviewMode then exit;
-        if SalesShptHdrNo <> '' then PoolConsignmentPost.ProcessPostedSalesShipment(SalesShptHdrNo);
-        if SalesInvHdrNo <> '' then PoolConsignmentPost.ProcessPostedSalesInvoice(SalesInvHdrNo);
-        if SalesCrMemoHdrNo <> '' then PoolConsignmentPost.ProcessPostedSalesCreditMemo(SalesCrMemoHdrNo, CustLedgerEntry."Applies-to Doc. No.");
+        if TransferShipmentHeader."No." <> '' then PoolConsignmentPost.ProcessPostedShipment(TransferShipmentHeader."No.", database::"Transfer Shipment Line");
     end;
-    #endregion EventSubscriber Codeunit 80 OnAfterPostSalesDoc
+    #endregion EventSubscriber Codeunit 5704 OnRunOnBeforeCommit
+    #region EventSubscriber Codeunit 80 OnAfterFinalizePostingOnBeforeCommit
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnAfterFinalizePostingOnBeforeCommit', '', true, true)]
+    local procedure OnAfterFinalizePostingOnBeforeCommit_C80(var SalesHeader: Record "Sales Header"; var SalesShipmentHeader: Record "Sales Shipment Header"; var SalesInvoiceHeader: Record "Sales Invoice Header"; var SalesCrMemoHeader: Record "Sales Cr.Memo Header"; var ReturnReceiptHeader: Record "Return Receipt Header"; var GenJnlPostLine: Codeunit "Gen. Jnl.-Post Line"; var CommitIsSuppressed: Boolean; var PreviewMode: Boolean; WhseShip: Boolean; WhseReceive: Boolean; var EverythingInvoiced: Boolean)
+    var
+        PoolConsignmentPost: Codeunit "TAC Pool Consignment Post";
+    begin
+        if PreviewMode then exit;
+        if SalesShipmentHeader."No." <> '' then PoolConsignmentPost.ProcessPostedShipment(SalesShipmentHeader."No.", database::"Sales Shipment Line");
+        if SalesInvoiceHeader."No." <> '' then PoolConsignmentPost.ProcessPostedSalesInvoice(SalesInvoiceHeader."No.");
+        if SalesCrMemoHeader."No." <> '' then PoolConsignmentPost.ProcessPostedSalesCreditMemo(SalesCrMemoHeader."No.", SalesCrMemoHeader."Applies-to Doc. No.");
+    end;
+    #endregion EventSubscriber Codeunit 80 OnAfterFinalizePostingOnBeforeCommit
     // House rule: subscribers carry NO business logic — they only delegate.
     #region EventSubscriber Codeunit 22 OnAfterPostItemJnlLine
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Item Jnl.-Post Line", 'OnAfterPostItemJnlLine', '', true, true)]
@@ -83,5 +93,23 @@ codeunit 50277 "TAC Pool Subscribers"
     begin
         if NewStatus = NewStatus::Finished then PoolProdOrderPost.RunCloseFromProductionOrder(ProdOrder, NewPostingDate);
     end;
-#endregion EventSubscriber Codeunit 5407 OnAfterChangeStatusOnProdOrder
+    #endregion EventSubscriber Codeunit 5407 OnAfterChangeStatusOnProdOrder
+    #region EventSubscriber Codeunit 414 OnAfterReleaseSalesDoc
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Release Sales Document", 'OnAfterReleaseSalesDoc', '', true, true)]
+    local procedure OnAfterReleaseSalesDoc_C414(var SalesHeader: Record "Sales Header"; PreviewMode: Boolean; var LinesWereModified: Boolean; SkipWhseRequestOperations: Boolean)
+    var
+        Consignment: Record "TAC Consignment Header";
+    begin
+        if not Consignment.Get(SalesHeader."DIY_Consignment No.")then Consignment.InitiateFromSalesOrder(SalesHeader);
+    end;
+    #endregion EventSubscriber Codeunit 414 OnAfterReleaseSalesDoc
+    #region EventSubscriber Codeunit 5708 OnAfterReleaseTransferDoc
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Release Transfer Document", 'OnAfterReleaseTransferDoc', '', true, true)]
+    local procedure OnAfterReleaseTransferDoc_C5708(var TransferHeader: Record "Transfer Header")
+    var
+        Consignment: Record "TAC Consignment Header";
+    begin
+        if not Consignment.Get(TransferHeader."DIY_Consignment No.")then Consignment.InitiateFromTransfer(TransferHeader);
+    end;
+#endregion EventSubscriber Codeunit 5708 OnAfterReleaseTransferDoc
 }

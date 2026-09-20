@@ -580,7 +580,8 @@ codeunit 50284 "TAC Pool Reconciliation"
     begin
         DimensionMgt.ValidatePoolDimensionValues(ProductionOrderLine."Dimension Set ID");
         DimensionMgt.ResolveFromProductionOrderLine(ProductionOrderLine, //Season, PoolWeek, 
- Variety, Grade, Size, Grower, GrowerPoolType, PackType, PackTypeCategory);
+ Variety, Grade, Size, //Grower,
+ GrowerPoolType, PackType, PackTypeCategory);
     end;
     [TryFunction]
     local procedure TryResolveInvoiceDimensions(var ConsignmentLine: Record "TAC Consignment Line"; var Season: Code[20]; var PoolWeek: Code[20]; var Variety: Code[20]; var Grade: Code[20]; var Size: Code[20]; var Grower: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackType: Code[20]; var PackTypeCategory: Code[20])
@@ -589,8 +590,10 @@ codeunit 50284 "TAC Pool Reconciliation"
     begin
         DimensionMgt.ValidatePoolDimensionValues(ConsignmentLine."Dimension Set ID");
         DimensionMgt.ResolveFromDimensionSetWithPacking(ConsignmentLine."Dimension Set ID", //Season, PoolWeek, 
- Variety, Grade, Size, Grower, GrowerPoolType, PackType, PackTypeCategory);
-        if Grower = '' then Grower:=ConsignmentLine."Grower No.";
+ Variety, Grade, Size, //Grower, 
+ GrowerPoolType, PackType, PackTypeCategory);
+        //if Grower = '' then
+        Grower:=ConsignmentLine."Grower No.";
     end;
     [TryFunction]
     local procedure TryResolveConsignmentDimensions(var ConsignmentLine: Record "TAC Consignment Line"; var Season: Code[20]; var PoolWeek: Code[20]; var Variety: Code[20]; var Grade: Code[20]; var Size: Code[20]; var Grower: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type")
@@ -598,8 +601,10 @@ codeunit 50284 "TAC Pool Reconciliation"
         DimensionMgt: Codeunit "TAC Pool Dimension Mgt";
     begin
         DimensionMgt.ResolveFromDimensionSet(ConsignmentLine."Dimension Set ID", //Season, PoolWeek, 
- Variety, Grade, Size, Grower, GrowerPoolType);
-        if Grower = '' then Grower:=ConsignmentLine."Grower No.";
+ Variety, Grade, Size, //Grower, 
+        GrowerPoolType);
+        //if Grower = '' then
+        Grower:=ConsignmentLine."Grower No.";
     end;
     [TryFunction]
     local procedure TryResolveCreditDimensions(var SalesCrMemoLine: Record "Sales Cr.Memo Line"; var Season: Code[20]; var PoolWeek: Code[20]; var Variety: Code[20]; var Grade: Code[20]; var Size: Code[20]; var Grower: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type"; var PackType: Code[20]; var PackTypeCategory: Code[20])
@@ -608,7 +613,8 @@ codeunit 50284 "TAC Pool Reconciliation"
     begin
         DimensionMgt.ValidatePoolDimensionValues(SalesCrMemoLine."Dimension Set ID");
         DimensionMgt.ResolveFromDimensionSetWithPacking(SalesCrMemoLine."Dimension Set ID", //Season, PoolWeek, 
- Variety, Grade, Size, Grower, GrowerPoolType, PackType, PackTypeCategory);
+ Variety, Grade, Size, //Grower, 
+ GrowerPoolType, PackType, PackTypeCategory);
     end;
     [TryFunction]
     local procedure TryRunCloseFromProductionOrderLine(var PoolProdOrderPost: Codeunit "TAC Pool Prod Order Post"; var ProductionOrder: Record "Production Order"; var ProductionOrderLine: Record "Prod. Order Line")
