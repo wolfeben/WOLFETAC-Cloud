@@ -4,7 +4,7 @@
   "publisher": "DIY-ERP",
   "brief": "TAC Pool Payment Engine",
   "description": "Grower revenue pool: pools packed kg and sale proceeds by Pool within a Pool Group, applies charges via a data-driven Charge Template Engine, and at close prorates net pool value to growers.",
-  "version": "2.0.0.3",
+  "version": "2.0.0.7",
   "runtime": "17.0",
   "target": "Cloud",
   "application": "28.0.0.0",

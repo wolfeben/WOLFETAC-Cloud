@@ -157,8 +157,9 @@ table 50208 "TAC Pool"
             Format("Pool Type") + '-' + Format("Variety Code") + '-' + Format("Grower No."));
     end;
     /// <summary>
-    /// Returns the Pool ID for this Group + Variety + Grade + Size, creating it
-    /// on first use. Idempotent via the unique V/G/S key (F-02).
+    /// Reuses an exact Group + Variety + Grade + Size + Grower match first.
+    /// Temporary legacy compatibility also reuses an existing generated code,
+    /// retaining that pool's original grade and size. See the 2.0.0.7 handover.
     /// </summary>
     procedure FindOrCreate(NewPoolGroupID: Integer;
         NewVariety: Code[10];
@@ -169,6 +170,7 @@ table 50208 "TAC Pool"
         PoolGroup: Record "TAC Pool Group Header";
         PoolWeek: Record "TAC Pool Week";
         Pool: Record "TAC Pool";
+        ExistingPool: Record "TAC Pool";
     begin
         Pool.Reset();
         Pool.SetRange("Pool Group ID", NewPoolGroupID);
@@ -192,7 +194,8 @@ table 50208 "TAC Pool"
         Pool."Grower No." := NewGrower;
         Pool.Description := CopyStr(StrSubstNo('%1 / %2 / %3 / %4', NewVariety, NewGrade, NewSize, NewGrower), 1, MaxStrLen(Pool.Description));
         Pool."Pool Code" := Pool.GetPoolCode();
-        //if not Pool.Get("Pool Code") then
+        if ExistingPool.Get(Pool."Pool Code") then
+            exit(ExistingPool."Pool Code");
         Pool.Insert(true);
         exit(Pool."Pool Code");
     end;

@@ -1,0 +1,21 @@
+{
+  "baseline": "2.0.0.3",
+  "release": "2.0.0.7",
+  "recovery": "2.0.0.8",
+  "changedALFiles": [
+    "_TAC Pool_.Table.al"
+  ],
+  "unchangedALFiles": 129,
+  "schemaChanges": false,
+  "recoveryMatchesAllBaselineALSources": true,
+  "packages": [
+    {
+      "file": "D:\\WOLFETAC\\Cloud\\TACPoolMaster\\build\\DIY-ERP_TAC Pool Master_2.0.0.7_legacy-reuse.app",
+      "sha256": "8e467870c7f54e68a2d84a19c3e80a991d8cfd9cd6d307cbd5584cb518a4a780"
+    },
+    {
+      "file": "D:\\WOLFETAC\\Cloud\\TACPoolMaster\\build\\DIY-ERP_TAC Pool Master_2.0.0.8_legacy-reuse-recovery.app",
+      "sha256": "fca80d0ac4a126e4102f3800dc0c55c9a7c7d7553c5af1a54416fa7b80977a3b"
+    }
+  ]
+}

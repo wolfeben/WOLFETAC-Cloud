@@ -1,5 +1,11 @@
 # Release on hold: review payment rules first
 
+## Temporary legacy-code reuse authorised by Ben
+
+Ben subsequently requested: "allow it to put the same code in for now like it was and we test and see how it impacts". This authorises the focused 2.0.0.7 sandbox release described in `LEGACY-POOL-REUSE-2.0.0.7-HANDOVER.md`: retain the exact-match lookup, then reuse an existing generated Pool Code instead of attempting a duplicate insert. This deliberately restores the old fallback and can combine different grades/sizes under the original pool header. It does not establish the final pooling design. The active source is now this candidate, based on released 2.0.0.3; consult its handover for publication status.
+
+Version 2.0.0.7 is now published to Pool_Sandbox; four named focused native checks passed in LIVE APMS, with fixture absence verified in a subsequent call. The sequence/GUID proposal 2.0.0.5 and its 2.0.0.6 recovery remain held. No new uniqueness index, schema change, close/payment consolidation or broader review fix is included. Recovery 2.0.0.8 restores all 2.0.0.3 AL behaviour, including its grower-dimension fix, but cannot undo business data created during the trial. Earlier hold sections below are historical context; the explicit temporary fallback authorisation takes precedence for this narrow release only.
+
 ## Pool identity proposal also held
 
 Ben subsequently asked to establish why older code allowed multiple postings to one code and raised concern that adding a sequence could break other behaviour. Identity candidate 2.0.0.5 and recovery 2.0.0.6 are **not published**. The active engine source is restored to released 2.0.0.3. Read `POOL-IDENTITY-HISTORY-20260920.md` before further identity changes. Do not publish either candidate or add the proposed uniqueness index until the grouping question is resolved. The earlier grower-only release remains installed.
