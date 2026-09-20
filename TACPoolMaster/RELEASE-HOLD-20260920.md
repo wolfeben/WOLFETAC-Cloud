@@ -4,6 +4,8 @@
 
 Ben subsequently asked to establish why older code allowed multiple postings to one code and raised concern that adding a sequence could break other behaviour. Identity candidate 2.0.0.5 and recovery 2.0.0.6 are **not published**. The active engine source is restored to released 2.0.0.3. Read `POOL-IDENTITY-HISTORY-20260920.md` before further identity changes. Do not publish either candidate or add the proposed uniqueness index until the grouping question is resolved. The earlier grower-only release remains installed.
 
+Ben clarified that the intended pool combines product costs and sales into an average shared across growers. Current creation includes the grower in pool identity, while settlement totals by Pool Code. The held candidate preserves that separation and therefore is not a complete solution to the intended pooling model. Record the grower on contributions; review shared financial-pool membership before changing identifiers or restoring the old fallback.
+
 ## Narrow exception authorised by Ben
 
 Ben subsequently requested publishing **only the grower-code fix** to Pool_Sandbox so Josh can continue testing. The broader 1–26 release and all close/payment changes remain held. The active source has been reset to the verified installed baseline plus the three-codeunit grower fix; the full WIP is preserved in `D:/WOLFETAC/.snapshots/PoolMaster-grower-only-20260920/deferred-full-work-in-progress.zip`. See `GROWER-FIX-2.0.0.3-HANDOVER.md` for the current status. The notes below record the earlier broad-release hold, not a prohibition on the explicitly requested grower-only release.

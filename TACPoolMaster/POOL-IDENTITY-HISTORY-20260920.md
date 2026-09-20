@@ -4,6 +4,22 @@
 
 **Status: identifier change held, not published.** Installed Pool Master remains 2.0.0.3 with the grower-code fix only. The local engine source has also been restored to that released version. Candidate 2.0.0.5 and recovery 2.0.0.6 were compiled but neither was published. The proposal is preserved at `D:/WOLFETAC/.snapshots/PoolMaster-identity-20260920/held-identity-proposal-2.0.0.5.zip`.
 
+## Business intent clarified by Ben
+
+Ben subsequently clarified that pooling combines costs and sales to create an average per product for the growers. Treat this as the intended shared financial-pool model; do not assume the current grower-specific lookup is the desired business key. The exact product classification and pool-period/type boundaries still need to be mapped consistently across the implementation.
+
+Tracing the installed source confirms:
+
+- Production calls `FindOrCreate` with the vendor as an identity component; the lookup filters Grower No. and the code generator includes it. This separates growers even for the same group/variety/grade/size.
+- `WriteGrowerPayments` loops each pool in the group. It obtains net value and kilograms for that **Pool Code**, then distributes that pool's amount by each grower's kilograms within that same code. It does not first combine the value of separate grower-specific pool codes for the same product.
+- Some configured charges can be prorated across the group, but that does not make the final revenue/payment calculation a shared product average across separate pool codes.
+- The numeric or textual shape of the identifier is not part of the inspected payment arithmetic. It is the grouping/reference key. Changing its format while preserving the same memberships and references is different from splitting one shared pool into several codes.
+- The old fallback could merge grade/size requests within one grower's generated code. Because that code also includes the grower, reinstating the fallback alone would not create the cross-grower averaging Ben describes.
+
+Accordingly the held identifier proposal would fix a collision while preserving the existing grower-specific separation; it would not resolve this financial-grouping mismatch. **Do not deploy it as the solution to the intended pooling model.** Review shared product-pool membership and grower attribution together, including costs, proceeds, quantities, reports and existing references, before selecting the identity rule. Grower attribution still belongs on each contribution/ledger transaction and in any grower-specific deductions.
+
+Source: [production allocation](<D:/WOLFETAC/Cloud/TACPoolMaster/_TAC Pool Prod Order Post_.Codeunit.al:93>), [identity lookup](<D:/WOLFETAC/Cloud/TACPoolMaster/_TAC Pool_.Table.al:163>), [payment allocation](<D:/WOLFETAC/Cloud/TACPoolMaster/_TAC Pool Group Close_.Codeunit.al:324>), [net and kilogram aggregations](<D:/WOLFETAC/Cloud/TACPoolMaster/_TAC Pool Group Close_.Codeunit.al:561>). This is a source-confirmed path analysis, not a statement that every historical payment is wrong.
+
 ## What changed
 
 All inspected versions first look for a pool matching group, variety, grade, size and grower vendor. The generated code includes season, week, type, variety and grower, but omits grade and size.
