@@ -1,5 +1,7 @@
 # September pooling dataset — handover
 
+20 September update: the user clarified that plans must be per grower/block/day, then questioned whether grouping caused the error. A correction helper is installed but **no plans have been split**. Live assessment confirms all 50 production/receipt vendor links and all 450 numeric grower dimensions are correct. The current error on order 1221 is traced to the installed engine assigning vendor GRW-030 to a variable consumed as grower dimension 030. See [plan assessment](WEEK-20260921-PLAN-ASSESSMENT.md). No engine fix has been applied.
+
 Environment: Pool_Sandbox. Company: LIVE APMS. Season 2026 / pool week WK-2026-13, 21–27 September. Deliveries and daily plans cover 21–25 September 2026.
 
 All requested receipts, consumption and output are recorded, and production source dimensions are now complete. Normal production-order finishing is blocked by a duplicate pool code in the installed engine. No functional pooling scenarios, pool closes, payments, reversals or sales were run.

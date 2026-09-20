@@ -97,13 +97,22 @@ page 59353 "WLF Pool Week Test Run"
             }
             action(PreparePlans)
             {
-                Caption = 'Prepare five batch plans'; ApplicationArea = All; Image = Planning;
+                Caption = 'Prepare one plan per grower/block/day'; ApplicationArea = All; Image = Planning;
                 trigger OnAction() begin M.RunPlans(); Contents := M.Snapshot(); end;
             }
             action(NextPlan)
             {
                 Caption = 'Open next batch plan'; ApplicationArea = All; Image = Document;
                 trigger OnAction() begin M.OpenNextPlan(); end;
+            }
+            action(SplitSeptemberPlans)
+            {
+                Caption = 'Separate September plans by grower and block';
+                ToolTip = 'Correct only the September dataset: retain each existing batch and production order, and give each grower/block/day its own plan. Does not post or finish orders.';
+                ApplicationArea = All; Image = Planning;
+                trigger OnAction()
+                var Repair: Codeunit "WLF Pool Week Plan Repair";
+                begin Repair.SeparatePlans(); Contents := M.Snapshot(); end;
             }
         }
     }

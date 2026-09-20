@@ -35,12 +35,12 @@ codeunit 59353 "WLF Pool Week Management"
     end;
 
     procedure RunPlans()
-    var R: Record "WLF Pool Week Run"; D: Integer;
+    var R: Record "WLF Pool Week Run"; N: Integer;
     begin
         CheckTarget(); R.SetRange("Receipt Verified", true);
         if R.Count() <> 50 then Error('All 50 receipts must reconcile before batch plans are prepared.');
-        for D := 0 to 4 do begin
-            R.Get(D * 10 + 1);
+        for N := 1 to 50 do begin
+            R.Get(N);
             if not R."Plan Prepared" then if not RunStep(R."Order Index", 2) then exit;
         end;
     end;
@@ -189,7 +189,7 @@ codeunit 59353 "WLF Pool Week Management"
         G: Record "TAC Batch Plan Grower"; Lane: Record "TAC Batch Plan Lane"; PO: Record "Production Order";
         Evidence: JsonObject; O: Record "WLF Pool Week Output"; Outputs: JsonArray; Summary: JsonObject;
         PL: Record "Prod. Order Line"; Components: Record "Prod. Order Component"; Lines: JsonArray; Detail: JsonObject;
-        PoolDims: Codeunit "TAC Pool Dimension Mgt";
+        PoolDims: Codeunit "TAC Pool Dimension Mgt"; DefaultDim: Record "Default Dimension";
     begin
         CheckTarget(); J.Add('environment', 'Pool_Sandbox'); J.Add('company', CompanyName());
         J.Add('readAt', CurrentDateTime());
@@ -203,7 +203,14 @@ codeunit 59353 "WLF Pool Week Management"
         Extra.Add('requireReceive', L."Require Receive"); Extra.Add('requirePutAway', L."Require Put-away");
         Extra.Add('directedPutAwayPick', L."Directed Put-away and Pick");
         Extra.Add('toProductionBin', L."To-Production Bin Code"); Extra.Add('fromProductionBin', L."From-Production Bin Code");
-        for N := 1 to 5 do begin V.Get(GrowerNo(N)); Clear(Row); Row.Add('vendor', V."No."); Row.Add('deliveryGrowerCode', V."TAC Grower Code"); Vs.Add(Row); end;
+        Extra.Add('poolGrowerDimensionCode', PoolDims.GrowerDimensionCode());
+        for N := 1 to 5 do begin
+            V.Get(GrowerNo(N)); Clear(Row); Row.Add('vendor', V."No."); Row.Add('deliveryGrowerCode', V."TAC Grower Code");
+            if DefaultDim.Get(Database::Vendor, V."No.", PoolDims.GrowerDimensionCode()) then
+                Row.Add('defaultGrowerDimensionValue', DefaultDim."Dimension Value Code")
+            else Row.Add('defaultGrowerDimensionValue', '');
+            Vs.Add(Row);
+        end;
         Extra.Add('growers', Vs); J.Add('additionalSetup', Extra);
         if R.FindSet() then repeat
             Clear(Row); Row.Add('orderIndex', R."Order Index"); Row.Add('date', R."Test Date");
@@ -228,6 +235,8 @@ codeunit 59353 "WLF Pool Week Management"
             end;
             if H.Get(R."Plan No.") then begin
                 Evidence.Add('planDate', H."Plan Date"); Evidence.Add('planStatus', Format(H.Status));
+                H.CalcFields("No. of Batches", "Total Bins");
+                Evidence.Add('planBatchCount', H."No. of Batches"); Evidence.Add('planBins', H."Total Bins");
                 G.Reset(); G.SetRange("Batch Plan No.", H."No."); G.SetRange("Batch No.", R."Batch No.");
                 if G.FindFirst() then begin
                     G.CalcFields("Total Bins", "Total Lanes"); Evidence.Add('batchBins', G."Total Bins");
@@ -238,11 +247,15 @@ codeunit 59353 "WLF Pool Week Management"
                 PO.Reset(); PO.SetRange("No.", R."Batch No.");
                 if PO.FindFirst() then begin
                     Evidence.Add('productionStatus', Format(PO.Status));
+                    PO.CalcFields("Grower ID", "Batch Plan No.");
+                    Evidence.Add('productionGrowerVendor', PO."Grower ID");
+                    Evidence.Add('productionPlan', PO."Batch Plan No.");
                     Clear(Lines); PL.Reset(); PL.SetRange(Status, PO.Status); PL.SetRange("Prod. Order No.", PO."No.");
                     if PL.FindSet() then repeat
                         Clear(Detail); Detail.Add('item', PL."Item No."); Detail.Add('quantity', PL.Quantity);
                         Detail.Add('baseQuantity', PL."Quantity (Base)"); Detail.Add('finished', PL."Finished Quantity");
                         Detail.Add('remaining', PL."Remaining Quantity"); Detail.Add('unit', PL."Unit of Measure Code");
+                        Detail.Add('growerDimensionValue', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.GrowerDimensionCode()));
                         Detail.Add('growerPoolType', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.GrowerPoolTypeDimensionCode()));
                         Detail.Add('packType', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.PackTypeDimensionCode()));
                         Detail.Add('packCategory', PoolDims.GetDimensionValue(PL."Dimension Set ID", PoolDims.PackTypeCategoryDimensionCode()));

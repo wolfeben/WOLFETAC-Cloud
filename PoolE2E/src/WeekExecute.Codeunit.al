@@ -7,7 +7,7 @@ codeunit 59354 "WLF Pool Week Execute"
         if (Rec."Order Index" < 1) or (Rec."Order Index" > 50) then Error('Unexpected order index.');
         if Rec."Test Date" <> DMY2Date(21, 9, 2026) + ((Rec."Order Index" - 1) div 10) then Error('Unexpected test date.');
         case Rec."Operation No." of
-            1: Receipt(Rec); 2: PlanDay(Rec);
+            1: Receipt(Rec); 2: PlanDelivery(Rec);
             3: Production.Prepare(Rec);
             4: Production.ReleaseOrder(Rec);
             5: Production.Consume(Rec);
@@ -95,15 +95,16 @@ codeunit 59354 "WLF Pool Week Execute"
         R."Last Run" := CurrentDateTime(); R.Modify();
     end;
 
-    local procedure PlanDay(var First: Record "WLF Pool Week Run")
+    local procedure PlanDelivery(var First: Record "WLF Pool Week Run")
     var R: Record "WLF Pool Week Run"; H: Record "TAC Batch Plan Header"; G: Record "TAC Batch Plan Grower";
         Lot: Record "TAC Batch Plan Lot"; Available: Record "TAC Batch Plan Lot" temporary; Lane: Record "TAC Batch Plan Lane";
         PlanMgt: Codeunit "TAC Batch Plan Mgt."; ILE: Record "Item Ledger Entry"; I: Record Item;
         LineNo: Integer; N: Integer; BatchSuffix: Integer; Last4: Text; BlockMap: RecordRef;
     begin
-        R.SetRange("Test Date", First."Test Date"); R.SetRange("Receipt Verified", true);
-        if R.Count() <> 10 then Error('Expected ten verified deliveries for this day.');
-        R.SetRange("Plan Prepared", true); if not R.IsEmpty() then Error('A plan is already linked for this day.'); R.SetRange("Plan Prepared");
+        // A plan belongs to one grower/block/day; it is not a whole-day schedule.
+        R.SetRange("Order Index", First."Order Index"); R.SetRange("Receipt Verified", true);
+        if R.Count() <> 1 then Error('Expected one verified delivery for this grower/block/day.');
+        R.SetRange("Plan Prepared", true); if not R.IsEmpty() then Error('A plan is already linked for this delivery.'); R.SetRange("Plan Prepared");
         H.Init(); H."Plan Date" := First."Test Date"; H.Insert(true);
         if R.FindSet(true) then repeat
             ILE.Get(R."Receipt Entry No."); ILE.TestField("Remaining Quantity", 10);

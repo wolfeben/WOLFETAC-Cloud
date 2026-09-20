@@ -15,6 +15,7 @@ permissionset 59350 "WLF POOL E2E"
         codeunit "WLF Pool Week Management" = X,
         codeunit "WLF Pool Week Execute" = X,
         codeunit "WLF Pool Week Production" = X,
+        codeunit "WLF Pool Week Plan Repair" = X,
         table "WLF Pool Week Output" = X,
         tabledata "WLF Pool Week Output" = RIMD;
     // Standard and engine permissions still govern every source and posting operation.

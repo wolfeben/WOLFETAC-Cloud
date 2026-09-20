@@ -83,7 +83,8 @@ $manifest=[ordered]@{
         'Serials must be generated after actual batch numbers are allocated and the current serial parser is verified.',
         'Bulk quantities are requested physical kg, not quantities ready to enter into a BC journal.',
         'No input kg or packing yield has been assumed from the bin count.')
-    Totals=@{ Deliveries=50; ProductionOrders=50; Bins=500; DailyPlans=5; Pallets=909; MixedPallets=9; UnitSerials=106656 }
+    PlanGrouping='One plan per grower, block and delivery day'
+    Totals=@{ Deliveries=50; ProductionOrders=50; Bins=500; BatchPlans=50; Pallets=909; MixedPallets=9; UnitSerials=106656 }
     Deliveries=@($deliveries.ToArray()); Pallets=@($pallets.ToArray())
 }
 $manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $OutputPath -Encoding utf8
