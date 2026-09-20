@@ -1,5 +1,9 @@
 pageextension 50242 "TAC Pool Customer Card Ext" extends "Customer Card"
 {
+    // Surfaces the pool fields added by table extension 50240 so they can be
+    // maintained in the UI. Not in the design's object inventory (which listed
+    // only the table extension); added so the Charge Engine's Customer-source
+    // rates and the ripener condition (F-05) have an entry point.
     layout
     {
         addafter(Invoicing)

@@ -33,14 +33,10 @@ table 50227 "TAC Pool Credit Memo State"
             ToolTip = 'Specifies the user that caused the credit memo to be processed by pooling.';
         }
     }
+
     keys
     {
-        key(PK; "Posted Credit Memo SystemId")
-        {
-            Clustered = true;
-        }
-        key(CreditMemoNo; "Posted Credit Memo No.")
-        {
-        }
+        key(PK; "Posted Credit Memo SystemId") { Clustered = true; }
+        key(CreditMemoNo; "Posted Credit Memo No.") { }
     }
 }

@@ -27,7 +27,6 @@ table 50202 "TAC Freight Rate"
         {
             Caption = 'Starting Date';
             ToolTip = 'Specifies the date this freight rate starts being effective.';
-
             trigger OnValidate()
             begin
                 ValidateDateRange();
@@ -37,7 +36,6 @@ table 50202 "TAC Freight Rate"
         {
             Caption = 'Ending Date';
             ToolTip = 'Specifies the date this freight rate stops being effective. Leave blank for open-ended.';
-
             trigger OnValidate()
             begin
                 ValidateDateRange();
@@ -60,6 +58,7 @@ table 50202 "TAC Freight Rate"
             ToolTip = 'Specifies whether this freight rate row is blocked from use.';
         }
     }
+
     keys
     {
         key(PK; "Shipping Agent Code", "From Freight Location", "To Freight Location", "Starting Date")
@@ -74,6 +73,7 @@ table 50202 "TAC Freight Rate"
         TestField("To Freight Location");
         ValidateDateRange();
     end;
+
     procedure ValidateDateRange()
     var
         FreightRate: Record "TAC Freight Rate";
@@ -81,9 +81,17 @@ table 50202 "TAC Freight Rate"
         FreightRate.SetRange("Shipping Agent Code", "Shipping Agent Code");
         FreightRate.SetRange("From Freight Location", "From Freight Location");
         FreightRate.SetRange("To Freight Location", "To Freight Location");
-        if "Ending Date" <> 0D then FreightRate.SetFilter("Starting Date", '<=%1', "Ending Date");
-        if "Starting Date" <> 0D then FreightRate.SetFilter("Ending Date", '>=%1', "Starting Date");
-        if not FreightRate.IsEmpty()then Error(ErrOverlappingLocation, "Starting Date", "Ending Date");
+
+        if "Ending Date" <> 0D then
+            FreightRate.SetFilter("Starting Date", '<=%1', "Ending Date");
+
+        if "Starting Date" <> 0D then
+            FreightRate.SetFilter("Ending Date", '>=%1', "Starting Date");
+
+        if not FreightRate.IsEmpty() then
+            Error(ErrOverlappingLocation, "Starting Date", "Ending Date");
     end;
-    var ErrOverlappingLocation: Label 'Date range %1 to %2 overlaps an existing unblocked row for the same agent and route';
+
+    var
+        ErrOverlappingLocation: Label 'Date range %1 to %2 overlaps an existing unblocked row for the same agent and route';
 }

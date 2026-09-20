@@ -1,0 +1,21 @@
+{
+  "changedALFiles": [
+    "_TAC Pool Prod Order Post_.Codeunit.al",
+    "_TAC Pool Dimension Mgt_.Codeunit.al",
+    "_TAC Pool Grower Mgt_.Codeunit.al"
+  ],
+  "unchangedALFiles": 127,
+  "schemaChanges": false,
+  "packages": [
+    {
+      "file": "D:\\WOLFETAC\\Cloud\\TACPoolMaster\\build\\DIY-ERP_TAC Pool Master_2.0.0.3_grower-fix.app",
+      "sha256": "fcbe5f62edfe9eb236f4509e9fa449f09686fc07ea463e10f4fb3163ac0c4a34",
+      "sourceVerified": true
+    },
+    {
+      "file": "D:\\WOLFETAC\\Cloud\\TACPoolMaster\\build\\DIY-ERP_TAC Pool Master_2.0.0.4_recovery.app",
+      "sha256": "e6da2efeb4ae9e67ab4bdcd574bd83bfe08d08062c32b9433c7e7b22ca0c8542",
+      "sourceVerified": true
+    }
+  ]
+}

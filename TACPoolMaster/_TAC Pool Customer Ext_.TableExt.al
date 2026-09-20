@@ -1,5 +1,8 @@
 tableextension 50240 "TAC Pool Customer Ext" extends Customer
 {
+    // Read by the Charge Engine for Customer-source rates and the ripener
+    // condition (design §7.13 / §12 prereqs). Field names follow the design
+    // (unprefixed); add a TAC prefix if this ever moves to AppSource.
     fields
     {
         /*field(50240; "Ripening Required"; Boolean)

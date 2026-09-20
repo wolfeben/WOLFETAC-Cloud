@@ -8,7 +8,7 @@ tableextension 50244 "TAC Pool Vendor Ext" extends Vendor
             DataClassification = CustomerContent;
             ToolTip = 'Specifies whether this vendor is treated as a grower for pooling workflows and validations.';
         }
-        field(50241; "Grower Pool Type";Enum "TAC Grower Pool Type")
+        field(50241; "Grower Pool Type"; Enum "TAC Grower Pool Type")
         {
             Caption = 'Grower Pool Type';
             DataClassification = CustomerContent;

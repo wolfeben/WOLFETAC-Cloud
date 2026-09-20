@@ -7,14 +7,14 @@ enum 50210 "TAC Pool Return Variant"
     // one report object, three variants — not three reports.
     value(0; TaxInvoice)
     {
-    Caption = 'Tax Invoice';
+        Caption = 'Tax Invoice';
     }
     value(1; Provisional)
     {
-    Caption = 'Provisional Statement';
+        Caption = 'Provisional Statement';
     }
     value(2; Summary)
     {
-    Caption = 'Summary';
+        Caption = 'Summary';
     }
 }

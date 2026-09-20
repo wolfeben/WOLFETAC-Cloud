@@ -8,6 +8,7 @@ pageextension 50248 "TAC Pool Vendor Card" extends "Vendor Card"
             ToolTip = 'Shows the Grower Code from this vendor''s Default Dimension for the Grower Dimension Code configured in Pool Payment Setup.';
         }
     }
+
     actions
     {
         addlast(Processing)

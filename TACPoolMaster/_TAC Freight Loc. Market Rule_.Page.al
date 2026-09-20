@@ -12,15 +12,9 @@ page 50265 "TAC Freight Loc. Market Rule"
         {
             repeater(General)
             {
-                field("Freight Location Code"; Rec."Freight Location Code")
-                {
-                }
-                field("Market Rule Code"; Rec."Market Rule Code")
-                {
-                }
-                field(Mandatory; Rec.Mandatory)
-                {
-                }
+                field("Freight Location Code"; Rec."Freight Location Code") { }
+                field("Market Rule Code"; Rec."Market Rule Code") { }
+                field(Mandatory; Rec.Mandatory) { }
             }
         }
     }

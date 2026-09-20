@@ -25,10 +25,10 @@ table 50211 "TAC Pool Charge Rate"
         field(4; "Supplier Type"; Option)
         {
             Caption = 'Supplier Type';
-            OptionMembers = " ", Internal, External, Grower;
+            OptionMembers = " ",Internal,External,Grower;
             ToolTip = 'Specifies an optional supplier type filter for this rate row.';
         }
-        field(5; "Grower Type";enum "TAC Grower Pool Type")
+        field(5; "Grower Type"; enum "TAC Grower Pool Type")
         {
             Caption = 'Grower Type';
             ToolTip = 'Specifies an optional grower type filter for this rate row.';
@@ -74,7 +74,7 @@ table 50211 "TAC Pool Charge Rate"
         field(13; "Rate Type"; Option)
         {
             Caption = 'Rate Type';
-            OptionMembers = Units, Kilograms, Bins, "Value (%)";
+            OptionMembers = Units,Kilograms,Bins,"Value (%)";
             ToolTip = 'Specifies whether this rate is based on units, kilograms, bins, or value percentage.';
         }
         field(14; Rate; Decimal)
@@ -93,6 +93,7 @@ table 50211 "TAC Pool Charge Rate"
             ToolTip = 'Specifies the date this rate row expires. Leave blank for open-ended.';
         }
     }
+
     keys
     {
         key(PK; "Entry No.")

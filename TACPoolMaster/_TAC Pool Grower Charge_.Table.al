@@ -3,6 +3,8 @@ table 50237 "TAC Pool Grower Charge"
     Caption = 'Pool Grower Charge';
     DataClassification = CustomerContent;
 
+    // Per-grower above-the-line charge written by the close (50273 steps 6,10);
+    // read by report 50290 and the F-08 invoice line build. Read-only from UI.
     fields
     {
         field(1; "Pool Grower Charge ID"; Integer)
@@ -14,7 +16,7 @@ table 50237 "TAC Pool Grower Charge"
         {
             Caption = 'Pool Payment ID';
             TableRelation = "TAC Pool Payment Header"."Pool Payment ID";
-        // Which close created it.
+            // Which close created it.
         }
         field(3; "Pool Group ID"; Integer)
         {
@@ -25,14 +27,14 @@ table 50237 "TAC Pool Grower Charge"
         {
             Caption = 'Pool Code';
             TableRelation = "TAC Pool"."Pool Code";
-        // Blank for group-level charges.
+            // Blank for group-level charges.
         }
         field(5; "Grower Code"; Code[20])
         {
             Caption = 'Grower Code';
-        // A value of the grower dimension, not the Vendor No. (ADR-004).
-        // No TableRelation — the dimension's Code is configuration. Written
-        // only by the close; this table is read-only from the UI.
+            // A value of the grower dimension, not the Vendor No. (ADR-004).
+            // No TableRelation — the dimension's Code is configuration. Written
+            // only by the close; this table is read-only from the UI.
         }
         field(6; "Trans Type Code"; Code[10])
         {
@@ -42,7 +44,7 @@ table 50237 "TAC Pool Grower Charge"
         field(7; Amount; Decimal)
         {
             Caption = 'Amount';
-        // Positive = cost to grower.
+            // Positive = cost to grower.
         }
         field(8; "GST Amount"; Decimal)
         {
@@ -52,9 +54,10 @@ table 50237 "TAC Pool Grower Charge"
         {
             Caption = 'Source Pool Ledger Entry No.';
             TableRelation = "TAC Pool Ledger Entry"."Entry No.";
-        // Audit FK to the pre-proration pool-level amount.
+            // Audit FK to the pre-proration pool-level amount.
         }
     }
+
     keys
     {
         key(PK; "Pool Grower Charge ID")

@@ -19,25 +19,25 @@ table 50221 "TAC Pool Trans Type"
         field(3; "GST Rate"; Decimal)
         {
             Caption = 'GST Rate';
-            DecimalPlaces = 0: 4;
+            DecimalPlaces = 0 : 4;
         }
-        field(4; "Charge Rate Type";Enum "TAC Pool Rate Type")
+        field(4; "Charge Rate Type"; Enum "TAC Pool Rate Type")
         {
             Caption = 'Charge Rate Type';
         }
-        field(5; "Rate Source";Enum "TAC Pool Rate Source")
+        field(5; "Rate Source"; Enum "TAC Pool Rate Source")
         {
             Caption = 'Rate Source';
         }
-        field(6; "Charge Level";Enum "TAC Pool Charge Level")
+        field(6; "Charge Level"; Enum "TAC Pool Charge Level")
         {
             Caption = 'Charge Level';
         }
-        field(7; "Prorata to Grower Level";Enum "TAC Pool Prorata Level")
+        field(7; "Prorata to Grower Level"; Enum "TAC Pool Prorata Level")
         {
             Caption = 'Prorata to Grower Level';
         }
-        field(8; "Charge Action";Enum "TAC Pool Charge Action")
+        field(8; "Charge Action"; Enum "TAC Pool Charge Action")
         {
             Caption = 'Charge Action';
         }
@@ -45,7 +45,7 @@ table 50221 "TAC Pool Trans Type"
         {
             Caption = 'GL Account Internal';
             TableRelation = "G/L Account"."No.";
-        // Export types (AQIS/SEA/AF/...) carry blank GL accounts until OI-08.
+            // Export types (AQIS/SEA/AF/...) carry blank GL accounts until OI-08.
         }
         field(10; "GL Account External"; Code[20])
         {
@@ -65,6 +65,7 @@ table 50221 "TAC Pool Trans Type"
             Caption = 'Active';
         }
     }
+
     keys
     {
         key(PK; "Code")

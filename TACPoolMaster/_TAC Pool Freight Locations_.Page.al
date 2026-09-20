@@ -12,27 +12,13 @@ page 50200 "TAC Pool Freight Locations"
         {
             repeater(General)
             {
-                field("Code"; Rec."Code")
-                {
-                }
-                field(Description; Rec.Description)
-                {
-                }
-                field("BC Location Code"; Rec."BC Location Code")
-                {
-                }
-                field("Location Type"; Rec."Location Type")
-                {
-                }
-                field("Is Export"; Rec."Is Export")
-                {
-                }
-                field(Blocked; Rec.Blocked)
-                {
-                }
-                field(State; Rec.State)
-                {
-                }
+                field("Code"; Rec."Code") { }
+                field(Description; Rec.Description) { }
+                field("BC Location Code"; Rec."BC Location Code") { }
+                field("Location Type"; Rec."Location Type") { }
+                field("Is Export"; Rec."Is Export") { }
+                field(Blocked; Rec.Blocked) { }
+                field(State; Rec.State) { }
             }
         }
     }

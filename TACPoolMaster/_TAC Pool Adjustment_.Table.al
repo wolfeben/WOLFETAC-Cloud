@@ -22,18 +22,20 @@ table 50234 "TAC Pool Adjustment"
         field(4; "Grower Code"; Code[20])
         {
             Caption = 'Grower Code';
-
             // A value of the grower dimension (ADR-004). The dimension's Code
             // is configuration, so lookup and validation go through 50280
             // rather than a static TableRelation.
+
             trigger OnLookup()
             var
                 GrowerMgt: Codeunit "TAC Pool Grower Mgt";
                 NewGrowerCode: Code[20];
             begin
-                NewGrowerCode:="Grower Code";
-                if GrowerMgt.LookupGrowerCode(NewGrowerCode)then Validate("Grower Code", NewGrowerCode);
+                NewGrowerCode := "Grower Code";
+                if GrowerMgt.LookupGrowerCode(NewGrowerCode) then
+                    Validate("Grower Code", NewGrowerCode);
             end;
+
             trigger OnValidate()
             var
                 GrowerMgt: Codeunit "TAC Pool Grower Mgt";
@@ -58,7 +60,7 @@ table 50234 "TAC Pool Adjustment"
         field(8; Comment; Text[250])
         {
             Caption = 'Comment';
-        // Mandatory - enforced on post (50274).
+            // Mandatory - enforced on post (50274).
         }
         field(9; Posted; Boolean)
         {
@@ -73,6 +75,7 @@ table 50234 "TAC Pool Adjustment"
             Caption = 'Posted DateTime';
         }
     }
+
     keys
     {
         key(PK; "Adjustment ID")

@@ -1,0 +1,64 @@
+--- 2.0.0.2/_TAC Pool Prod Order Post_.Codeunit.al
++++ 2.0.0.3/_TAC Pool Prod Order Post_.Codeunit.al
+@@ -50,6 +50,7 @@
+         ChargeContext: Record "TAC Pool Charge Context" temporary;
+         DimensionMgt: Codeunit "TAC Pool Dimension Mgt";
+         ChargeEngine: Codeunit "TAC Pool Charge Engine";
++        GrowerMgt: Codeunit "TAC Pool Grower Mgt";
+         //SeasonCode: Code[20];
+         //PoolWeekCode: Code[20];
+         PoolWeek: Record "TAC Pool Week";
+@@ -87,7 +88,7 @@
+             VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+             GrowerPoolType, PackTypeCode, PackTypeCategoryCode);
+ 
+-        GrowerCode := ProductionOrder."Grower ID";
++        GrowerCode := GrowerMgt.GrowerCodeForSourceVendor(ProductionOrder."Grower ID", ProductionOrderLine."Dimension Set ID");
+         PoolGroupID := PoolGroup.FindOrCreate(PoolWeek.Code, GrowerPoolType);
+         PoolCode := Pool.FindOrCreate(PoolGroupID, CopyStr(VarietyCode, 1, 10), CopyStr(GradeCode, 1, 10), CopyStr(SizeCode, 1, 10), ProductionOrder."Grower ID");
+ 
+--- 2.0.0.2/_TAC Pool Dimension Mgt_.Codeunit.al
++++ 2.0.0.3/_TAC Pool Dimension Mgt_.Codeunit.al
+@@ -23,12 +23,14 @@
+     procedure ResolveFromProductionOrder(var ProductionOrder: Record "Production Order";
+     //var SeasonCode: Code[20]; var PoolWeekCode: Code[20]; 
+     var VarietyCode: Code[20]; var GradeCode: Code[20]; var SizeCode: Code[20]; var GrowerCode: Code[20]; var GrowerPoolType: Enum "TAC Grower Pool Type")
++    var
++        GrowerMgt: Codeunit "TAC Pool Grower Mgt";
+     begin
+         ResolveFromDimensionSet(ProductionOrder."Dimension Set ID", //SeasonCode, //PoolWeekCode, 
+             VarietyCode, GradeCode, SizeCode, //GrowerCode, 
+             GrowerPoolType);
+         ProductionOrder.CalcFields("Grower ID");
+-        GrowerCode := ProductionOrder."Grower ID";
++        GrowerCode := GrowerMgt.GrowerCodeForSourceVendor(ProductionOrder."Grower ID", ProductionOrder."Dimension Set ID");
+     end;
+ 
+     procedure ResolveFromDimensionSet(
+--- 2.0.0.2/_TAC Pool Grower Mgt_.Codeunit.al
++++ 2.0.0.3/_TAC Pool Grower Mgt_.Codeunit.al
+@@ -75,6 +75,24 @@
+         exit(GrowerCode);
+     end;
+ 
++    /// <summary>Resolve a source vendor to its grower dimension without treating the vendor account as the dimension value.</summary>
++    procedure GrowerCodeForSourceVendor(VendorNo: Code[20]; DimensionSetID: Integer): Code[20]
++    var
++        Vendor: Record Vendor;
++        GrowerCode: Code[20];
++        SourceGrowerCode: Code[20];
++    begin
++        Vendor.Get(VendorNo);
++        GrowerCode := GrowerCodeForVendor(VendorNo);
++        if VendorNoForGrower(GrowerCode) <> VendorNo then
++            Error('Grower dimension %1 does not identify vendor %2.', GrowerCode, VendorNo);
++
++        SourceGrowerCode := DimensionMgt.GetDimensionValue(DimensionSetID, DimensionMgt.GrowerDimensionCode());
++        if (SourceGrowerCode <> '') and (SourceGrowerCode <> GrowerCode) then
++            Error('Source grower dimension %1 does not match vendor %2, whose grower dimension is %3.', SourceGrowerCode, VendorNo, GrowerCode);
++        exit(GrowerCode);
++    end;
++
+     local procedure FindVendorNo(GrowerCode: Code[20]) FoundVendorNo: Code[20]
+     var
+         DefaultDimension: Record "Default Dimension";

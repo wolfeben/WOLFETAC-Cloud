@@ -12,50 +12,23 @@ page 50211 "TAC Pool"
             group(General)
             {
                 Caption = 'General';
-
-                field("Pool Code"; Rec."Pool Code")
-                {
-                }
-                field(Description; Rec.Description)
-                {
-                }
-                field("Pool Type"; Rec."Pool Type")
-                {
-                }
-                field("Pool Week"; Rec."Pool Week")
-                {
-                }
-                field(Status; Rec.Status)
-                {
-                }
-                field("Gross Value"; Rec."Gross Value")
-                {
-                }
-                field(Variety; Rec."Variety Code")
-                {
-                }
-                field(Season; Rec."Season Code")
-                {
-                }
-                field("Provisional Count"; Rec."Provisional Count")
-                {
-                }
-                field("Net Value"; Rec."Net Value")
-                {
-                }
-                field("Total Kilograms"; Rec."Total Kilograms")
-                {
-                }
-                field("Grower No."; Rec."Grower No.")
-                {
-                }
-                field("Payment Model"; Rec."Payment Model")
-                {
-                }
+                field("Pool Code"; Rec."Pool Code") { }
+                field(Description; Rec.Description) { }
+                field("Pool Type"; Rec."Pool Type") { }
+                field("Pool Week"; Rec."Pool Week") { }
+                field(Status; Rec.Status) { }
+                field("Gross Value"; Rec."Gross Value") { }
+                field(Variety; Rec."Variety Code") { }
+                field(Season; Rec."Season Code") { }
+                field("Provisional Count"; Rec."Provisional Count") { }
+                field("Net Value"; Rec."Net Value") { }
+                field("Total Kilograms"; Rec."Total Kilograms") { }
+                field("Grower No."; Rec."Grower No.") { }
+                field("Payment Model"; Rec."Payment Model") { }
             }
             part(PoolLedger; "TAC Pool Ledger Subform")
             {
-                SubPageLink = "Pool Code"=field("Pool Code");
+                SubPageLink = "Pool Code" = field("Pool Code");
             }
         }
     }
@@ -66,14 +39,12 @@ page 50211 "TAC Pool"
             Group(Close)
             {
                 Caption = 'Close';
-
                 action(ProvisionalClose)
                 {
                     ApplicationArea = All;
                     Caption = 'Provisional Close';
                     Image = Close;
                     ToolTip = 'Perform a provisional close for the pool.';
-
                     trigger OnAction()
                     var
                         PoolMgt: Codeunit "TAC Post Pool";
@@ -88,7 +59,6 @@ page 50211 "TAC Pool"
                     Caption = 'Final Close';
                     Image = Close;
                     ToolTip = 'Perform a final close for the pool.';
-
                     trigger OnAction()
                     var
                         PoolMgt: Codeunit "TAC Post Pool";

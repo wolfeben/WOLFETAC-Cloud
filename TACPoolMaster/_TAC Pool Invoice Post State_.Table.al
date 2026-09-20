@@ -27,14 +27,10 @@ table 50239 "TAC Pool Invoice Post State"
             ToolTip = 'Specifies the user that caused the invoice to be processed by pooling.';
         }
     }
+
     keys
     {
-        key(PK; "Posted Invoice SystemId")
-        {
-            Clustered = true;
-        }
-        key(InvoiceNo; "Posted Invoice No.")
-        {
-        }
+        key(PK; "Posted Invoice SystemId") { Clustered = true; }
+        key(InvoiceNo; "Posted Invoice No.") { }
     }
 }

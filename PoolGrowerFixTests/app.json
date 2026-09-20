@@ -1,0 +1,16 @@
+{
+  "id": "e765e36e-dda3-4b6a-a742-cbaaf2f245f4",
+  "name": "Pool Grower Identity Tests",
+  "publisher": "WOLFE",
+  "version": "1.0.0.1",
+  "runtime": "17.0",
+  "application": "28.0.0.0",
+  "platform": "1.0.0.0",
+  "target": "Cloud",
+  "dependencies": [
+    { "id": "7ce03a80-b797-4aac-af41-7eaa96351ca5", "name": "TAC Pool Master", "publisher": "DIY-ERP", "version": "2.0.0.3" },
+    { "id": "29ca3407-aebd-4c07-a273-bf9c72e2e66d", "name": "Avocados Core", "publisher": "The Avocados Collective", "version": "1.0.0.0" }
+  ],
+  "idRanges": [{ "from": 59980, "to": 59981 }],
+  "resourceExposurePolicy": { "allowDebugging": true, "allowDownloadingSource": true, "includeSourceInSymbolFile": true }
+}

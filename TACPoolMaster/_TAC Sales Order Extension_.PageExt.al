@@ -8,7 +8,8 @@ pageextension 50201 "TAC Sales Order Extension" extends "Sales Order"
             var
                 Consignment: record "TAC Consignment Header";
             begin
-                if Consignment.Get(Rec."DIY_Consignment No.")then Page.Run(Page::"TAC Consignment", Consignment);
+                if Consignment.Get(Rec."DIY_Consignment No.") then
+                    Page.Run(Page::"TAC Consignment", Consignment);
             end;
         }
     }

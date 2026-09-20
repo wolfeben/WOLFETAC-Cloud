@@ -9,10 +9,10 @@ enum 50209 "TAC Pool Charge Mode"
     // callers (50271/50272/50273) can reference it (house rule: enums > options).
     value(0; Write)
     {
-    Caption = 'Write';
+        Caption = 'Write';
     }
     value(1; Validate)
     {
-    Caption = 'Validate';
+        Caption = 'Validate';
     }
 }

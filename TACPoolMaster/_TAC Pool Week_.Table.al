@@ -27,27 +27,23 @@ table 50220 "TAC Pool Week"
         field(5; "Start Date"; Date)
         {
             Caption = 'Start Date';
-        // Monday of the pool week.
+            // Monday of the pool week.
         }
         field(6; "End Date"; Date)
         {
             Caption = 'End Date';
-        // Sunday of the pool week.
+            // Sunday of the pool week.
         }
         field(7; Closed; Boolean)
         {
             Caption = 'Closed';
-        // Manual flag.
+            // Manual flag.
         }
     }
+
     keys
     {
-        key(PK; "Code")
-        {
-            Clustered = true;
-        }
-        key(Season; "Season Code", "Week No.")
-        {
-        }
+        key(PK; "Code") { Clustered = true; }
+        key(Season; "Season Code", "Week No.") { }
     }
 }

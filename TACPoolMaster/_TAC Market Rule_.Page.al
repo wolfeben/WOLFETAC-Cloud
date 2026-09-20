@@ -12,18 +12,10 @@ page 50263 "TAC Market Rule"
         {
             repeater(General)
             {
-                field(Code; Rec.Code)
-                {
-                }
-                field(Description; Rec.Description)
-                {
-                }
-                field("Rule Type"; Rec."Rule Type")
-                {
-                }
-                field("Requires Expiry Date"; Rec."Requires Expiry Date")
-                {
-                }
+                field(Code; Rec.Code) { }
+                field(Description; Rec.Description) { }
+                field("Rule Type"; Rec."Rule Type") { }
+                field("Requires Expiry Date"; Rec."Requires Expiry Date") { }
             }
         }
     }

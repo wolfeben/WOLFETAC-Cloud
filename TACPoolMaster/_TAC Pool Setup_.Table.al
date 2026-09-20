@@ -3,6 +3,9 @@ table 50225 "TAC Pool Setup"
     Caption = 'Pool Payment Setup';
     DataClassification = CustomerContent;
 
+    // Singleton backing the Pool Payment Setup page (50262). Not in the
+    // design's object inventory (which lists only the page); added here so the
+    // setup page and the install codeunit (50278) have a table to read/seed.
     fields
     {
         field(1; "Primary Key"; Code[10])
@@ -21,13 +24,15 @@ table 50225 "TAC Pool Setup"
             TableRelation = "No. Series".Code;
             ToolTip = 'Specifies the number series used for generated pool numbers.';
         }
+
         field(4; "Freight Allocation Basis"; Option)
         {
             Caption = 'Freight Allocation Basis';
-            OptionMembers = Kilograms, Units;
+            OptionMembers = Kilograms,Units;
             InitValue = Kilograms;
             ToolTip = 'Specifies whether freight allocation is based on kilograms or units.';
         }
+
         field(5; "Freight Rounding Precision"; Decimal)
         {
             Caption = 'Freight Rounding Precision';
@@ -59,8 +64,8 @@ table 50225 "TAC Pool Setup"
         {
             Caption = 'Grower Dimension Code';
             TableRelation = Dimension;
-        // Also the vendor's own default dimension — that is how a grower
-        // resolves to a vendor (ADR-004).
+            // Also the vendor's own default dimension — that is how a grower
+            // resolves to a vendor (ADR-004).
         }
         field(30; "Season Dimension Code"; Code[20])
         {
@@ -110,22 +115,22 @@ table 50225 "TAC Pool Setup"
         {
             Caption = 'Bin UoM Code';
             TableRelation = "Unit of Measure";
-        // Matched against the consumed ITEM's Base Unit of Measure, which
-        // is how a pack run is told from a repack.
+            // Matched against the consumed ITEM's Base Unit of Measure, which
+            // is how a pack run is told from a repack.
         }
         field(50; "Packed Item No. Prefix"; Code[20])
         {
             Caption = 'Packed Item No. Prefix';
-        // Which production orders pool. Matched against the ITEM NO. of the
-        // order's posted output, not the order number: packing orders no
-        // longer carry a number prefix of their own, but they are still the
-        // only orders that output packed items.
-        //
-        // Configuration for the same reason as the dimensions and units of
-        // measure — but note this one fails CLOSED when blank: an empty
-        // prefix matches every item number, so treating blank as "match all"
-        // would pool the entire production floor. Blank means "pooling not
-        // configured yet" (ADR-004).
+            // Which production orders pool. Matched against the ITEM NO. of the
+            // order's posted output, not the order number: packing orders no
+            // longer carry a number prefix of their own, but they are still the
+            // only orders that output packed items.
+            //
+            // Configuration for the same reason as the dimensions and units of
+            // measure — but note this one fails CLOSED when blank: an empty
+            // prefix matches every item number, so treating blank as "match all"
+            // would pool the entire production floor. Blank means "pooling not
+            // configured yet" (ADR-004).
         }
         // Provisional payment percentages (Grant, 2026-08-14). A provisional
         // close pays a configured share of the pool value rather than the whole
@@ -142,7 +147,7 @@ table 50225 "TAC Pool Setup"
         field(60; "Internal Prov. 1 %"; Decimal)
         {
             Caption = 'Internal Provisional 1 %';
-            DecimalPlaces = 0: 2;
+            DecimalPlaces = 0 : 2;
             InitValue = 40;
             MinValue = 0;
             MaxValue = 100;
@@ -155,7 +160,7 @@ table 50225 "TAC Pool Setup"
         field(61; "Internal Prov. 2 %"; Decimal)
         {
             Caption = 'Internal Provisional 2 %';
-            DecimalPlaces = 0: 2;
+            DecimalPlaces = 0 : 2;
             InitValue = 40;
             MinValue = 0;
             MaxValue = 100;
@@ -168,17 +173,17 @@ table 50225 "TAC Pool Setup"
         field(62; "External Prov. 1 %"; Decimal)
         {
             Caption = 'External Provisional 1 %';
-            DecimalPlaces = 0: 2;
+            DecimalPlaces = 0 : 2;
             InitValue = 50;
             MinValue = 0;
             MaxValue = 100;
-        // Applies to every non-Internal pool type, which today means
-        // External (Contract Pack cannot be closed in v1).
+            // Applies to every non-Internal pool type, which today means
+            // External (Contract Pack cannot be closed in v1).
         }
         field(63; "Final Residual Tolerance"; Decimal)
         {
             Caption = 'Final Residual Tolerance';
-            DecimalPlaces = 0: 5;
+            DecimalPlaces = 0 : 5;
             InitValue = 0;
             MinValue = 0;
             ToolTip = 'Specifies the allowed residual at final close before the close is blocked. A value of 0 enforces exact settlement.';
@@ -219,16 +224,17 @@ table 50225 "TAC Pool Setup"
         field(100; "Interim Revenue Account"; Code[20])
         {
             Caption = 'Interim Revenue Account';
-            TableRelation = "G/L Account" where("Direct Posting"=const(true));
+            TableRelation = "G/L Account" where("Direct Posting" = const(true));
             toolTip = 'Specifies the interim revenue account used for posting.';
         }
         field(101; "Interim Revenue Bal. Account"; Code[20])
         {
             Caption = 'Interim Revenue Balancing Account';
-            TableRelation = "G/L Account" where("Direct Posting"=const(true));
+            TableRelation = "G/L Account" where("Direct Posting" = const(true));
             toolTip = 'Specifies the interim revenue offset account used for posting.';
         }
     }
+
     keys
     {
         key(PK; "Primary Key")
@@ -236,7 +242,10 @@ table 50225 "TAC Pool Setup"
             Clustered = true;
         }
     }
-    var ProvTotalErr: Label 'The Internal provisional percentages total %1%. Together they cannot exceed 100% — the final close pays the balance.', Comment = '%1 = the total of the two Internal provisional percentages';
+
+    var
+        ProvTotalErr: Label 'The Internal provisional percentages total %1%. Together they cannot exceed 100% — the final close pays the balance.', Comment = '%1 = the total of the two Internal provisional percentages';
+
     /// <summary>
     /// The two Internal provisionals are cumulative, so together they must leave
     /// something for the final close. Checked on both fields because either one
@@ -244,16 +253,22 @@ table 50225 "TAC Pool Setup"
     /// </summary>
     local procedure CheckInternalProvTotal()
     begin
-        if "Internal Prov. 1 %" + "Internal Prov. 2 %" > 100 then Error(ProvTotalErr, "Internal Prov. 1 %" + "Internal Prov. 2 %");
+        if "Internal Prov. 1 %" + "Internal Prov. 2 %" > 100 then
+            Error(ProvTotalErr, "Internal Prov. 1 %" + "Internal Prov. 2 %");
     end;
+
     /// <summary>
     /// The cumulative share of the pool payable by the end of the given
     /// provisional close. PriorCloseCount is the group's Provisional Close Count
     /// BEFORE this close runs, so 0 is the first provisional.
     /// </summary>
-    procedure CumulativeProvisionalPct(GrowerPoolType: Enum "TAC Grower Pool Type"; PriorCloseCount: Integer): Decimal begin
-        if GrowerPoolType <> GrowerPoolType::Internal then exit("External Prov. 1 %");
-        if PriorCloseCount <= 0 then exit("Internal Prov. 1 %");
+    procedure CumulativeProvisionalPct(GrowerPoolType: Enum "TAC Grower Pool Type"; PriorCloseCount: Integer): Decimal
+    begin
+        if GrowerPoolType <> GrowerPoolType::Internal then
+            exit("External Prov. 1 %");
+
+        if PriorCloseCount <= 0 then
+            exit("Internal Prov. 1 %");
         exit("Internal Prov. 1 %" + "Internal Prov. 2 %");
     end;
 }

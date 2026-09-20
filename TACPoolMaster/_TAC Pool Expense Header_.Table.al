@@ -18,8 +18,8 @@ table 50235 "TAC Pool Expense Header"
         field(3; "Trans Type"; Code[10])
         {
             Caption = 'Trans Type';
-            TableRelation = "TAC Pool Trans Type"."Code" where(Active=const(true));
-        // Any Active Trans Type is valid (design §4.6).
+            TableRelation = "TAC Pool Trans Type"."Code" where(Active = const(true));
+            // Any Active Trans Type is valid (design §4.6).
         }
         field(4; "Date"; Date)
         {
@@ -32,13 +32,14 @@ table 50235 "TAC Pool Expense Header"
         field(6; Comment; Text[250])
         {
             Caption = 'Comment';
-        // Mandatory.
+            // Mandatory.
         }
         field(7; Posted; Boolean)
         {
             Caption = 'Posted';
         }
     }
+
     keys
     {
         key(PK; "Expense ID")

@@ -17,27 +17,13 @@ page 50268 "TAC Pool Reconciliation List"
         {
             repeater(General)
             {
-                field("Reconciliation ID"; Rec."Reconciliation ID")
-                {
-                }
-                field("Pool Group Code"; Rec."Pool Group Code")
-                {
-                }
-                field("Created DateTime"; Rec."Created DateTime")
-                {
-                }
-                field("Created By"; Rec."Created By")
-                {
-                }
-                field("Missing Entry Count"; Rec."Missing Entry Count")
-                {
-                }
-                field("Error Entry Count"; Rec."Error Entry Count")
-                {
-                }
-                field("Created Entry Count"; Rec."Created Entry Count")
-                {
-                }
+                field("Reconciliation ID"; Rec."Reconciliation ID") { }
+                field("Pool Group Code"; Rec."Pool Group Code") { }
+                field("Created DateTime"; Rec."Created DateTime") { }
+                field("Created By"; Rec."Created By") { }
+                field("Missing Entry Count"; Rec."Missing Entry Count") { }
+                field("Error Entry Count"; Rec."Error Entry Count") { }
+                field("Created Entry Count"; Rec."Created Entry Count") { }
             }
         }
     }

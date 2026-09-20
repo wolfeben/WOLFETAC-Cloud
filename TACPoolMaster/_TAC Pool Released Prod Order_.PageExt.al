@@ -1,5 +1,8 @@
 pageextension 50244 "TAC Pool Released Prod Order" extends "Released Production Order"
 {
+    // The same check before finishing, so a packing order can be proved ready
+    // to pool rather than found wanting afterwards (50282).
+
     actions
     {
         addlast(processing)
@@ -18,7 +21,7 @@ pageextension 50244 "TAC Pool Released Prod Order" extends "Released Production 
                     PoolPreview.ShowPreview(Rec."No.");
                 end;
             }
-        /*action(TACWillThisPool)
+            /*action(TACWillThisPool)
             {
                 ApplicationArea = All;
                 Caption = 'Will This Pool?';

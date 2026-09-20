@@ -6,7 +6,7 @@ tableextension 50207 "TAC_Item Ledger Entry Ext." extends "Item Ledger Entry"
         {
             Caption = 'Grower No.';
             fieldclass = flowfield;
-            CalcFormula = lookup("TAC Batch Plan Grower"."Vendor No." where("Batch No."=field("Order No.")));
+            CalcFormula = lookup("TAC Batch Plan Grower"."Vendor No." where("Batch No." = field("Order No.")));
         }
     }
 }

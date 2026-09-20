@@ -13,38 +13,22 @@ page 50255 "TAC Pool Expense"
             group(General)
             {
                 Caption = 'General';
-
-                field("Expense ID"; Rec."Expense ID")
-                {
-                    Editable = false;
-                }
-                field("Pool Group ID"; Rec."Pool Group ID")
-                {
-                }
-                field("Trans Type"; Rec."Trans Type")
-                {
-                }
-                field("Date"; Rec."Date")
-                {
-                }
-                field(Amount; Rec.Amount)
-                {
-                }
-                field(Comment; Rec.Comment)
-                {
-                }
-                field(Posted; Rec.Posted)
-                {
-                    Editable = false;
-                }
+                field("Expense ID"; Rec."Expense ID") { Editable = false; }
+                field("Pool Group ID"; Rec."Pool Group ID") { }
+                field("Trans Type"; Rec."Trans Type") { }
+                field("Date"; Rec."Date") { }
+                field(Amount; Rec.Amount) { }
+                field(Comment; Rec.Comment) { }
+                field(Posted; Rec.Posted) { Editable = false; }
             }
             part(Lines; "TAC Pool Expense Detail Sub")
             {
                 Caption = 'Detail';
-                SubPageLink = "Expense ID"=field("Expense ID");
+                SubPageLink = "Expense ID" = field("Expense ID");
             }
         }
     }
+
     actions
     {
         area(Processing)
@@ -53,7 +37,6 @@ page 50255 "TAC Pool Expense"
             {
                 Caption = 'Post';
                 Image = PostDocument;
-
                 trigger OnAction()
                 var
                     PoolExpensePost: Codeunit "TAC Pool Expense Post";

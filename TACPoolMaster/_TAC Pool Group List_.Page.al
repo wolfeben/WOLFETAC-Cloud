@@ -14,24 +14,12 @@ page 50250 "TAC Pool Group List"
         {
             repeater(Group)
             {
-                field("Pool Group Code"; Rec."Pool Group Code")
-                {
-                }
-                field("Pool Week Code"; Rec."Pool Week Code")
-                {
-                }
-                field("Grower Pool Type"; Rec."Grower Pool Type")
-                {
-                }
-                field(Status; Rec.Status)
-                {
-                }
-                field("Provisional Close Count"; Rec."Provisional Close Count")
-                {
-                }
-                field(Description; Rec.Description)
-                {
-                }
+                field("Pool Group Code"; Rec."Pool Group Code") { }
+                field("Pool Week Code"; Rec."Pool Week Code") { }
+                field("Grower Pool Type"; Rec."Grower Pool Type") { }
+                field(Status; Rec.Status) { }
+                field("Provisional Close Count"; Rec."Provisional Close Count") { }
+                field(Description; Rec.Description) { }
             }
         }
     }

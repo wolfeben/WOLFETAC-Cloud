@@ -1,0 +1,664 @@
+{
+  "package": "D:\\WOLFETAC\\Cloud\\TACDIRECT-PoolPreview\\build\\pool-installed-audit\\.alpackages\\DIY-ERP_TAC Pool Master_2.0.0.2.app",
+  "packageSha256": "e8b4cbaa18425a51bc25e0c46e6f31b362dceee7f8f2a0cdf8cc5f48f1a81b4d",
+  "snapshot": "D:\\WOLFETAC\\.snapshots\\PoolMaster-release-20260920",
+  "exportALFiles": 131,
+  "importedActiveFiles": 130,
+  "files": [
+    {
+      "source": "src/src/Codeunits/Cod50201.TACPostPool.al",
+      "target": "_TAC Post Pool_.Codeunit.al",
+      "sha256": "c715ea53bd8b45960cd95ce92125deeb8634ee7a2a1260bee19571e4c8370505"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50270.PoolChargeEngine.al",
+      "target": "_TAC Pool Charge Engine_.Codeunit.al",
+      "sha256": "0073c6eadf670c4be366eac9ceba2b248d1b441d58835b413619e7d749a7dfbf"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50271.PoolProdOrderPost.al",
+      "target": "_TAC Pool Prod Order Post_.Codeunit.al",
+      "sha256": "28f89d908c4459f3d3b5fad3e167372fd8e9e61babc814ae1a0a04c8821d09be"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50272.PoolConsignmentPost.al",
+      "target": "_TAC Pool Consignment Post_.Codeunit.al",
+      "sha256": "58460d2ca8380099a46bb31c2219b933b5bf6b7e7d9a4c956a115eaefa674e21"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50273.PoolGroupClose.al",
+      "target": "_TAC Pool Group Close_.Codeunit.al",
+      "sha256": "f01d7ac67e4dda4211636b4267b2ef8bf123a082c7185f5ea1abede145de853f"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50274.PoolAdjustmentPost.al",
+      "target": "_TAC Pool Adjustment Post_.Codeunit.al",
+      "sha256": "2e10a973c7f9cff05632b6590af7211aa278a7c68e6e3c7c841dde20f85ffd16"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50275.PoolExpensePost.al",
+      "target": "_TAC Pool Expense Post_.Codeunit.al",
+      "sha256": "c14964c163d1e9891ec6c8996cf67a8b67b764ff3618cc201018788115822e0e"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50276.PoolDimensionMgt.al",
+      "target": "_TAC Pool Dimension Mgt_.Codeunit.al",
+      "sha256": "85e8a77d2fd90f1b9d53fe103389dee4c60221e9d7499c0e5454fdd8b2bbff24"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50277.PoolSubscribers.al",
+      "target": "_TAC Pool Subscribers_.Codeunit.al",
+      "sha256": "8097aabc5214ed6296cb79a5f3a347810738e8a83fde847963ea0024cd3991ec"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50278.PoolInstall.al",
+      "target": "_TAC Pool Install_.Codeunit.al",
+      "sha256": "2d591bc24b4b3b48d438bcef64fc39719fc0e91c2c93255055cd44d164f712c9"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50279.PoolGLPosting.al",
+      "target": "_TAC Pool GL Posting_.Codeunit.al",
+      "sha256": "17aada400e9508069a61ed4fc614e86c3c2433ba267b85b64bb553e573368cc4"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50280.PoolGrowerMgt.al",
+      "target": "_TAC Pool Grower Mgt_.Codeunit.al",
+      "sha256": "17e54a673d508094252041bac168c7586cad1eeca00790137047db3a1f1b5b3e"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50282.PoolPostDiagnostic.al",
+      "target": "_TAC Pool Post Diagnostic_.Codeunit.al",
+      "sha256": "e6dce6e9c1aa5a378f50e83b7add1479b9fd52b20a1330e16cd4d6a7006ef601"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50283.PoolPreview.al",
+      "target": "_TAC Pool Preview_.Codeunit.al",
+      "sha256": "3fd0bbf37b10d56741859addfc99fa43a00817cb456144439f43f2c712c5d9a7"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50284.PoolReconciliation.al",
+      "target": "_TAC Pool Reconciliation_.Codeunit.al",
+      "sha256": "44a7184eb3fcad363cb4869eba1492dd8aa4f078407745055552169ffba0530c"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50285.PoolConsumptionGrower.al",
+      "target": "_TAC Pool Consumption Grower_.Codeunit.al",
+      "sha256": "74947caf09b6f0dc169e72403ca367bd58275c9c6b00d02baa50a6518e211930"
+    },
+    {
+      "source": "src/src/Codeunits/Cod50286.PoolVendorGrowerSync.al",
+      "target": "_TAC Pool Vendor Grower Sync_.Codeunit.al",
+      "sha256": "b0e1edf4000473bd04028fd1c9939196b7bbac8cdf0955fe748b1734fb61d210"
+    },
+    {
+      "source": "src/src/Enums/GrowerPoolType.Enum.al",
+      "target": "_TAC Grower Pool Type_.Enum.al",
+      "sha256": "a900697225a540ba91af41ef64a0bd51e962e044c6e6c3279eb907a5dfe11ca8"
+    },
+    {
+      "source": "src/src/Enums/GrowerType.Enum.al",
+      "target": "_TAC Grower Type_.Enum.al",
+      "sha256": "ade0c77d43f24d22342da6de645531bc338ebd59ba73d1d8e3e97c701e86bde3"
+    },
+    {
+      "source": "src/src/Enums/PoolChargeAction.Enum.al",
+      "target": "_TAC Pool Charge Action_.Enum.al",
+      "sha256": "237ad90938914f188fbfc5d341e36bdb9ba511593989f26728bbdf30cd6a0b1c"
+    },
+    {
+      "source": "src/src/Enums/PoolChargeLevel.Enum.al",
+      "target": "_TAC Pool Charge Level_.Enum.al",
+      "sha256": "55267f85a3862fb288cbb55a34d6eddbb156eb4c9f1f8ebd41a31094f7e01f21"
+    },
+    {
+      "source": "src/src/Enums/PoolChargeMode.Enum.al",
+      "target": "_TAC Pool Charge Mode_.Enum.al",
+      "sha256": "2e08c6b5112b761b189f63ebd0326910b4336a0a0825e9ebfbdc82e0076aac10"
+    },
+    {
+      "source": "src/src/Enums/PoolGroupStatus.Enum.al",
+      "target": "_TAC Pool Group Status_.Enum.al",
+      "sha256": "ae49efd7b98a5df24d5336cf2170ab8885e464252470639a7d1f0d399a3d7661"
+    },
+    {
+      "source": "src/src/Enums/PoolPaymentType.Enum.al",
+      "target": "_TAC Pool Payment Type_.Enum.al",
+      "sha256": "ee9628576abab989ec9496b74284d7d7622897acd286524b390eb1045cc724d7"
+    },
+    {
+      "source": "src/src/Enums/PoolProrataLevel.Enum.al",
+      "target": "_TAC Pool Prorata Level_.Enum.al",
+      "sha256": "ef90fecc53c9f23ebf4c93a9d2cc2dabab4edf843f8799d1c1076073a62f26de"
+    },
+    {
+      "source": "src/src/Enums/PoolRateSource.Enum.al",
+      "target": "_TAC Pool Rate Source_.Enum.al",
+      "sha256": "1639989609249cb5389c9ed6e0b8e23cc71bb43570950b88ea131c425e297b3b"
+    },
+    {
+      "source": "src/src/Enums/PoolRateType.Enum.al",
+      "target": "_TAC Pool Rate Type_.Enum.al",
+      "sha256": "fe8fba8815ea8b883336b069e235f8176061f472da0f330b8297c5758430177b"
+    },
+    {
+      "source": "src/src/Enums/PoolReconLineStatus.Enum.al",
+      "target": "_TAC Pool Recon Line Status_.Enum.al",
+      "sha256": "b5556dd448c1c9b7a701d1745f3edf3e56231da7612321ff0c1d81d02b6cf390"
+    },
+    {
+      "source": "src/src/Enums/PoolReconSourceType.Enum.al",
+      "target": "_TAC Pool Recon Source Type_.Enum.al",
+      "sha256": "6fdefcfa6738aedc0a03b47233faba25bc865f8d24120784f7c38e8ee8471525"
+    },
+    {
+      "source": "src/src/Enums/PoolReturnVariant.Enum.al",
+      "target": "_TAC Pool Return Variant_.Enum.al",
+      "sha256": "00fd6a0da0a7aaa9a3dc58d7ed29e374f55968962db28309453fe23636b9825c"
+    },
+    {
+      "source": "src/src/Enums/PoolSourceType.Enum.al",
+      "target": "_TAC Pool Source Type_.Enum.al",
+      "sha256": "227ecd642e0798f118dac2df9a9834230c41af2fd16f0b5bd58e07fef54dc023"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50242.PoolCustomerCardExt.al",
+      "target": "_TAC Pool Customer Card Ext_.PageExt.al",
+      "sha256": "9ebe7f73d9081b56196efb80feed9230c99bf5ef9affee7df03c3b250fa71007"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50243.PoolFinishedProdOrderExt.al",
+      "target": "_TAC Pool Finished Prod Order_.PageExt.al",
+      "sha256": "dccdc31f22b366adeea15c4da33e04375853c1f87ae1bd13393569cb0523bc32"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50244.PoolReleasedProdOrderExt.al",
+      "target": "_TAC Pool Released Prod Order_.PageExt.al",
+      "sha256": "4968bc4e1df557625564d588196712e93c46b0887004208abd3f7f7cc9f80cae"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50245.PoolShippingAgentsExt.al",
+      "target": "_TAC Pool Shipping Agents Ext_.PageExt.al",
+      "sha256": "56245dba376b57d0b6e06530851395bbe85b3dce840e42541a79f8c44c4c8089"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50245.PoolVendorCard.al",
+      "target": "_TAC Pool Vendor Card_.PageExt.al",
+      "sha256": "09a863c9d28bf9bdf456f6c5d9db5fb0bd1345aa427de57c8a5e9dc887eebd69"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50246.PoolVendorCardExt.al",
+      "target": "_TAC Pool Vendor Card Ext_.PageExt.al",
+      "sha256": "75fc6d228549296409e10b4a00d69479d12ff4bc9ec0cb07b8352e44374df9df"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext.50247.PoolPostedSalesInvSubformExt.al",
+      "target": "_TAC Pool Posted SI Subf Ext_.PageExt.al",
+      "sha256": "1f88755a8c1caeea442cd9767cf89edd16df41bef36650c14fd9e5cbe0fc8a92"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext50201.TACSalesOrderExtension.al",
+      "target": "_TAC Sales Order Extension_.PageExt.al",
+      "sha256": "431e95de01a2e80763410ff5f7af8c40c97828e5cc07bcb7fc60c460dad0acd6"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext50202.TACTransOrdersExt.al",
+      "target": "_TAC Trans. Orders Ext._.PageExt.al",
+      "sha256": "a58d7fc1e3d83ae30cf87a3ada7180bd0cdb0d605b87cde11358198bb5c1c0fc"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext50203.TACSalesInvSubformExt.al",
+      "target": "_TAC Sales Inv. Subform Ext._.PageExt.al",
+      "sha256": "2b418ac54eea097db918ff6f01c98efa97d46c64c067588a86f991b2a17a67e2"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext50204.TACItemReferenceExt.al",
+      "target": "_TAC Item Reference Ext._.PageExt.al",
+      "sha256": "8f92ef68a9997c4aaf2d7cd7bb95384313fa2ffd0fbe511d77bce188837c1d94"
+    },
+    {
+      "source": "src/src/PageExtensions/Pag-Ext50205.TACShiptoAddressExt.al",
+      "target": "_TAC Ship to Address Ext._.PageExt.al",
+      "sha256": "8b5499e431107ac2c0f1ffbeb67570359485de3044ed7626b6a3bda04253e2ea"
+    },
+    {
+      "source": "src/src/Pages/Pag50200.TACPoolFreightLocations.al",
+      "target": "_TAC Pool Freight Locations_.Page.al",
+      "sha256": "a2419ece11dc09359fcb62e8fd9ff1563b2dd9ba95a0e252f29bba16ae528b0c"
+    },
+    {
+      "source": "src/src/Pages/Pag50201.TACFreightRates.al",
+      "target": "_TAC Freight Rates_.Page.al",
+      "sha256": "3b946de0b57039c7f836b93ebb2f25d29b932b3b8e3b04d384316d15783dad36"
+    },
+    {
+      "source": "src/src/Pages/Pag50202.TACCarrierManifests.al",
+      "target": "_TAC Carrier Manifests_.Page.al",
+      "sha256": "1a1fa0c6635e6972a4408c20b4e201419fb06b9e576dd1b742e1caf186b0894c"
+    },
+    {
+      "source": "src/src/Pages/Pag50203.TACConsignments.al",
+      "target": "_TAC Consignments_.Page.al",
+      "sha256": "fa72740e181a41c96ef90a3c183cbdd2db542f15d354fe0e9127dff7651f3f22"
+    },
+    {
+      "source": "src/src/Pages/Pag50204.TACConsignment.al",
+      "target": "_TAC Consignment_.Page.al",
+      "sha256": "76778ddbafdedd9d6afd736f62e7ae9e6f1b8ab8644a8a39cd1f21d7e36fa947"
+    },
+    {
+      "source": "src/src/Pages/Pag50205.TACConsmgtFreights.al",
+      "target": "_TAC Consmgt. Freights_.Page.al",
+      "sha256": "a5a2945075a4150b446d546fc0eda32827386172911f349a12c54d71fb2c8abe"
+    },
+    {
+      "source": "src/src/Pages/Pag50206.TACConsignmentLines.al",
+      "target": "_TAC Consignment Lines_.Page.al",
+      "sha256": "1e1b02c2a773e3453c4b2410f2b041b509340efc35d3d6c1aa9bb1e8e9cd49ef"
+    },
+    {
+      "source": "src/src/Pages/Pag50207.TACPools.al",
+      "target": "_TAC Pools_.Page.al",
+      "sha256": "950c02b880a65904826fd6a13a42988614010b9d60811743fa4cd3152052e0ec"
+    },
+    {
+      "source": "src/src/Pages/Pag50208.TACPoolLedgerEntries.al",
+      "target": "_TAC Pool Ledger Entries_.Page.al",
+      "sha256": "bce2ca19ce4bd60a58daf31070ac28733e217fe3c904c54600e8bb72acb1878b"
+    },
+    {
+      "source": "src/src/Pages/Pag50209.TACPoolChargeTypes.al",
+      "target": "_TAC Pool Charge Types_.Page.al",
+      "sha256": "6d7eaf2f0cb5b13c135146e931f48179db14b68d9c16358b8e89788fd1f13527"
+    },
+    {
+      "source": "src/src/Pages/Pag50210.TACPoolChargeRates.al",
+      "target": "_TAC Pool Charge Rates_.Page.al",
+      "sha256": "89bea3b44b2c7a86d47fe6b4fe1a97189bc4eba687af54c6b567c86e02c60227"
+    },
+    {
+      "source": "src/src/Pages/Pag50211.TACPool.al",
+      "target": "_TAC Pool_.Page.al",
+      "sha256": "ce067241d0b2faace0454343f1acc75d91a8cf9ee3bf6f47235d4d30fb66986f"
+    },
+    {
+      "source": "src/src/Pages/Pag50212.TACPoolLedgerEntriesSubform.al",
+      "target": "_TAC Pool Ledger Subform_.Page.al",
+      "sha256": "fc29e093338ab69c956a88dc8c6c70ce31ac894fa86875fe5c4a730464d564fd"
+    },
+    {
+      "source": "src/src/Pages/Pag50213.TACRipeningPriceList.al",
+      "target": "D:\\WOLFETAC\\.snapshots\\PoolMaster-release-20260920\\inactive-export\\Pag50213.TACRipeningPriceList.al",
+      "inactive": true
+    },
+    {
+      "source": "src/src/Pages/Pag50250.PoolGroupList.al",
+      "target": "_TAC Pool Group List_.Page.al",
+      "sha256": "25a7ed1518623dc4ccac164ab8f20654bd7005c4348d89f4c04e2146ffbdcc2d"
+    },
+    {
+      "source": "src/src/Pages/Pag50251.PoolGroupCard.al",
+      "target": "_TAC Pool Group Card_.Page.al",
+      "sha256": "0cbaeaf1c6517967b72a4d182cfbf9c9b9e994d5f03925bba92ab104f56523c6"
+    },
+    {
+      "source": "src/src/Pages/Pag50252.PoolSubpage.al",
+      "target": "_TAC Pool Subpage_.Page.al",
+      "sha256": "b9020eee6aefa2ff714dfb7f71c681bee35b25c944497fff5c2011889420d627"
+    },
+    {
+      "source": "src/src/Pages/Pag50254.PoolAdjustment.al",
+      "target": "_TAC Pool Adjustment_.Page.al",
+      "sha256": "3c3f9a2aec96b80f479c0fe5dfbf21265a0493e996ff78da7b47bfaf44da2f1d"
+    },
+    {
+      "source": "src/src/Pages/Pag50255.PoolExpense.al",
+      "target": "_TAC Pool Expense_.Page.al",
+      "sha256": "6bb70691d00d78415aa4c1bcdb3f551a8b95c01f02a591d672ee701e5dfb7e87"
+    },
+    {
+      "source": "src/src/Pages/Pag50256.PoolExpenseDetailSub.al",
+      "target": "_TAC Pool Expense Detail Sub_.Page.al",
+      "sha256": "ec15f0350ecb57cacface27a7f996e3edd2b2f2840a7e4fc935e0af9e1e8b43d"
+    },
+    {
+      "source": "src/src/Pages/Pag50257.PoolTransTypes.al",
+      "target": "_TAC Pool Trans Types_.Page.al",
+      "sha256": "2ccb84d819a71400db127758b83b23b1a9c0f05b64a77a53db5a5e253cfae68c"
+    },
+    {
+      "source": "src/src/Pages/Pag50258.PoolChargeTemplate.al",
+      "target": "_TAC Pool Charge Template_.Page.al",
+      "sha256": "c3817f07751f44434bf86330076466cc691af7d8d74ec75b3505e7a7337e1eab"
+    },
+    {
+      "source": "src/src/Pages/Pag50259.PoolWeeks.al",
+      "target": "_TAC Pool Weeks_.Page.al",
+      "sha256": "7f492f8e507d47b622140c5d4405ff8260f32126cd0db40b923d4da868f1d4b7"
+    },
+    {
+      "source": "src/src/Pages/Pag50260.GrowerGLOverrides.al",
+      "target": "_TAC Grower GL Overrides_.Page.al",
+      "sha256": "ec11e4f7d952916dcc4baf4167a91aacbaad3edfcd80d8093fd332b25d0922f9"
+    },
+    {
+      "source": "src/src/Pages/Pag50260.PoolManagementSetup.al",
+      "target": "_TAC Pool Setup_.Page.al",
+      "sha256": "b5034630c80a2f26ab9d31623452a4d1dc98d61dd4a8119ab1ac77e6520e53ac"
+    },
+    {
+      "source": "src/src/Pages/Pag50261.PoolGrowerCharges.al",
+      "target": "_TAC Pool Grower Charges_.Page.al",
+      "sha256": "1b7ce389af69d9cd94d039ff0208cfe712ec0df38ee487065d9d260e014dd79c"
+    },
+    {
+      "source": "src/src/Pages/Pag50263.TACMarketRule.al",
+      "target": "_TAC Market Rule_.Page.al",
+      "sha256": "73150f05cf70399f492bf016e61e77e375e0ddbdc183606e5ce59c9c08ca6560"
+    },
+    {
+      "source": "src/src/Pages/Pag50264.TACGrowerMarketRule.al",
+      "target": "_TAC Grower Market Rule_.Page.al",
+      "sha256": "6281d743ff1fe28a04999c9992ed8fa84682bdc10208f0fdd14f470857e68c67"
+    },
+    {
+      "source": "src/src/Pages/Pag50265.TACFreightLocMarketRule.al",
+      "target": "_TAC Freight Loc. Market Rule_.Page.al",
+      "sha256": "04cb884ae736d0939c38b7c08e48b42ef9086ee2318fb916edbc17679f868de3"
+    },
+    {
+      "source": "src/src/Pages/Pag50266.TACPoolPaymentSchedule.al",
+      "target": "_TAC Pool Payment Schedule_.Page.al",
+      "sha256": "9783eb465b019233a8414272be760499085cc4dd107a1d6f932bf41d9f4fc107"
+    },
+    {
+      "source": "src/src/Pages/Pag50267.PoolChargePreview.al",
+      "target": "_TAC Pool Charge Preview_.Page.al",
+      "sha256": "1e0adb7f7c200bc1fb42a8f4314cdcf2bf2ee3e08f0ce0e0b7be76a597d4f739"
+    },
+    {
+      "source": "src/src/Pages/Pag50268.PoolReconciliationList.al",
+      "target": "_TAC Pool Reconciliation List_.Page.al",
+      "sha256": "69331286d1db8271bc171721f93f1729c5cf7c03ceb4d5253565ec7fd28d0cb7"
+    },
+    {
+      "source": "src/src/Pages/Pag50269.PoolReconciliationCard.al",
+      "target": "_TAC Pool Reconciliation Card_.Page.al",
+      "sha256": "48fb6df3bd658bfb22d3cf39f999d077badb1521d860f85c13965f7196508a26"
+    },
+    {
+      "source": "src/src/Pages/Pag50270.PoolReconLines.al",
+      "target": "_TAC Pool Recon Lines_.Page.al",
+      "sha256": "1dc673c2f92933adc3fe25783fff229a592eb0865f38ce36c29440cf854386a0"
+    },
+    {
+      "source": "src/src/PermissionSets/PoolFinance.PermissionSet.al",
+      "target": "_TAC-POOL-FINANCE_.PermissionSet.al",
+      "sha256": "454aa87840faca1277b663a151a06efe3f3b84e8e01f159d95dd4533e1d28ba3"
+    },
+    {
+      "source": "src/src/PermissionSets/PoolViewer.PermissionSet.al",
+      "target": "_TAC-POOL-VIEWER_.PermissionSet.al",
+      "sha256": "ef2ee0a89598f036494d958fa0500b237a0464bab08dbd03773cf93b61b07db0"
+    },
+    {
+      "source": "src/src/Reports/Rep50290.PoolReturn.al",
+      "target": "_TAC Pool Return_.Report.al",
+      "sha256": "1a7057117080cf30a71e80b6e708837ada99f2f5e442d883cef9237c36eb94cb"
+    },
+    {
+      "source": "src/src/Reports/Rep50291.PoolGroupSummary.al",
+      "target": "_TAC Pool Group Summary_.Report.al",
+      "sha256": "13cae8b48477da7722674312256321d02a16a471bcfcee51cffa45f1b07cc97e"
+    },
+    {
+      "source": "src/src/Reports/Rep50292.OpenPoolBalance.al",
+      "target": "_TAC Open Pool Balance_.Report.al",
+      "sha256": "ab7353ff791edd3d9899bc30db281b3d16d97d3af28f936e776882a89abd996b"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50240.PoolCustomerExt.al",
+      "target": "_TAC Pool Customer Ext_.TableExt.al",
+      "sha256": "16f80fac60f1d484bbc776591170400e7a6aa7fa2c161773dc93bd09623f63ad"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50241.PoolSalesInvHdrExt.al",
+      "target": "_TAC Pool Sales Inv Hdr Ext_.TableExt.al",
+      "sha256": "ddb3d8dfd7afb88c73934083614d9e9199ae15b06652515fb92ea94699561496"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50243.PoolShippingAgentExt.al",
+      "target": "_TAC Pool Shipping Agent Ext_.TableExt.al",
+      "sha256": "fb028213ec071ee250bbd28d9710b73dfdc61edd637b34eb068c6a2584fa04fa"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50244.PoolVendorExt.al",
+      "target": "_TAC Pool Vendor Ext_.TableExt.al",
+      "sha256": "d67e269301e8319d31a81248682a3f807101f87282914badd550f2ed9963717b"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50245.PoolSalesInvLineExt.al",
+      "target": "_TAC Pool Sales Inv Line Ext_.TableExt.al",
+      "sha256": "affabbfe86b2bf16a2d455bc908d40f93e9933cbd4a016217ba5fb66c605c589"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext.50246.PoolSalesCrLineExt.al",
+      "target": "_TAC Pool Sales Cr. Line Ext._.TableExt.al",
+      "sha256": "530bb5c297df30b3cf4b789e6d23931a8ecbdea21674f4c45462a83397e1c552"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50201.TACSalesShptLineExtension.al",
+      "target": "_TAC Sales Shpt. Line Extension_.TableExt.al",
+      "sha256": "afcb03591ef274b78c24007c60c0e227cb301a29f8679daf5a29332f127daae8"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50202.TACSalesLineExt.al",
+      "target": "_TAC Sales Line Ext._.TableExt.al",
+      "sha256": "33a81dd53323573e93478e69fba48598e3a5d0ea7ee0cf65a3b51e4d1b624886"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50203.TACProdOrderExtension.al",
+      "target": "_TAC Prod. Order Extension_.TableExt.al",
+      "sha256": "624802f19f89757f6f887e551e9c97c5b9656e6f9e663558522bb118fff08d78"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50204.TACItemReferenceExt.al",
+      "target": "_TAC Item Reference Ext._.TableExt.al",
+      "sha256": "0e0526ccf5febfc0921aa0d8984d1abad9868dc6e404a4db0649d10bf7824c68"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50205.TACShiptoAddressExt.al",
+      "target": "_TAC Ship-to Address Ext._.TableExt.al",
+      "sha256": "f08e06885f863092f55eac2fbb7bad263fd735afc2da30895bf48896a0d73ac3"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50206.TACTransHeaderExt.al",
+      "target": "_TAC Trans. Header Ext._.TableExt.al",
+      "sha256": "7bf9ddedbd368d36f03ecc40d00e531044951310c884a36ecd55392bd5310344"
+    },
+    {
+      "source": "src/src/TableExtensions/Tab-Ext50207.TACItemLedgerEntryExt.al",
+      "target": "_TAC_Item Ledger Entry Ext._.TableExt.al",
+      "sha256": "d98991f63bfac7cf49aaa8430bbc7b5c11c689ca13dc82dc763760a4eb5d7f96"
+    },
+    {
+      "source": "src/src/Tables/Tab50201.FreightLocation.al",
+      "target": "_TAC Freight Location_.Table.al",
+      "sha256": "bb29e9e0115b6429ae66d0c97c7ae415edb495343c11d7cf404de1343bc99897"
+    },
+    {
+      "source": "src/src/Tables/Tab50202.FreightRate.al",
+      "target": "_TAC Freight Rate_.Table.al",
+      "sha256": "d8e84296a8ea80367f4df33112992091b090fffca1808d6fd91ee0e16906da64"
+    },
+    {
+      "source": "src/src/Tables/Tab50203.CarrierManifest.al",
+      "target": "_TAC Carrier Manifest_.Table.al",
+      "sha256": "c721e8209385e0ec2ab6136c784bbf26310dbca021048ca75920daed91d9b8b4"
+    },
+    {
+      "source": "src/src/Tables/Tab50204.ConsignmentHeader.al",
+      "target": "_TAC Consignment Header_.Table.al",
+      "sha256": "7dd7f762c2e08265b5615c122c958b7e6a3f86c0b14a291ce65ac962ff260afb"
+    },
+    {
+      "source": "src/src/Tables/Tab50205.ConsignmentFreightLeg.al",
+      "target": "_TAC Consignment Freight Leg_.Table.al",
+      "sha256": "5f1db765a902275942ff5e5522294f50ac3cd279ca66ac7840d8954d2c4d3f01"
+    },
+    {
+      "source": "src/src/Tables/Tab50206.ConsignmentLine.al",
+      "target": "_TAC Consignment Line_.Table.al",
+      "sha256": "f10a5628924602dc2d8463fffe03c2ad5c55298822c068f0b7594e9d24fe7888"
+    },
+    {
+      "source": "src/src/Tables/Tab50207.ConsignmentFruitPayment.al",
+      "target": "_TAC Consignment Fruit Payment_.Table.al",
+      "sha256": "ca6c4647f57dd3a81fb037e5550e20040dfdadf7e95a09d0c644f0bb85019f66"
+    },
+    {
+      "source": "src/src/Tables/Tab50208.Pool.al",
+      "target": "_TAC Pool_.Table.al",
+      "sha256": "61937333946c45eb1757959e59925bf163c51ad62eaf57d1432a18aca425fe81"
+    },
+    {
+      "source": "src/src/Tables/Tab50209.PoolLedgerEntry.al",
+      "target": "_TAC Pool Ledger Entry_.Table.al",
+      "sha256": "6b583e65dd3e74b200ea8d5155578351fc6b2076060c09b1f575633106c22958"
+    },
+    {
+      "source": "src/src/Tables/Tab50210.PoolChargeType.al",
+      "target": "_TAC Pool Charge Type_.Table.al",
+      "sha256": "63cbc79f8e78363fbacafef392f86ef89d28858afc71987b28b426a46c5ffa06"
+    },
+    {
+      "source": "src/src/Tables/Tab50211.PoolChargeRate.al",
+      "target": "_TAC Pool Charge Rate_.Table.al",
+      "sha256": "739e2f5a78981d27c2b14440d89dc9427d3833cd1950f1a29d895275b7f3a223"
+    },
+    {
+      "source": "src/src/Tables/Tab50212.MarketRule.al",
+      "target": "_TAC Market Rule_.Table.al",
+      "sha256": "c54b1b9a41b27a3f24d7478fb198a2f8965082eb7e209dfd9c4bbb692472a1f7"
+    },
+    {
+      "source": "src/src/Tables/Tab50213.GrowerMarketRule.al",
+      "target": "_TAC Grower Market Rule_.Table.al",
+      "sha256": "a29fd227e91b1530c2dcabc6465ecf2db72e5910caa3d6e4a643605bbc870cbd"
+    },
+    {
+      "source": "src/src/Tables/Tab50214.FreightLocationMarketRule.al",
+      "target": "_TAC Freight Loc. Market Rule_.Table.al",
+      "sha256": "1ae31f70e6bda427457fc232c6141cc32483d4217e0a252bf15d703807fccecd"
+    },
+    {
+      "source": "src/src/Tables/Tab50215.TACRipeningPrice.al",
+      "target": "_TAC Ripening Price_.Table.al",
+      "sha256": "5e9dc47c26086c0631624f50f7959eb08de6a6e496472072bb9389e59ca20fa8"
+    },
+    {
+      "source": "src/src/Tables/Tab50216.PoolPaymentSchedule.al",
+      "target": "_TAC Pool Payment Schedule_.Table.al",
+      "sha256": "4e0e53a1992b2905ac0eeac25913ece1b0b857d0837128560c4eff69bd4fc916"
+    },
+    {
+      "source": "src/src/Tables/Tab50217.TACBatchPallets.al",
+      "target": "_TAC Batch Pallet_.Table.al",
+      "sha256": "628b03cfc84488c766b26334cea8e8b4023da1b5f44734c0fc3504fc8ac014a7"
+    },
+    {
+      "source": "src/src/Tables/Tab50220.PoolWeek.al",
+      "target": "_TAC Pool Week_.Table.al",
+      "sha256": "d126aaf227d6be777edbd3d892ce5cb50c97a9cabcd24e8615de9eb140ac6303"
+    },
+    {
+      "source": "src/src/Tables/Tab50221.PoolTransType.al",
+      "target": "_TAC Pool Trans Type_.Table.al",
+      "sha256": "0abf7b7140b0baadab383fc1e3ce4ee4f61edd78008dce2701ba5d50c9cee58d"
+    },
+    {
+      "source": "src/src/Tables/Tab50222.PoolChargeTemplate.al",
+      "target": "_TAC Pool Charge Template_.Table.al",
+      "sha256": "cc5f8fd8954eb54a4d3095ccc1459e63dd381479b5e590cb2aa33e78f3cfdb04"
+    },
+    {
+      "source": "src/src/Tables/Tab50223.PoolChgTmplGradeExcl.al",
+      "target": "_TAC Pool Chg Tmpl Grade Excl_.Table.al",
+      "sha256": "736a76d95ea45483804ca6e709db50fe1165bd483bd22c89fa9ce79153743f2c"
+    },
+    {
+      "source": "src/src/Tables/Tab50224.GrowerGLOverride.al",
+      "target": "_TAC Grower GL Override_.Table.al",
+      "sha256": "9bf40d076b77c8630facff57b0188104bf106119a35ad29d13294452a50bd82c"
+    },
+    {
+      "source": "src/src/Tables/Tab50225.PoolSetup.al",
+      "target": "_TAC Pool Setup_.Table.al",
+      "sha256": "9fc58b3cbc9eaf6706de9ca85e67327bf50516d5461586b33347b6df0e6865b3"
+    },
+    {
+      "source": "src/src/Tables/Tab50226.PoolChargePreview.al",
+      "target": "_TAC Pool Charge Preview_.Table.al",
+      "sha256": "a306bfa19641f920e618d69f077510b32fbe069e0db723f8f6bf59a27e84776b"
+    },
+    {
+      "source": "src/src/Tables/Tab50227.PoolCreditMemoState.al",
+      "target": "_TAC Pool Credit Memo State_.Table.al",
+      "sha256": "7a6593d9666b29ded4e4116ab56afdadc5c17cee8f63c31546983d3bf9e38fd1"
+    },
+    {
+      "source": "src/src/Tables/Tab50228.PoolReconciliation.al",
+      "target": "_TAC Pool Reconciliation_.Table.al",
+      "sha256": "21b18913f9a2ceff8fa17265cc9adb7459952bdef76ed38c671a386073b7e275"
+    },
+    {
+      "source": "src/src/Tables/Tab50229.PoolReconLine.al",
+      "target": "_TAC Pool Recon Line_.Table.al",
+      "sha256": "a948029c068cb05966b3fa260872a8eb9fab5ebf78d2dc66fe4fdd53c5d9cacb"
+    },
+    {
+      "source": "src/src/Tables/Tab50230.PoolGroupHeader.al",
+      "target": "_TAC Pool Group Header_.Table.al",
+      "sha256": "fb5fc8b945a8c09d38318925fde4343357c4e214fe92f433e2c773ca34b88bab"
+    },
+    {
+      "source": "src/src/Tables/Tab50233.PoolPaymentHeader.al",
+      "target": "_TAC Pool Payment Header_.Table.al",
+      "sha256": "77f7809159b7c314c9a8e183a93c00d7acf5a658addb1e6dc7e985668e9c1b80"
+    },
+    {
+      "source": "src/src/Tables/Tab50234.PoolAdjustment.al",
+      "target": "_TAC Pool Adjustment_.Table.al",
+      "sha256": "4b8e4f598e9b0df84cbe71ce14888861955bf05223d42395ad739a11edb70fa6"
+    },
+    {
+      "source": "src/src/Tables/Tab50235.PoolExpenseHeader.al",
+      "target": "_TAC Pool Expense Header_.Table.al",
+      "sha256": "49e8f733cabdf4ab1c733b0d2dcd8d35495eb2d29d765b9a67153e6341aeab8e"
+    },
+    {
+      "source": "src/src/Tables/Tab50236.PoolExpenseDetail.al",
+      "target": "_TAC Pool Expense Detail_.Table.al",
+      "sha256": "5ece63538db021cd491acdec4a222a46378d9d4b81de200b8f62c9028b8768f9"
+    },
+    {
+      "source": "src/src/Tables/Tab50237.PoolGrowerCharge.al",
+      "target": "_TAC Pool Grower Charge_.Table.al",
+      "sha256": "475c414b41e42900e4fbccd56005a75b252ac9da8eb545024c2374d36b7bdc84"
+    },
+    {
+      "source": "src/src/Tables/Tab50238.PoolChargeContext.al",
+      "target": "_TAC Pool Charge Context_.Table.al",
+      "sha256": "828c5e2d42dcb36b4451988746d176175d308c93f43524354717638a1a07fb22"
+    },
+    {
+      "source": "src/src/Tables/Tab50239.PoolInvoicePostState.al",
+      "target": "_TAC Pool Invoice Post State_.Table.al",
+      "sha256": "12bb1a1eafca5c8e23637528690c9926d586ea4278939533a200a1197c50e715"
+    },
+    {
+      "source": "src/src/Tables/Tab50240.PoolChargeEvaluation.al",
+      "target": "_TAC Pool Charge Evaluation_.Table.al",
+      "sha256": "65bb728f0571489de8786773d58b4989ae31df0f28f598ff27b6c2303be5f7b0"
+    }
+  ]
+}

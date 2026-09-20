@@ -13,13 +13,13 @@ table 50204 "TAC Consignment Header"
         field(2; Status; Option)
         {
             Caption = 'Status';
-            OptionMembers = Open, Released, Despatched, Posted, Cancelled;
+            OptionMembers = Open,Released,Despatched,Posted,Cancelled;
             ToolTip = 'Specifies the current processing status of the consignment.';
         }
         field(3; "Consignment Type"; Option)
         {
             Caption = 'Consignment Type';
-            OptionMembers = Internal, External;
+            OptionMembers = Internal,External;
             ToolTip = 'Specifies whether the consignment is internal or external.';
         }
         field(4; "Customer Reference"; Code[35])
@@ -63,7 +63,7 @@ table 50204 "TAC Consignment Header"
         field(11; "Sales Order No."; Code[20])
         {
             Caption = 'Sales Order No.';
-            TableRelation = "Sales Header"."No." where("Document Type"=const(Order));
+            TableRelation = "Sales Header"."No." where("Document Type" = const(Order));
             ToolTip = 'Specifies the related sales order number.';
         }
         field(12; "Despatch Date"; Date)
@@ -90,7 +90,7 @@ table 50204 "TAC Consignment Header"
         {
             Caption = 'No. of Units';
             FieldClass = FlowField;
-            CalcFormula = sum("TAC Consignment Line".Quantity where("Consignment No."=field("Consignment No.")));
+            CalcFormula = sum("TAC Consignment Line".Quantity where("Consignment No." = field("Consignment No.")));
             Editable = false;
             ToolTip = 'Shows the total unit quantity from consignment detail lines.';
         }
@@ -108,7 +108,7 @@ table 50204 "TAC Consignment Header"
         {
             Caption = 'Total Freight Cost';
             FieldClass = FlowField;
-            CalcFormula = sum("TAC Consignment Freight Leg"."Freight Cost" where("Consignment No."=field("Consignment No.")));
+            CalcFormula = sum("TAC Consignment Freight Leg"."Freight Cost" where("Consignment No." = field("Consignment No.")));
             Editable = false;
             ToolTip = 'Shows the total freight cost from all freight legs on the consignment.';
         }
@@ -116,7 +116,7 @@ table 50204 "TAC Consignment Header"
         {
             Caption = 'Total Kilograms';
             FieldClass = FlowField;
-            CalcFormula = sum("TAC Consignment Line"."Quantity (Kg)" where("Consignment No."=field("Consignment No.")));
+            CalcFormula = sum("TAC Consignment Line"."Quantity (Kg)" where("Consignment No." = field("Consignment No.")));
             Editable = false;
             ToolTip = 'Shows the total kilograms from consignment detail lines.';
         }
@@ -156,17 +156,18 @@ table 50204 "TAC Consignment Header"
             Caption = 'Fruit Payment Exists';
             ToolTip = 'Specifies whether a fruit payment exists for this consignment.';
             fieldclass = flowfield;
-            CalcFormula = exist("TAC Consignment Fruit Payment" where("Consignment No."=field("Consignment No.")));
+            CalcFormula = exist("TAC Consignment Fruit Payment" where("Consignment No." = field("Consignment No.")));
         }
         field(100; "Shipped Not Invoiced"; Decimal)
         {
             Caption = 'Shipped Not Invoiced';
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Line"."Shipped Not Invoiced" where("Consignment No."=field("Consignment No.")));
+            CalcFormula = sum("Sales Line"."Shipped Not Invoiced" where("Consignment No." = field("Consignment No.")));
             Editable = false;
             ToolTip = 'Shows the total quantity shipped but not invoiced from consignment detail lines.';
         }
     }
+
     keys
     {
         key(PK; "Consignment No.")
@@ -179,11 +180,13 @@ table 50204 "TAC Consignment Header"
         NoSeries: Codeunit "No. Series";
         PoolSetup: Record "TAC Pool Setup";
     begin
-        if "Consignment No." <> '' then exit;
+        if "Consignment No." <> '' then
+            exit;
         PoolSetup.Get();
         PoolSetup.TestField("Consignment Nos.");
-        "Consignment No.":=NoSeries.GetNextNo(PoolSetup."Consignment Nos.");
+        "Consignment No." := NoSeries.GetNextNo(PoolSetup."Consignment Nos.");
     end;
+
     procedure AllocateFreightCost()
     var
         ConsmtLine: Record "TAC Consignment Line";
@@ -196,33 +199,45 @@ table 50204 "TAC Consignment Header"
         RoundingDiff: Decimal;
     begin
         CalcFields("Total Freight Cost", "Total Kilograms");
-        if "Total Freight Cost" = 0 then Error('Total Freight Cost cannot be zero.');
+        if "Total Freight Cost" = 0 then
+            Error('Total Freight Cost cannot be zero.');
+
         PooLSetup.Get();
-        AmountRoundingPrecision:=PooLSetup."Freight Rounding Precision";
-        if AmountRoundingPrecision = 0 then AmountRoundingPrecision:=0.01;
+        AmountRoundingPrecision := PooLSetup."Freight Rounding Precision";
+        if AmountRoundingPrecision = 0 then
+            AmountRoundingPrecision := 0.01;
+
         ConsmtLine.SetRange("Consignment No.", "Consignment No.");
-        if not ConsmtLine.FindSet()then exit;
+        if not ConsmtLine.FindSet() then
+            exit;
+
         if "Total Kilograms" = 0 then begin
-            repeat if ConsmtLine."Allocated Freight Cost" <> 0 then begin
-                    ConsmtLine."Allocated Freight Cost":=0;
+            repeat
+                if ConsmtLine."Allocated Freight Cost" <> 0 then begin
+                    ConsmtLine."Allocated Freight Cost" := 0;
                     ConsmtLine.Modify();
                 end;
             until ConsmtLine.Next() = 0;
             exit;
         end;
-        repeat LineAllocation:=Round(("Total Freight Cost" * ConsmtLine."Quantity (Kg)") / "Total Kilograms", AmountRoundingPrecision);
-            ConsmtLine."Allocated Freight Cost":=LineAllocation;
+
+        repeat
+            LineAllocation := Round(("Total Freight Cost" * ConsmtLine."Quantity (Kg)") / "Total Kilograms", AmountRoundingPrecision);
+            ConsmtLine."Allocated Freight Cost" := LineAllocation;
             ConsmtLine.Modify();
-            AllocatedTotal+=LineAllocation;
-            if(LargestLine."Consignment No." = '') or (ConsmtLine."Quantity (Kg)" > MaxQuantityKg)then begin
-                MaxQuantityKg:=ConsmtLine."Quantity (Kg)";
-                LargestLine:=ConsmtLine;
+
+            AllocatedTotal += LineAllocation;
+
+            if (LargestLine."Consignment No." = '') or (ConsmtLine."Quantity (Kg)" > MaxQuantityKg) then begin
+                MaxQuantityKg := ConsmtLine."Quantity (Kg)";
+                LargestLine := ConsmtLine;
             end;
         until ConsmtLine.Next() = 0;
+
         // Force exact total by placing any rounding remainder on the largest line.
-        RoundingDiff:=Round("Total Freight Cost" - AllocatedTotal, AmountRoundingPrecision);
-        if(RoundingDiff <> 0) and (LargestLine."Consignment No." <> '')then begin
-            LargestLine."Allocated Freight Cost"+=RoundingDiff;
+        RoundingDiff := Round("Total Freight Cost" - AllocatedTotal, AmountRoundingPrecision);
+        if (RoundingDiff <> 0) and (LargestLine."Consignment No." <> '') then begin
+            LargestLine."Allocated Freight Cost" += RoundingDiff;
             LargestLine.Modify();
         end;
     end;
@@ -232,10 +247,10 @@ table 50204 "TAC Consignment Header"
         CarrierManifest: Record "TAC Carrier Manifest";
         FreightLocation: Record "TAC Freight Location";
     begin
-        "Consignment No.":=SalesOrder."DIY_Consignment No.";
-        "Sales Order No.":=SalesOrder."No.";
+        "Consignment No." := SalesOrder."DIY_Consignment No.";
+        "Sales Order No." := SalesOrder."No.";
         insert(true);
-    /*FreightLocation.SetRange("BC Location Code", SalesOrder."Location Code");
+        /*FreightLocation.SetRange("BC Location Code", SalesOrder."Location Code");
         FreightLocation.SetRange(Blocked, false);
         FreightLocation.FindFirst();
         CarrierManifest.SetRange("Shipping Agent Code", SalesOrder."Shipping Agent Code");
@@ -249,6 +264,7 @@ table 50204 "TAC Consignment Header"
             CarrierManifest.Insert(true);
         end;*/
     end;
+
     procedure InitiateFromTransfer(TransferHeader: Record "Transfer Header")
     var
         CarrierManifest: Record "TAC Carrier Manifest";
@@ -256,10 +272,11 @@ table 50204 "TAC Consignment Header"
         FromCode: Code[20];
         ToCode: Code[20];
     begin
-        "Consignment No.":=TransferHeader."DIY_Consignment No.";
-        "Transfer Order No.":=TransferHeader."No.";
+        "Consignment No." := TransferHeader."DIY_Consignment No.";
+        "Transfer Order No." := TransferHeader."No.";
         insert(true);
-    /*
+
+        /*
                 CarrierManifest.SetRange("Shipping Agent Code", TransferHeader."Shipping Agent Code");
                 CarrierManifest.SetRange("Manifest Date", TransferHeader."Shipment Date");
 

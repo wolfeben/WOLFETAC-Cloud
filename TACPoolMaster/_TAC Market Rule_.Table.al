@@ -18,7 +18,7 @@ table 50212 "TAC Market Rule"
         field(3; "Rule Type"; Option)
         {
             Caption = 'Rule Type';
-            OptionMembers = Domestic, Export;
+            OptionMembers = Domestic,Export;
             ToolTip = 'Specifies whether this rule applies to domestic or export markets.';
         }
         field(4; "Requires Expiry Date"; Boolean)
@@ -27,6 +27,7 @@ table 50212 "TAC Market Rule"
             ToolTip = 'Specifies whether this market rule requires an expiry date when assigned to a grower.';
         }
     }
+
     keys
     {
         key(PK; Code)

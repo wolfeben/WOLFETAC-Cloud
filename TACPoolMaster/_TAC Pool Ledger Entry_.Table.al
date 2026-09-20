@@ -22,7 +22,7 @@ table 50209 "TAC Pool Ledger Entry"
         field(3; "Entry Type"; Option)
         {
             Caption = 'Entry Type';
-            OptionMembers = Revenue, Charge, Freight, Payment, Quantity;
+            OptionMembers = Revenue,Charge,Freight,Payment,Quantity;
             ToolTip = 'Specifies the business entry type represented by this row.';
         }
         field(4; "Charge Type Code"; Code[20])
@@ -39,7 +39,7 @@ table 50209 "TAC Pool Ledger Entry"
         field(6; "Document Type"; Option)
         {
             Caption = 'Document Type';
-            OptionMembers = Consignment, "Sales Invoice", "Run Close", "Pool Close", Manual;
+            OptionMembers = Consignment,"Sales Invoice","Run Close","Pool Close",Manual;
             ToolTip = 'Specifies the document origin for this entry.';
         }
         field(7; "Document No."; Code[20])
@@ -104,7 +104,7 @@ table 50209 "TAC Pool Ledger Entry"
         field(18; "Charge Level"; Option)
         {
             Caption = 'Charge Level';
-            OptionMembers = Pool, Grower;
+            OptionMembers = Pool,Grower;
             ToolTip = 'Specifies whether the entry is at pool level or grower level.';
         }
         field(19; Provisional; Boolean)
@@ -203,7 +203,7 @@ table 50209 "TAC Pool Ledger Entry"
             Caption = 'G/L Posted At';
             ToolTip = 'Specifies when this pool ledger entry was successfully posted to the general ledger.';
         }
-        field(41; "Source Type";Enum "TAC Pool Source Type")
+        field(41; "Source Type"; Enum "TAC Pool Source Type")
         {
             Caption = 'Source Type';
             ToolTip = 'Specifies the type of source record that created this entry.';
@@ -221,13 +221,8 @@ table 50209 "TAC Pool Ledger Entry"
     }
     keys
     {
-        key(PK; "Entry No.")
-        {
-            Clustered = true;
-        }
-        key(Pool; "Pool Code", "Entry Type")
-        {
-        }
+        key(PK; "Entry No.") { Clustered = true; }
+        key(Pool; "Pool Code", "Entry Type") { }
         key(PoolLegacy; "Pool Code", "Trans Type Code")
         {
             SumIndexFields = "Quantity (Kg)", Quantity, Amount, "VAT Amount";
@@ -240,17 +235,9 @@ table 50209 "TAC Pool Ledger Entry"
         {
             SumIndexFields = "Quantity (Kg)", Quantity, Amount, "VAT Amount";
         }
-        key(Payment; "Pool Payment ID")
-        {
-        }
-        key(SourceDoc; "Source Document No.", "Trans Type Code")
-        {
-        }
-        key(SourceDocLine; "Source Document No.", "Source Line No.", "Trans Type Code")
-        {
-        }
-        key(SourceIdentity; "Source Type", "Source System ID", "Source Line No.", "Trans Type Code")
-        {
-        }
+        key(Payment; "Pool Payment ID") { }
+        key(SourceDoc; "Source Document No.", "Trans Type Code") { }
+        key(SourceDocLine; "Source Document No.", "Source Line No.", "Trans Type Code") { }
+        key(SourceIdentity; "Source Type", "Source System ID", "Source Line No.", "Trans Type Code") { }
     }
 }

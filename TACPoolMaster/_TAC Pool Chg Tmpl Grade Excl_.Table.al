@@ -20,6 +20,7 @@ table 50223 "TAC Pool Chg Tmpl Grade Excl"
             TableRelation = "TAC Pool Trans Type"."Code";
         }
     }
+
     keys
     {
         key(PK; "Template ID", "Grade Code")

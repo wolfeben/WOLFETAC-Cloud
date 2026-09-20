@@ -1,5 +1,9 @@
 # TAC Pool Master — local source baseline
 
+## Focused release published — 20 September 2026
+
+The active canonical source is now the verified installed 2.0.0.2 baseline plus only the production grower identity fix, version 2.0.0.3, published to Pool_Sandbox. Six focused identity checks passed in LIVE APMS. The broader WIP has been preserved outside the active source. Payment/close consolidation remains deferred. See [GROWER-FIX-2.0.0.3-HANDOVER.md](GROWER-FIX-2.0.0.3-HANDOVER.md) for the deployment record, package hashes, verification limits and recovery instructions. The import and earlier deployment records below are historical.
+
 ## Current baseline — 20 September 2026
 
 The canonical project now contains the 130 AL source files exported from the installed **TAC Pool Master 2.0.0.2** extension in **Pool_Sandbox** on 20 September 2026. All 130 files were verified byte-for-byte against the export. This is a source import and review only: no engine fix, compilation or deployment was performed for this import.

@@ -35,7 +35,7 @@ table 50215 "TAC Ripening Price"
         {
             Caption = 'Active';
             ToolTip = 'Specifies whether the ripening price is active.';
-        /*trigger OnValidate()
+            /*trigger OnValidate()
             var
                 ExistingPrice: Record "TAC Ripening Price";
             begin

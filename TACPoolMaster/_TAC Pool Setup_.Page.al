@@ -15,22 +15,11 @@ page 50262 "TAC Pool Setup"
             group(General)
             {
                 Caption = 'General';
-
-                field("Consignment Nos."; Rec."Consignment Nos.")
-                {
-                }
-                field("Pool Nos."; Rec."Pool Nos.")
-                {
-                }
-                field("Freight Allocation Basis"; Rec."Freight Allocation Basis")
-                {
-                }
-                field("Freight Rounding Precision"; Rec."Freight Rounding Precision")
-                {
-                }
-                field("Allow Prov. with Unpriced KG"; Rec."Allow Prov. with Unpriced KG")
-                {
-                }
+                field("Consignment Nos."; Rec."Consignment Nos.") { }
+                field("Pool Nos."; Rec."Pool Nos.") { }
+                field("Freight Allocation Basis"; Rec."Freight Allocation Basis") { }
+                field("Freight Rounding Precision"; Rec."Freight Rounding Precision") { }
+                field("Allow Prov. with Unpriced KG"; Rec."Allow Prov. with Unpriced KG") { }
                 field("Allow Invoice Credits"; Rec."Allow Invoice Credits")
                 {
                     ToolTip = 'Specifies whether credit memos applied to pooled invoices reverse the related pool revenue and charge entries.';
@@ -84,9 +73,7 @@ page 50262 "TAC Pool Setup"
                 {
                     ToolTip = 'Specifies the dimension that supplies Pack Type Category when matching charge templates.';
                 }
-                field("Default Pool Dimension Code"; Rec."Default Pool Dimension Code")
-                {
-                }
+                field("Default Pool Dimension Code"; Rec."Default Pool Dimension Code") { }
             }
             group("Packing Orders")
             {
@@ -141,33 +128,23 @@ page 50262 "TAC Pool Setup"
             group(Posting)
             {
                 Caption = 'Posting';
-
-                field("Pool Charge Clearing Account"; Rec."Pool Charge Clearing Account")
-                {
-                }
-                field("Grower Posting Group"; Rec."Grower Posting Group")
-                {
-                }
-                field("Grower Ext. Posting Group"; Rec."Grower Ext. Posting Group")
-                {
-                }
+                field("Pool Charge Clearing Account"; Rec."Pool Charge Clearing Account") { }
+                field("Grower Posting Group"; Rec."Grower Posting Group") { }
+                field("Grower Ext. Posting Group"; Rec."Grower Ext. Posting Group") { }
                 field("Grower Settlement Reason Code"; Rec."Grower Settlement Reason Code")
                 {
                     ToolTip = 'Specifies the reason code assigned to self-billed grower settlement purchase invoices and credit memos.';
                 }
-                field("Interim Revenue Account"; Rec."Interim Revenue Account")
-                {
-                }
-                field("Interim Revenue Bal. Account"; Rec."Interim Revenue Bal. Account")
-                {
-                }
+                field("Interim Revenue Account"; Rec."Interim Revenue Account") { }
+                field("Interim Revenue Bal. Account"; Rec."Interim Revenue Bal. Account") { }
             }
         }
     }
+
     trigger OnOpenPage()
     begin
         Rec.Reset();
-        if not Rec.Get()then begin
+        if not Rec.Get() then begin
             Rec.Init();
             Rec.Insert();
         end;

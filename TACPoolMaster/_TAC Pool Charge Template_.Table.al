@@ -17,24 +17,24 @@ table 50222 "TAC Pool Charge Template"
             Caption = 'Trans Type Code';
             TableRelation = "TAC Pool Trans Type"."Code";
         }
-        field(3; "Charge Action";Enum "TAC Pool Charge Action")
+        field(3; "Charge Action"; Enum "TAC Pool Charge Action")
         {
             Caption = 'Charge Action';
         }
         field(4; Rate; Decimal)
         {
             Caption = 'Rate';
-            DecimalPlaces = 2: 5;
+            DecimalPlaces = 2 : 5;
         }
-        field(5; "Rate Source";Enum "TAC Pool Rate Source")
+        field(5; "Rate Source"; Enum "TAC Pool Rate Source")
         {
             Caption = 'Rate Source';
         }
-        field(6; "Rate Type";Enum "TAC Pool Rate Type")
+        field(6; "Rate Type"; Enum "TAC Pool Rate Type")
         {
             Caption = 'Rate Type';
         }
-        field(7; "Charge Level";Enum "TAC Pool Charge Level")
+        field(7; "Charge Level"; Enum "TAC Pool Charge Level")
         {
             Caption = 'Charge Level';
         }
@@ -71,17 +71,17 @@ table 50222 "TAC Pool Charge Template"
         field(14; "Grower Code Filter"; Code[20])
         {
             Caption = 'Grower Code Filter';
-        // Zero-padded 3-digit grower code, matching the grower dimension
-        // values the engine reads from a pooling source (ADR-004) — not the
-        // Vendor No. Deliberately carries no TableRelation: Sheet 3.4 may
-        // reference a grower code before its dimension value is created, and
-        // an unmatched filter is inert rather than wrong.
+            // Zero-padded 3-digit grower code, matching the grower dimension
+            // values the engine reads from a pooling source (ADR-004) — not the
+            // Vendor No. Deliberately carries no TableRelation: Sheet 3.4 may
+            // reference a grower code before its dimension value is created, and
+            // an unmatched filter is inert rather than wrong.
         }
         field(15; "Ripener Required Filter"; Option)
         {
             Caption = 'Ripener Required Filter';
             // Design §7.3 specifies an Option here (blank/Y/N tri-state filter).
-            OptionMembers = " ", Y, N;
+            OptionMembers = " ",Y,N;
             OptionCaption = ' ,Y,N';
         }
         field(16; Mandatory; Boolean)
@@ -93,6 +93,7 @@ table 50222 "TAC Pool Charge Template"
             Caption = 'Active';
         }
     }
+
     keys
     {
         key(PK; ID)
@@ -101,7 +102,7 @@ table 50222 "TAC Pool Charge Template"
         }
         key(Eligible; "Trans Type Code", "Charge Action", Active)
         {
-        // Engine's eligible-row scan (design §7.3).
+            // Engine's eligible-row scan (design §7.3).
         }
     }
 }

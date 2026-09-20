@@ -14,9 +14,9 @@ tableextension 50202 "TAC Sales Line Ext." extends "Sales Line"
     var
         SalesHeader: Record "Sales Header";
     begin
-        if("Document Type" = "Document Type"::Order) and ("Consignment No." = '')then begin
+        if ("Document Type" = "Document Type"::Order) and ("Consignment No." = '') then begin
             SalesHeader.Get("Document Type", "Document No.");
-            "Consignment No.":=SalesHeader."DIY_Consignment No.";
+            "Consignment No." := SalesHeader."DIY_Consignment No.";
         end;
     end;
 }

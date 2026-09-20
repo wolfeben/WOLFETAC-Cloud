@@ -7,18 +7,18 @@ enum 50205 "TAC Pool Rate Source"
     // Only FR uses Calculated.
     value(0; Fixed)
     {
-    Caption = 'Fixed';
+        Caption = 'Fixed';
     }
     value(1; Customer)
     {
-    Caption = 'Customer';
+        Caption = 'Customer';
     }
     value(2; Calculated)
     {
-    Caption = 'Calculated';
+        Caption = 'Calculated';
     }
     value(3; System)
     {
-    Caption = 'System';
+        Caption = 'System';
     }
 }

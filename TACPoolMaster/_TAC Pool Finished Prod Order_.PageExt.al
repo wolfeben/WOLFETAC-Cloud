@@ -1,5 +1,8 @@
 pageextension 50243 "TAC Pool Finished Prod Order" extends "Finished Production Order"
 {
+    // Where a user first notices that a packing order did not pool: the
+    // finished order itself. The action explains why (50282).
+
     actions
     {
         addlast(processing)
@@ -18,7 +21,7 @@ pageextension 50243 "TAC Pool Finished Prod Order" extends "Finished Production 
                     PoolPreview.ShowPreview(Rec."No.");
                 end;
             }
-        /*action(TACWhyDidntThisPool)
+            /*action(TACWhyDidntThisPool)
             {
                 ApplicationArea = All;
                 Caption = 'Why Didn''t This Pool?';

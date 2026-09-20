@@ -23,6 +23,7 @@ table 50214 "TAC Freight Loc. Market Rule"
             ToolTip = 'Specifies whether the market rule is mandatory at this freight location.';
         }
     }
+
     keys
     {
         key(PK; "Freight Location Code", "Market Rule Code")

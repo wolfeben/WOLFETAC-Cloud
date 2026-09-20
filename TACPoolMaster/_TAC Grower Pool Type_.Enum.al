@@ -7,14 +7,14 @@ enum 50201 "TAC Grower Pool Type"
     // cannot be closed in v1 — enforced in the close codeunit, not the enum.
     value(0; Internal)
     {
-    Caption = 'I';
+        Caption = 'I';
     }
     value(1; External)
     {
-    Caption = 'E';
+        Caption = 'E';
     }
     value(2; "Contract Pack")
     {
-    Caption = 'G';
+        Caption = 'G';
     }
 }

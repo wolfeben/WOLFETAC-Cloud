@@ -12,8 +12,8 @@ tableextension 50243 "TAC Pool Shipping Agent Ext" extends "Shipping Agent"
 
             trigger OnValidate()
             begin
-                "Fuel Surcharge Last Updated":=CurrentDateTime();
-                "Fuel Surcharge Updated By":=CopyStr(UserId(), 1, MaxStrLen("Fuel Surcharge Updated By"));
+                "Fuel Surcharge Last Updated" := CurrentDateTime();
+                "Fuel Surcharge Updated By" := CopyStr(UserId(), 1, MaxStrLen("Fuel Surcharge Updated By"));
             end;
         }
         field(50241; "Manifest Nos."; Code[20])

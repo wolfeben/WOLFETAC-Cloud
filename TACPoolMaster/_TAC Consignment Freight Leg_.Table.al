@@ -23,18 +23,18 @@ table 50205 "TAC Consignment Freight Leg"
             TableRelation = "TAC Carrier Manifest"."No.";
             ToolTip = 'Specifies the manifest used by this freight leg.';
             NotBlank = true;
-
             trigger OnValidate()
             begin
                 testfield("Manifest No.");
-                if "Manifest No." <> xRec."Manifest No." then CalculateFreightCost();
+                if "Manifest No." <> xRec."Manifest No." then
+                    CalculateFreightCost();
             end;
         }
         field(4; "Shipping Agent Code"; Code[10])
         {
             Caption = 'Shipping Agent Code';
             FieldClass = FlowField;
-            CalcFormula = lookup("TAC Carrier Manifest"."Shipping Agent Code" where("No."=field("Manifest No.")));
+            CalcFormula = lookup("TAC Carrier Manifest"."Shipping Agent Code" where("No." = field("Manifest No.")));
             Editable = false;
             ToolTip = 'Shows the shipping agent from the linked manifest.';
         }
@@ -42,7 +42,7 @@ table 50205 "TAC Consignment Freight Leg"
         {
             Caption = 'From Freight Location';
             FieldClass = FlowField;
-            CalcFormula = lookup("TAC Carrier Manifest"."From Freight Location" where("No."=field("Manifest No.")));
+            CalcFormula = lookup("TAC Carrier Manifest"."From Freight Location" where("No." = field("Manifest No.")));
             Editable = false;
             ToolTip = 'Shows the origin freight location from the linked manifest.';
         }
@@ -50,7 +50,7 @@ table 50205 "TAC Consignment Freight Leg"
         {
             Caption = 'To Freight Location';
             FieldClass = FlowField;
-            CalcFormula = lookup("TAC Carrier Manifest"."To Freight Location" where("No."=field("Manifest No.")));
+            CalcFormula = lookup("TAC Carrier Manifest"."To Freight Location" where("No." = field("Manifest No.")));
             Editable = false;
             ToolTip = 'Shows the destination freight location from the linked manifest.';
         }
@@ -58,7 +58,7 @@ table 50205 "TAC Consignment Freight Leg"
         {
             Caption = 'Pallet Space Rate';
             FieldClass = FlowField;
-            CalcFormula = lookup("TAC Carrier Manifest"."Pallet Space Rate" where("No."=field("Manifest No.")));
+            CalcFormula = lookup("TAC Carrier Manifest"."Pallet Space Rate" where("No." = field("Manifest No.")));
             Editable = false;
             ToolTip = 'Shows the pallet space rate from the linked manifest.';
         }
@@ -66,10 +66,10 @@ table 50205 "TAC Consignment Freight Leg"
         {
             Caption = 'Pallet Spaces';
             ToolTip = 'Specifies the pallet space count for this freight leg.';
-
             trigger OnValidate()
             begin
-                if "Pallet Spaces" <> xRec."Pallet Spaces" then CalculateFreightCost();
+                if "Pallet Spaces" <> xRec."Pallet Spaces" then
+                    CalculateFreightCost();
             end;
         }
         field(9; "Freight Cost"; Decimal)
@@ -83,32 +83,32 @@ table 50205 "TAC Consignment Freight Leg"
             ToolTip = 'Specifies an external carrier reference, including free-text docket references.';
         }
     }
+
     keys
     {
-        key(PK; "Consignment No.", "Leg No.")
-        {
-            Clustered = true;
-        }
-        key(Manifest; "Manifest No.")
-        {
-        }
+        key(PK; "Consignment No.", "Leg No.") { Clustered = true; }
+        key(Manifest; "Manifest No.") { }
     }
     trigger OnInsert()
     begin
         TestField("Manifest No.");
         TestField("Pallet Spaces");
-    //CalculateFreightCost();
+        //CalculateFreightCost();
     end;
+
     procedure CalculateFreightCost()
     begin
         CalcFields("Pallet Space Rate");
-        "Freight Cost":="Pallet Space Rate" * "Pallet Spaces" * (100 + CalcFuelChargePct()) / 100;
+        "Freight Cost" := "Pallet Space Rate" * "Pallet Spaces" * (100 + CalcFuelChargePct()) / 100;
     end;
-    procedure CalcFuelChargePct(): Decimal var
+
+    procedure CalcFuelChargePct(): Decimal
+    var
         ShippingAgentRec: Record "Shipping Agent";
     begin
         Calcfields("Shipping Agent Code");
-        if ShippingAgentRec.Get("Shipping Agent Code")then exit(ShippingAgentRec."Fuel Surcharge %");
+        if ShippingAgentRec.Get("Shipping Agent Code") then
+            exit(ShippingAgentRec."Fuel Surcharge %");
         exit(0);
     end;
 }

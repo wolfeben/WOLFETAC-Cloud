@@ -15,14 +15,14 @@ table 50233 "TAC Pool Payment Header"
             Caption = 'Pool Group ID';
             TableRelation = "TAC Pool Group Header"."Pool Group ID";
         }
-        field(3; "Payment Type";Enum "TAC Pool Payment Type")
+        field(3; "Payment Type"; Enum "TAC Pool Payment Type")
         {
             Caption = 'Payment Type';
         }
         field(4; "Payment No."; Integer)
         {
             Caption = 'Payment No.';
-        // Sequential within the Pool Group.
+            // Sequential within the Pool Group.
         }
         field(5; "Closed DateTime"; DateTime)
         {
@@ -35,7 +35,7 @@ table 50233 "TAC Pool Payment Header"
         field(7; "GL Journal Batch Name"; Code[10])
         {
             Caption = 'GL Journal Batch Name';
-        // Stored for compensating reversal (ADR-001).
+            // Stored for compensating reversal (ADR-001).
         }
         field(8; Reversed; Boolean)
         {
@@ -48,9 +48,9 @@ table 50233 "TAC Pool Payment Header"
         field(10; "Created Purchase Invoice Nos."; Text[250])
         {
             Caption = 'Created Purchase Invoice Nos.';
-        // Comma list of posted grower Purchase Invoice Nos. so a failed
-        // close can be reversed and a final close can apply the prior
-        // provisional invoices (ADR-001/002).
+            // Comma list of posted grower Purchase Invoice Nos. so a failed
+            // close can be reversed and a final close can apply the prior
+            // provisional invoices (ADR-001/002).
         }
         field(11; "Pool Code"; Code[20])
         {
@@ -76,6 +76,7 @@ table 50233 "TAC Pool Payment Header"
             Editable = false;
         }
     }
+
     keys
     {
         key(PK; "Pool Payment ID")

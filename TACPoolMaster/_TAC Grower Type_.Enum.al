@@ -7,22 +7,22 @@ enum 50202 "TAC Grower Type"
     // Template Grower Type Filter. C and F are legacy classifications.
     value(0; Internal)
     {
-    Caption = 'I';
+        Caption = 'I';
     }
     value(1; External)
     {
-    Caption = 'E';
+        Caption = 'E';
     }
     value(2; "Contract Pack")
     {
-    Caption = 'G';
+        Caption = 'G';
     }
     value(3; Consolidator)
     {
-    Caption = 'C';
+        Caption = 'C';
     }
     value(4; "Fixed FruitBank")
     {
-    Caption = 'F';
+        Caption = 'F';
     }
 }

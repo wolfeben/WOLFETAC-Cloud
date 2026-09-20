@@ -24,6 +24,7 @@ table 50236 "TAC Pool Expense Detail"
             Caption = 'Amount';
         }
     }
+
     keys
     {
         key(PK; "Expense ID", "Line No.")

@@ -12,15 +12,9 @@ page 50260 "TAC Grower GL Overrides"
         {
             repeater(Group)
             {
-                field("Grower Code"; Rec."Grower Code")
-                {
-                }
-                field("Trans Type Code"; Rec."Trans Type Code")
-                {
-                }
-                field("Override GL Account"; Rec."Override GL Account")
-                {
-                }
+                field("Grower Code"; Rec."Grower Code") { }
+                field("Trans Type Code"; Rec."Trans Type Code") { }
+                field("Override GL Account"; Rec."Override GL Account") { }
             }
         }
     }

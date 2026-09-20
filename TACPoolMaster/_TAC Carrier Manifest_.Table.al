@@ -16,7 +16,6 @@ table 50203 "TAC Carrier Manifest"
             Caption = 'Shipping Agent Code';
             TableRelation = "Shipping Agent".Code;
             ToolTip = 'Specifies the carrier assigned to this manifest.';
-
             trigger OnValidate()
             begin
                 CalcFreightAmt();
@@ -27,7 +26,6 @@ table 50203 "TAC Carrier Manifest"
             Caption = 'From Freight Location';
             TableRelation = "TAC Freight Location".Code;
             ToolTip = 'Specifies the origin freight location on the manifest.';
-
             trigger OnValidate()
             begin
                 CalcFreightAmt();
@@ -38,7 +36,6 @@ table 50203 "TAC Carrier Manifest"
             Caption = 'To Freight Location';
             TableRelation = "TAC Freight Location".Code;
             ToolTip = 'Specifies the destination freight location on the manifest.';
-
             trigger OnValidate()
             begin
                 CalcFreightAmt();
@@ -48,7 +45,6 @@ table 50203 "TAC Carrier Manifest"
         {
             Caption = 'Manifest Date';
             ToolTip = 'Specifies the manifest date used for freight rate resolution.';
-
             trigger OnValidate()
             begin
                 CalcFreightAmt();
@@ -62,7 +58,7 @@ table 50203 "TAC Carrier Manifest"
         field(7; Status; Option)
         {
             Caption = 'Status';
-            OptionMembers = Open, Despatched, Closed;
+            OptionMembers = Open,Despatched,Closed;
             ToolTip = 'Specifies whether the manifest is open, despatched, or closed.';
         }
         field(8; "Carrier Invoice No."; Code[20])
@@ -81,31 +77,34 @@ table 50203 "TAC Carrier Manifest"
             ToolTip = 'Specifies whether this manifest is blocked from new use.';
         }
     }
+
     keys
     {
-        key(PK; "No.")
-        {
-            Clustered = true;
-        }
-        key(AgentDate; "Shipping Agent Code", "Manifest Date")
-        {
-        }
+        key(PK; "No.") { Clustered = true; }
+        key(AgentDate; "Shipping Agent Code", "Manifest Date") { }
     }
     trigger OnInsert()
     var
         NoSeries: Codeunit "No. Series";
         ShippingAgent: Record "Shipping Agent";
     begin
-        if "No." <> '' then exit;
+        if "No." <> '' then
+            exit;
         ShippingAgent.Get("Shipping Agent Code");
         ShippingAgent.TestField("Manifest Nos.");
-        "No.":=NoSeries.GetNextNo(ShippingAgent."Manifest Nos.");
+        "No." := NoSeries.GetNextNo(ShippingAgent."Manifest Nos.");
     end;
+
     procedure CalcFreightAmt()
     var
         FreightRate: Record "TAC Freight Rate";
     begin
-        if("Shipping Agent Code" = '') or ("From Freight Location" = '') or ("To Freight Location" = '') or ("Manifest Date" = 0D)then exit;
+        if ("Shipping Agent Code" = '') or
+           ("From Freight Location" = '') or
+           ("To Freight Location" = '') or
+           ("Manifest Date" = 0D) then
+            exit;
+
         FreightRate.SETRANGE("Shipping Agent Code", "Shipping Agent Code");
         FreightRate.SETRANGE("From Freight Location", "From Freight Location");
         FreightRate.SETRANGE("To Freight Location", "To Freight Location");
@@ -113,6 +112,7 @@ table 50203 "TAC Carrier Manifest"
         FreightRate.SETFILTER("Starting Date", '<=%1', "Manifest Date");
         FreightRate.SETFILTER("Ending Date", '%1|>=%2', 0D, "Manifest Date");
         FreightRate.SETCURRENTKEY("Starting Date");
-        if FreightRate.FindLast()then "Pallet Space Rate":=FreightRate."Pallet Space Rate";
+        if FreightRate.FindLast() then
+            "Pallet Space Rate" := FreightRate."Pallet Space Rate";
     end;
 }

@@ -4,6 +4,9 @@ table 50238 "TAC Pool Charge Context"
     DataClassification = SystemMetadata;
     TableType = Temporary;
 
+    // Private helper passed to the Charge Engine (50270) by all three callers
+    // (RC/CP/PG) so precedence and rate-source logic share one input shape
+    // (design §9.1, ADR-003). Temporary-only; not surfaced on any page.
     fields
     {
         field(1; "Pool Code"; Code[20])
@@ -18,11 +21,11 @@ table 50238 "TAC Pool Charge Context"
         {
             Caption = 'Grower Code';
         }
-        field(4; "Grower Type";Enum "TAC Grower Type")
+        field(4; "Grower Type"; Enum "TAC Grower Type")
         {
             Caption = 'Grower Type';
         }
-        field(5; "Supplier Type";Enum "TAC Grower Pool Type")
+        field(5; "Supplier Type"; Enum "TAC Grower Pool Type")
         {
             Caption = 'Supplier Type';
         }
@@ -95,7 +98,7 @@ table 50238 "TAC Pool Charge Context"
         {
             Caption = 'Pool Payment ID';
         }
-        field(23; "Source Type";Enum "TAC Pool Source Type")
+        field(23; "Source Type"; Enum "TAC Pool Source Type")
         {
             Caption = 'Source Type';
         }
@@ -112,6 +115,7 @@ table 50238 "TAC Pool Charge Context"
             Caption = 'DC Code';
         }
     }
+
     keys
     {
         key(PK; "Pool Code", "Grower Code")

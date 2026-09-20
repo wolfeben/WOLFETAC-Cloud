@@ -89,10 +89,11 @@ table 50207 "TAC Consignment Fruit Payment"
         field(16; Status; Option)
         {
             Caption = 'Status';
-            OptionMembers = Open, Posted;
+            OptionMembers = Open,Posted;
             ToolTip = 'Specifies whether the fruit payment row is open or posted.';
         }
     }
+
     keys
     {
         key(PK; "Consignment No.", "Line No.")

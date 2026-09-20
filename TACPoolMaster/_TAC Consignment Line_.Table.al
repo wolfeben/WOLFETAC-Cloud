@@ -26,18 +26,18 @@ table 50206 "TAC Consignment Line"
         field(4; "Unit of Measure Code"; Code[10])
         {
             Caption = 'Unit of Measure Code';
-            TableRelation = "Item Unit of Measure".Code where("Item No."=field("Item No."));
+            TableRelation = "Item Unit of Measure".Code where("Item No." = field("Item No."));
             ToolTip = 'Specifies the unit of measure used for the line quantity.';
         }
         field(5; Quantity; Decimal)
         {
             Caption = 'Quantity';
             ToolTip = 'Specifies the quantity in the selected unit of measure.';
-
             trigger OnValidate()
             begin
                 testfield(Quantity);
-                if Quantity <> xRec.Quantity then "Quantity (Kg)":=CalculateNormalisedKg();
+                if Quantity <> xRec.Quantity then
+                    "Quantity (Kg)" := CalculateNormalisedKg();
             end;
         }
         field(6; "Quantity (Kg)"; Decimal)
@@ -123,7 +123,9 @@ table 50206 "TAC Consignment Line"
             Caption = 'Qty. Shipped Not Invoiced';
             ToolTip = 'Specifies the quantity that has been shipped but not yet invoiced for this detail line.';
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Shipment Line"."Qty. Shipped Not Invoiced" where("Document No."=field("Source No."), "Line No."=field("Source Line No.")));
+            CalcFormula = sum("Sales Shipment Line"."Qty. Shipped Not Invoiced" where(
+                "Document No." = field("Source No."),
+                "Line No." = field("Source Line No.")));
         }
         field(22; "Freight Posted"; Boolean)
         {
@@ -136,17 +138,17 @@ table 50206 "TAC Consignment Line"
             ToolTip = 'Specifies whether the ripening process has started for this detail line.';
         }
     }
+
     keys
     {
         key(PK; "Consignment No.", "Line No.")
         {
             Clustered = true;
         }
-        key(Pool; "Pool Code")
-        {
-        }
+        key(Pool; "Pool Code") { }
     }
-    procedure CalculateNormalisedKg(): Decimal var
+    procedure CalculateNormalisedKg(): Decimal
+    var
         Item: Record Item;
         ItemUOMRec: Record "Item Unit of Measure";
         UOMMgt: Codeunit "Unit of Measure Management";
@@ -154,7 +156,9 @@ table 50206 "TAC Consignment Line"
         Item.Get("Item No.");
         exit(Quantity * UOMMgt.GetQtyPerUnitOfMeasure(Item, 'KG'));
     end;
-    procedure EstimatedAmount(): Decimal begin
+
+    procedure EstimatedAmount(): Decimal
+    begin
         calcfields("Qty. Shipped Not Invoiced");
         exit("Qty. Shipped Not Invoiced" * "Estimated Price");
     end;

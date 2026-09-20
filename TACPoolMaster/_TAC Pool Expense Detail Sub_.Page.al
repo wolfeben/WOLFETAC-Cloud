@@ -12,16 +12,9 @@ page 50256 "TAC Pool Expense Detail Sub"
         {
             repeater(Group)
             {
-                field("Line No."; Rec."Line No.")
-                {
-                    Visible = false;
-                }
-                field("Pool Code"; Rec."Pool Code")
-                {
-                }
-                field(Amount; Rec.Amount)
-                {
-                }
+                field("Line No."; Rec."Line No.") { Visible = false; }
+                field("Pool Code"; Rec."Pool Code") { }
+                field(Amount; Rec.Amount) { }
             }
         }
     }

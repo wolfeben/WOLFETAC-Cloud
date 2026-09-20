@@ -8,7 +8,7 @@ table 50216 "TAC Pool Payment Schedule"
         field(1; "Pool Type"; Option)
         {
             Caption = 'Pool Type';
-            OptionMembers = Internal, External, Grower;
+            OptionMembers = Internal,External,Grower;
             ToolTip = 'Specifies the pool type this payment schedule row applies to.';
 
             trigger OnValidate()
@@ -41,7 +41,7 @@ table 50216 "TAC Pool Payment Schedule"
         field(5; "Payment Share %"; Decimal)
         {
             Caption = 'Payment Share %';
-            DecimalPlaces = 0: 5;
+            DecimalPlaces = 0 : 5;
             MinValue = 0;
             MaxValue = 100;
             ToolTip = 'Specifies the share of net pool value paid at this schedule step.';
@@ -49,7 +49,7 @@ table 50216 "TAC Pool Payment Schedule"
         field(6; "Cumulative Share %"; Decimal)
         {
             Caption = 'Cumulative Share %';
-            DecimalPlaces = 0: 5;
+            DecimalPlaces = 0 : 5;
             MinValue = 0;
             MaxValue = 100;
             ToolTip = 'Specifies the cumulative share of net pool value paid up to this schedule step.';
@@ -81,6 +81,7 @@ table 50216 "TAC Pool Payment Schedule"
             end;
         }
     }
+
     keys
     {
         key(PK; "Pool Type", "Sequence No.")
@@ -88,22 +89,28 @@ table 50216 "TAC Pool Payment Schedule"
             Clustered = true;
         }
     }
+
     trigger OnInsert()
     begin
         ValidateActiveSchedule("Pool Type");
     end;
+
     trigger OnModify()
     begin
         ValidateActiveSchedule("Pool Type");
     end;
+
     trigger OnDelete()
     begin
         ValidateActiveSchedule("Pool Type");
     end;
-    var FinalCumulativeMustBe100Err: Label 'For active schedule rows of pool type %1, the final row cumulative share must be 100.';
-    ExactlyOneFinalErr: Label 'For active schedule rows of pool type %1, exactly one row must be marked as final.';
-    FinalMustBeLastErr: Label 'For pool type %1, the final schedule row must have the highest sequence number.';
-    local procedure ValidateActiveSchedule(PoolType: Option Internal, External, Grower)
+
+    var
+        FinalCumulativeMustBe100Err: Label 'For active schedule rows of pool type %1, the final row cumulative share must be 100.';
+        ExactlyOneFinalErr: Label 'For active schedule rows of pool type %1, exactly one row must be marked as final.';
+        FinalMustBeLastErr: Label 'For pool type %1, the final schedule row must have the highest sequence number.';
+
+    local procedure ValidateActiveSchedule(PoolType: Option Internal,External,Grower)
     var
         Schedule: Record "TAC Pool Payment Schedule";
         ActiveRows: Integer;
@@ -115,17 +122,29 @@ table 50216 "TAC Pool Payment Schedule"
         Schedule.Reset();
         Schedule.SetRange("Pool Type", PoolType);
         Schedule.SetRange(Active, true);
-        if not Schedule.FindSet()then exit;
-        repeat ActiveRows+=1;
-            if Schedule."Sequence No." > MaxSeqNo then MaxSeqNo:=Schedule."Sequence No.";
+
+        if not Schedule.FindSet() then
+            exit;
+
+        repeat
+            ActiveRows += 1;
+            if Schedule."Sequence No." > MaxSeqNo then
+                MaxSeqNo := Schedule."Sequence No.";
+
             if Schedule."Is Final" then begin
-                FinalRows+=1;
-                FinalSeqNo:=Schedule."Sequence No.";
-                FinalCumulativePct:=Schedule."Cumulative Share %";
+                FinalRows += 1;
+                FinalSeqNo := Schedule."Sequence No.";
+                FinalCumulativePct := Schedule."Cumulative Share %";
             end;
         until Schedule.Next() = 0;
-        if(ActiveRows > 0) and (FinalRows <> 1)then Error(ExactlyOneFinalErr, Format(PoolType));
-        if FinalSeqNo <> MaxSeqNo then Error(FinalMustBeLastErr, Format(PoolType));
-        if Round(FinalCumulativePct, 0.00001) <> 100 then Error(FinalCumulativeMustBe100Err, Format(PoolType));
+
+        if (ActiveRows > 0) and (FinalRows <> 1) then
+            Error(ExactlyOneFinalErr, Format(PoolType));
+
+        if FinalSeqNo <> MaxSeqNo then
+            Error(FinalMustBeLastErr, Format(PoolType));
+
+        if Round(FinalCumulativePct, 0.00001) <> 100 then
+            Error(FinalCumulativeMustBe100Err, Format(PoolType));
     end;
 }

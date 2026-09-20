@@ -39,7 +39,7 @@ table 50210 "TAC Pool Charge Type"
             TableRelation = "VAT Product Posting Group".Code;
             ToolTip = 'Specifies the GST product posting group for this charge type.';
         }
-        field(7; "Rate Type";enum "TAC Pool Rate Type")
+        field(7; "Rate Type"; enum "TAC Pool Rate Type")
         {
             Caption = 'Rate Type';
             // OptionMembers = Units,Kilograms,Bins,"Value (%)";
@@ -48,19 +48,19 @@ table 50210 "TAC Pool Charge Type"
         field(8; "Charge Level"; Option)
         {
             Caption = 'Charge Level';
-            OptionMembers = Pool, Grower;
+            OptionMembers = Pool,Grower;
             ToolTip = 'Specifies whether this charge is posted at pool level or grower level.';
         }
         field(9; "Prorata Level"; Option)
         {
             Caption = 'Prorata Level';
-            OptionMembers = None, Pool, Grower;
+            OptionMembers = None,Pool,Grower;
             ToolTip = 'Specifies whether and how this charge is prorated.';
         }
         field(10; "Trigger Point"; Option)
         {
             Caption = 'Trigger Point';
-            OptionMembers = "Run Close", "Consignment Post", "Invoice Post", "Pool Close", Manual;
+            OptionMembers = "Run Close","Consignment Post","Invoice Post","Pool Close",Manual;
             ToolTip = 'Specifies when this charge type is triggered in the process.';
         }
         field(11; Category; Code[20])
@@ -84,6 +84,7 @@ table 50210 "TAC Pool Charge Type"
             ToolTip = 'Specifies whether this charge type is active for processing.';
         }
     }
+
     keys
     {
         key(PK; Code)

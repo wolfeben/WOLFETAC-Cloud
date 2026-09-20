@@ -7,10 +7,10 @@ enum 50207 "TAC Pool Charge Level"
     // directly (design §6.8).
     value(0; Pool)
     {
-    Caption = 'Pool';
+        Caption = 'Pool';
     }
     value(1; Grower)
     {
-    Caption = 'Grower';
+        Caption = 'Grower';
     }
 }

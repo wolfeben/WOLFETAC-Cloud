@@ -28,14 +28,13 @@ table 50213 "TAC Grower Market Rule"
             ToolTip = 'Specifies the date the grower market rule assignment expires.';
         }
     }
+
     keys
     {
         key(PK; "Grower No.", "Market Rule Code")
         {
             Clustered = true;
         }
-        key(Date; "Expiry Date")
-        {
-        }
+        key(Date; "Expiry Date") { }
     }
 }

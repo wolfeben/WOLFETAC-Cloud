@@ -12,18 +12,10 @@ page 50264 "TAC Grower Market Rule"
         {
             repeater(General)
             {
-                field("Grower No."; Rec."Grower No.")
-                {
-                }
-                field("Market Rule Code"; Rec."Market Rule Code")
-                {
-                }
-                field(Reference; Rec.Reference)
-                {
-                }
-                field("Expiry Date"; Rec."Expiry Date")
-                {
-                }
+                field("Grower No."; Rec."Grower No.") { }
+                field("Market Rule Code"; Rec."Market Rule Code") { }
+                field(Reference; Rec.Reference) { }
+                field("Expiry Date"; Rec."Expiry Date") { }
             }
         }
     }

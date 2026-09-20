@@ -18,7 +18,7 @@ table 50201 "TAC Freight Location"
         field(3; "Location Type"; Option)
         {
             Caption = 'Location Type';
-            OptionMembers = Origin, Destination, Both;
+            OptionMembers = Origin,Destination,Both;
             ToolTip = 'Specifies whether the freight location is used as an origin, destination, or both.';
         }
         field(4; State; Code[10])
@@ -43,6 +43,7 @@ table 50201 "TAC Freight Location"
             ToolTip = 'Specifies whether this freight location is blocked from use.';
         }
     }
+
     keys
     {
         key(PK; Code)

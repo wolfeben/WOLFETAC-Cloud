@@ -1,0 +1,4 @@
+event: message
+data: {"result":{"content":[{"type":"text","text":"{\u0022succeeded\u0022:true,\u0022message\u0022:\u0022Package published: D:\\\\WOLFETAC\\\\Cloud\\\\TACPoolMaster\\\\build\\\\DIY-ERP_TAC Pool Master_2.0.0.3_grower-fix.app (214697 bytes)\u0022,\u0022nextSteps\u0022:[\u0022[Priority:10] al_setbreakpoint: Set debugging breakpoints in AL code\u0022,\u0022[Priority:9] al_debug: Start debugging session to step through code\u0022],\u0022warnings\u0022:[]}"}]},"id":2,"jsonrpc":"2.0"}
+
+
