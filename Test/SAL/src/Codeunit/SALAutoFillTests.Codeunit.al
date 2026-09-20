@@ -127,6 +127,40 @@ codeunit 58802 "SAL Auto Fill Tests"
         AssertThat(Pallet."No. of Components" = 5, 'each exact size should remain a separate component');
     end;
 
+    [Test]
+    procedure BlankPalletFillsAllCompatibleSizesWhenMixedExplicitlyAllowed()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-A', 2, 'TE', Source);
+        CreateSource(Plan, 20000, 'ITEM-B', 1, 'TE', Source);
+        CreateSource(Plan, 30000, 'ITEM-C', 2, 'TE', Source);
+        CreateSource(Plan, 40000, 'ITEM-D', 3, 'TE', Source);
+        CreateSource(Plan, 50000, 'ITEM-E', 2, 'TE', Source);
+        Pallet.Init();
+        Pallet."Plan No." := Plan."No.";
+        Pallet."Version No." := Plan."Version No.";
+        Pallet."Pallet Type" := Pallet."Pallet Type"::Standard;
+        Pallet."Target Quantity" := 160;
+        Pallet.Insert(true);
+
+        Allocation.AutoFillPallets(Plan, true, Created, Updated, Skipped);
+
+        Pallet.Get(Plan."No.", Plan."Version No.", Pallet."Pallet No.");
+        Pallet.CalcFields("Planned Quantity", "No. of Components");
+        AssertThat((Created = 0) and (Updated = 1) and (Skipped = 0), 'one blank pallet should fill without pallet rules');
+        AssertThat(Pallet."Pallet Type" = Pallet."Pallet Type"::Mixed, 'multiple sizes require a Mixed pallet');
+        AssertThat((Pallet."Target Quantity" = 10) and (Pallet."Planned Quantity" = 10), 'target must equal ten ordered TE units');
+        AssertThat(Pallet."No. of Components" = 5, 'all five sizes should be separate components');
+    end;
+
     local procedure AddExistingComponent(Plan: Record "SAL Plan Header"; Pallet: Record "SAL Plan Pallet"; SourceLineNo: Integer; Quantity: Decimal)
     var
         Component: Record "SAL Plan Component";

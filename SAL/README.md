@@ -25,9 +25,10 @@ Freight and arrival dates now appear inside page 58006 through its Calendar togg
 
 Page 58012 is the graphical Fill Group Layouts workspace. SAL administrators can start from Premium supermarket, Class 1 mix, Export 28/30 or blank layouts; filter live BC inventory items by product type and size; set per-SKU quantity or pallet caps; and save the selection as a reusable marketer-specific fill group.
 
-Pallet auto-fill (app version 1.1.0.22):
+Pallet auto-fill (app version 1.1.0.23):
 
 - On a Draft plan, **Fill pallets** first completes existing exact or mixed pallets from compatible remaining order lines without requiring a pallet rule. When all compatible demand is exhausted, an underfilled pallet's target is reduced to its planned quantity; an underfilled Standard becomes Custom. Existing components are preserved. It then creates additional pallets from the unallocated exact balance using active pallet rules. Fill-group balances are not automatically allocated.
+- When **Allow mixed** is selected, a blank draft pallet can be composed from all compatible unallocated exact source lines, without entering every size by hand. A blank Standard changes to Mixed when it contains different products. The entered target is a maximum; if less compatible demand exists, the target is reduced to the quantity allocated. Different source orders, routes, destinations or units are not silently combined.
 - Page 58011 stores active allocation rules in the original order-line unit, optionally scoped to customer, ship-to and exact item. The most specific matching rule wins. Set Woolworths WA to 152 using its actual customer and ship-to codes. No universal TE/BK/BKBN capacities are seeded because the same unit can have different item capacities; BKBN requires an exact item rule.
 - Full pallets are Standard; a short remainder is Custom. The optional **Allow mixed** combines compatible short exact lines from the same order, destination, route, unit and capacity into one Mixed pallet with separate components.
 - Draft pallet type/target and exact component quantity can be edited afterward. Changing a Standard component quantity converts that pallet to Custom. Standard BC validation still gates release.
