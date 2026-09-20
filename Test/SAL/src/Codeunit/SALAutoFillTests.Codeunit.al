@@ -11,13 +11,14 @@ codeunit 58802 "SAL Auto Fill Tests"
         Pallet: Record "SAL Plan Pallet";
         Source: Record "SAL Plan Source";
         Created: Integer;
+        Updated: Integer;
         Skipped: Integer;
     begin
         CreatePlan(Plan);
         CreateRule('TRAY', '', '', '', 160);
         CreateSource(Plan, 10000, 'ITEM-A', 322, 'TRAY', Source);
 
-        Allocation.AutoFillPallets(Plan, false, Created, Skipped);
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
 
         AssertThat((Created = 3) and (Skipped = 0), 'two standard pallets and one custom short pallet expected');
         Pallet.Get(Plan."No.", Plan."Version No.", 3);
@@ -27,7 +28,7 @@ codeunit 58802 "SAL Auto Fill Tests"
         Source.CalcFields("Exact Planned Quantity");
         AssertThat(Source."Exact Planned Quantity" = 322, 'all exact demand must be allocated');
 
-        Allocation.AutoFillPallets(Plan, false, Created, Skipped);
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
         AssertThat((Created = 0) and (Skipped = 0), 'repeating auto-fill must not duplicate existing allocation');
     end;
 
@@ -40,6 +41,7 @@ codeunit 58802 "SAL Auto Fill Tests"
         Pallet: Record "SAL Plan Pallet";
         Source: Record "SAL Plan Source";
         Created: Integer;
+        Updated: Integer;
         Skipped: Integer;
     begin
         CreatePlan(Plan);
@@ -47,7 +49,7 @@ codeunit 58802 "SAL Auto Fill Tests"
         CreateSource(Plan, 10000, 'ITEM-A', 100, 'MIX-TEST', Source);
         CreateSource(Plan, 20000, 'ITEM-B', 60, 'MIX-TEST', Source);
 
-        Allocation.AutoFillPallets(Plan, true, Created, Skipped);
+        Allocation.AutoFillPallets(Plan, true, Created, Updated, Skipped);
 
         AssertThat((Created = 1) and (Skipped = 0), 'one mixed pallet expected');
         Pallet.Get(Plan."No.", Plan."Version No.", 1);
@@ -69,6 +71,7 @@ codeunit 58802 "SAL Auto Fill Tests"
         Pallet: Record "SAL Plan Pallet";
         Source: Record "SAL Plan Source";
         Created: Integer;
+        Updated: Integer;
         Skipped: Integer;
     begin
         CreatePlan(Plan);
@@ -80,11 +83,61 @@ codeunit 58802 "SAL Auto Fill Tests"
         Source.Modify(true);
         CreateSource(Plan, 20000, 'ITEM-B', 1, 'BKBN', Source);
 
-        Allocation.AutoFillPallets(Plan, false, Created, Skipped);
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
 
         AssertThat((Created = 2) and (Skipped = 1), 'two WA pallets and one skipped unknown line expected');
         Pallet.Get(Plan."No.", Plan."Version No.", 1);
         AssertThat(Pallet."Target Quantity" = 152, 'customer and destination rule must override general quantity');
+    end;
+
+    [Test]
+    procedure ExistingMixedPalletFillsRemainingOrderLinesWithoutAnyRule()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-A', 2, 'TE', Source);
+        CreateSource(Plan, 20000, 'ITEM-B', 1, 'TE', Source);
+        CreateSource(Plan, 30000, 'ITEM-C', 2, 'TE', Source);
+        CreateSource(Plan, 40000, 'ITEM-D', 3, 'TE', Source);
+        CreateSource(Plan, 50000, 'ITEM-E', 2, 'TE', Source);
+        Pallet.Init();
+        Pallet."Plan No." := Plan."No.";
+        Pallet."Version No." := Plan."Version No.";
+        Pallet."Pallet Type" := Pallet."Pallet Type"::Mixed;
+        Pallet."Target Quantity" := 20;
+        Pallet.Insert(true);
+        AddExistingComponent(Plan, Pallet, 10000, 2);
+        AddExistingComponent(Plan, Pallet, 20000, 1);
+        AddExistingComponent(Plan, Pallet, 30000, 2);
+        AddExistingComponent(Plan, Pallet, 40000, 3);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        Pallet.Get(Plan."No.", Plan."Version No.", Pallet."Pallet No.");
+        Pallet.CalcFields("Planned Quantity", "No. of Components");
+        AssertThat((Created = 0) and (Updated = 1) and (Skipped = 0), 'existing mixed pallet should fill without any rule');
+        AssertThat((Pallet."Target Quantity" = 10) and (Pallet."Planned Quantity" = 10), 'target should match all ten ordered units');
+        AssertThat(Pallet."No. of Components" = 5, 'each exact size should remain a separate component');
+    end;
+
+    local procedure AddExistingComponent(Plan: Record "SAL Plan Header"; Pallet: Record "SAL Plan Pallet"; SourceLineNo: Integer; Quantity: Decimal)
+    var
+        Component: Record "SAL Plan Component";
+    begin
+        Component.Init();
+        Component."Plan No." := Plan."No.";
+        Component."Version No." := Plan."Version No.";
+        Component."Pallet No." := Pallet."Pallet No.";
+        Component.Validate("Source Line No.", SourceLineNo);
+        Component.Validate(Quantity, Quantity);
+        Component.Insert(true);
     end;
 
     local procedure CreatePlan(var Plan: Record "SAL Plan Header")

@@ -1,6 +1,6 @@
 codeunit 58006 "SAL Allocation Management"
 {
-    procedure AutoFillPallets(var PlanHeader: Record "SAL Plan Header"; AllowMixed: Boolean; var CreatedPallets: Integer; var SkippedLines: Integer)
+    procedure AutoFillPallets(var PlanHeader: Record "SAL Plan Header"; AllowMixed: Boolean; var CreatedPallets: Integer; var UpdatedPallets: Integer; var SkippedLines: Integer)
     var
         PendingSource: Record "SAL Plan Source" temporary;
         PlanSource: Record "SAL Plan Source";
@@ -9,10 +9,13 @@ codeunit 58006 "SAL Allocation Management"
         Remaining: Decimal;
     begin
         CreatedPallets := 0;
+        UpdatedPallets := 0;
         SkippedLines := 0;
         LockAndGetPlan(PlanHeader);
         if PlanHeader.Status <> PlanHeader.Status::Draft then
             Error(DraftRequiredErr, PlanHeader."No.", PlanHeader."Version No.", PlanHeader.Status);
+
+        FillExistingPallets(PlanHeader, UpdatedPallets);
 
         PlanSource.SetRange("Plan No.", PlanHeader."No.");
         PlanSource.SetRange("Version No.", PlanHeader."Version No.");
@@ -43,9 +46,126 @@ codeunit 58006 "SAL Allocation Management"
                     CreateShortPallet(PlanHeader, PendingSource, AllowMixed, CreatedPallets);
             until PendingSource.Next() = 0;
 
-        if CreatedPallets > 0 then
+        if (CreatedPallets > 0) or (UpdatedPallets > 0) then
             LogEvent(PlanHeader, AutoFilledEventTypeTxt,
-                StrSubstNo(AutoFilledDescriptionTxt, CreatedPallets, SkippedLines, AllowMixed));
+                StrSubstNo(AutoFilledDescriptionTxt, CreatedPallets, UpdatedPallets, SkippedLines, AllowMixed));
+    end;
+
+    local procedure FillExistingPallets(PlanHeader: Record "SAL Plan Header"; var UpdatedPallets: Integer)
+    var
+        AnchorComponent: Record "SAL Plan Component";
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+        PalletChanged: Boolean;
+        PalletRemaining: Decimal;
+        SourceRemaining: Decimal;
+        TakeQuantity: Decimal;
+    begin
+        PlanPallet.SetRange("Plan No.", PlanHeader."No.");
+        PlanPallet.SetRange("Version No.", PlanHeader."Version No.");
+        if not PlanPallet.FindSet(true) then
+            exit;
+        repeat
+            PlanPallet.CalcFields("Planned Quantity", "No. of Components");
+            PalletRemaining := PlanPallet."Target Quantity" - PlanPallet."Planned Quantity";
+            if (PalletRemaining > 0) and (PlanPallet."No. of Components" > 0) then begin
+                AnchorComponent.SetRange("Plan No.", PlanHeader."No.");
+                AnchorComponent.SetRange("Version No.", PlanHeader."Version No.");
+                AnchorComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+                if AnchorComponent.FindFirst() and
+                   (AnchorComponent."Fulfilment Mode" = AnchorComponent."Fulfilment Mode"::ExactSKU) and
+                   ExistingComponentsCompatible(PlanPallet, AnchorComponent)
+                then begin
+                    PlanSource.SetRange("Plan No.", PlanHeader."No.");
+                    PlanSource.SetRange("Version No.", PlanHeader."Version No.");
+                    if PlanSource.FindSet() then
+                        repeat
+                            if (PalletRemaining > 0) and
+                               SourceFitsExistingPallet(PlanPallet, AnchorComponent, PlanSource)
+                            then begin
+                                PlanSource.CalcFields("Exact Planned Quantity");
+                                SourceRemaining := PlanSource.Quantity - PlanSource."Fill Target Quantity" - PlanSource."Exact Planned Quantity";
+                                if SourceRemaining > 0 then begin
+                                    TakeQuantity := SourceRemaining;
+                                    if TakeQuantity > PalletRemaining then
+                                        TakeQuantity := PalletRemaining;
+                                    AddOrIncreaseExactComponent(PlanPallet, PlanSource, TakeQuantity);
+                                    PalletRemaining -= TakeQuantity;
+                                    PalletChanged := true;
+                                end;
+                            end;
+                        until PlanSource.Next() = 0;
+
+                    PlanPallet.CalcFields("Planned Quantity");
+                    if (PalletRemaining > 0) and (PlanPallet."Planned Quantity" > 0) then begin
+                        PlanPallet."Target Quantity" := PlanPallet."Planned Quantity";
+                        if PlanPallet."Pallet Type" = PlanPallet."Pallet Type"::Standard then
+                            PlanPallet."Pallet Type" := PlanPallet."Pallet Type"::Custom;
+                        PlanPallet.Modify(true);
+                        PalletChanged := true;
+                    end;
+                    if PalletChanged then
+                        UpdatedPallets += 1;
+                    PalletChanged := false;
+                end;
+            end;
+        until PlanPallet.Next() = 0;
+    end;
+
+    local procedure ExistingComponentsCompatible(PlanPallet: Record "SAL Plan Pallet"; AnchorComponent: Record "SAL Plan Component"): Boolean
+    var
+        ExistingComponent: Record "SAL Plan Component";
+        ExistingSource: Record "SAL Plan Source";
+    begin
+        ExistingComponent.SetRange("Plan No.", PlanPallet."Plan No.");
+        ExistingComponent.SetRange("Version No.", PlanPallet."Version No.");
+        ExistingComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+        if ExistingComponent.FindSet() then
+            repeat
+                if ExistingComponent."Fulfilment Mode" <> ExistingComponent."Fulfilment Mode"::ExactSKU then
+                    exit(false);
+                if not ExistingSource.Get(ExistingComponent."Plan No.", ExistingComponent."Version No.", ExistingComponent."Source Line No.") then
+                    exit(false);
+                if not SourceFitsExistingPallet(PlanPallet, AnchorComponent, ExistingSource) then
+                    exit(false);
+            until ExistingComponent.Next() = 0;
+        exit(true);
+    end;
+
+    local procedure SourceFitsExistingPallet(PlanPallet: Record "SAL Plan Pallet"; AnchorComponent: Record "SAL Plan Component"; PlanSource: Record "SAL Plan Source"): Boolean
+    var
+        AnchorSource: Record "SAL Plan Source";
+    begin
+        if not AnchorSource.Get(AnchorComponent."Plan No.", AnchorComponent."Version No.", AnchorComponent."Source Line No.") then
+            exit(false);
+        if (PlanSource."Source Type" <> AnchorSource."Source Type") or
+           (PlanSource."Source Document No." <> AnchorSource."Source Document No.") or
+           (PlanSource."Customer No." <> AnchorSource."Customer No.") or
+           (PlanSource."Destination Code" <> AnchorSource."Destination Code") or
+           (PlanSource."Execution Route" <> AnchorSource."Execution Route") or
+           (PlanSource."Facility Work Type" <> AnchorSource."Facility Work Type") or
+           (PlanSource."Unit of Measure Code" <> AnchorSource."Unit of Measure Code")
+        then
+            exit(false);
+        if PlanPallet."Pallet Type" = PlanPallet."Pallet Type"::Mixed then
+            exit(true);
+        exit(PlanSource."Line No." = AnchorSource."Line No.");
+    end;
+
+    local procedure AddOrIncreaseExactComponent(PlanPallet: Record "SAL Plan Pallet"; PlanSource: Record "SAL Plan Source"; Quantity: Decimal)
+    var
+        PlanComponent: Record "SAL Plan Component";
+    begin
+        PlanComponent.SetRange("Plan No.", PlanPallet."Plan No.");
+        PlanComponent.SetRange("Version No.", PlanPallet."Version No.");
+        PlanComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+        PlanComponent.SetRange("Source Line No.", PlanSource."Line No.");
+        PlanComponent.SetRange("Fulfilment Mode", PlanComponent."Fulfilment Mode"::ExactSKU);
+        if PlanComponent.FindFirst() then begin
+            PlanComponent.Validate(Quantity, PlanComponent.Quantity + Quantity);
+            PlanComponent.Modify(true);
+        end else
+            AddExactComponent(PlanPallet, PlanSource, Quantity);
     end;
 
     local procedure FindPalletCapacity(PlanSource: Record "SAL Plan Source"; var PalletCapacity: Decimal): Boolean
@@ -708,7 +828,7 @@ codeunit 58006 "SAL Allocation Management"
 
     var
         AmbiguousRuleErr: Label 'More than one equally specific pallet rule matches item %1, customer %2 and destination %3. Resolve duplicate rules before auto-filling.', Comment = '%1 = item, %2 = customer, %3 = destination';
-        AutoFilledDescriptionTxt: Label '%1 pallets auto-filled; %2 exact source lines skipped without a matching rule. Mixed short pallets allowed: %3.', Comment = '%1 = pallet count, %2 = skipped line count, %3 = mixed choice';
+        AutoFilledDescriptionTxt: Label '%1 new pallets and %2 existing pallets auto-filled; %3 exact source lines skipped without a matching rule. Mixed short pallets allowed: %4.', Comment = '%1 = new, %2 = updated, %3 = skipped, %4 = mixed choice';
         AutoFilledEventTypeTxt: Label 'Pallets Auto-filled', Locked = true;
         AutoFillLimitErr: Label 'Auto-fill would create more than 1,000 pallets. Split the demand or review the pallet rules.';
         ShortPalletDescriptionTxt: Label 'Short or mixed pallet';

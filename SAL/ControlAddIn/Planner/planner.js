@@ -1622,7 +1622,7 @@
             '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
                 '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Physical pallet plan</span><h2 id="sal-dialog-title">Fill pallets from demand</h2></div>',
                 '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
-                '<p class="sal-dialog-intro">Create full standard pallets from the unallocated exact order lines using active pallet rules. Short balances become editable Custom pallets. Existing allocations remain unchanged; fill-group balances and lines without rules remain for review.</p>',
+                '<p class="sal-dialog-intro">First complete existing draft pallets from matching unallocated order lines, including missing sizes on a mixed pallet. No rule is needed for that. Then create new standard pallets using active pallet rules; short balances become editable Custom pallets. Existing components are kept, and fill-group balances remain for review.</p>',
                 '<div class="sal-dialog-grid">',
                     '<label class="is-wide"><input id="sal-dialog-allow-mixed" type="checkbox"> Allow mixed sizes on a short pallet when they are from the same order, destination and unit, and fit the same capacity</label>',
                 '</div>',

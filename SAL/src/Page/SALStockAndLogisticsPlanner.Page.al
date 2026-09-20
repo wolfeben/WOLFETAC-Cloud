@@ -1335,11 +1335,12 @@ page 58007 "SAL Stock & Logistics Planner"
         AllocationManagement: Codeunit "SAL Allocation Management";
         PlanHeader: Record "SAL Plan Header";
         CreatedPallets: Integer;
+        UpdatedPallets: Integer;
         SkippedLines: Integer;
     begin
         GetSelectedDraft(PlanHeader);
-        AllocationManagement.AutoFillPallets(PlanHeader, AllowMixed, CreatedPallets, SkippedLines);
-        LoadScreen(StrSubstNo(AutoFillResultMsg, CreatedPallets, SkippedLines), false);
+        AllocationManagement.AutoFillPallets(PlanHeader, AllowMixed, CreatedPallets, UpdatedPallets, SkippedLines);
+        LoadScreen(StrSubstNo(AutoFillResultMsg, CreatedPallets, UpdatedPallets, SkippedLines), false);
     end;
 
     local procedure EditExactComponent(PalletNo: Integer; LineNo: Integer; Quantity: Decimal)
@@ -1710,7 +1711,7 @@ page 58007 "SAL Stock & Logistics Planner"
         AddInReady: Boolean;
         SelectedPlanNo: Code[20];
         SelectedVersionNo: Integer;
-        AutoFillResultMsg: Label '%1 pallet(s) filled. %2 source line(s) need an allocation rule or manual planning.', Comment = '%1 = pallet count, %2 = skipped source lines';
+        AutoFillResultMsg: Label '%1 new pallet(s); %2 existing pallet(s) filled. %3 source line(s) still need an allocation rule or manual planning.', Comment = '%1 = new, %2 = updated, %3 = skipped source lines';
         ComponentUpdatedMsg: Label 'Pallet %1 quantity updated; changed standard pallets are now Custom.', Comment = '%1 = pallet no.';
         ExactComponentEditErr: Label 'Only an exact SKU component can be adjusted directly. Use the fill-group allocation controls for fill components.';
         PalletUpdatedMsg: Label 'Pallet %1 updated.', Comment = '%1 = pallet no.';
