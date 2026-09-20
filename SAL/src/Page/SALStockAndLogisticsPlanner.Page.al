@@ -113,9 +113,24 @@ page 58007 "SAL Stock & Logistics Planner"
                     AddPalletGroup(PalletType, PalletCount, TargetQuantity, Description);
                 end;
 
+                trigger AutoFillPalletsRequested(AllowMixed: Boolean)
+                begin
+                    AutoFillPallets(AllowMixed);
+                end;
+
+                trigger OpenPalletRulesRequested()
+                begin
+                    Page.Run(Page::"SAL Template Rules");
+                end;
+
                 trigger DeletePalletRequested(PalletNo: Integer)
                 begin
                     DeletePallet(PalletNo);
+                end;
+
+                trigger EditPalletRequested(PalletNo: Integer; PalletType: Text; TargetQuantity: Decimal; Description: Text)
+                begin
+                    EditPallet(PalletNo, PalletType, TargetQuantity, Description);
                 end;
 
                 trigger AddComponentRequested(PalletNo: Integer; SourceLineNo: Integer; Quantity: Decimal)
@@ -136,6 +151,11 @@ page 58007 "SAL Stock & Logistics Planner"
                 trigger DeleteComponentRequested(PalletNo: Integer; LineNo: Integer)
                 begin
                     DeleteComponent(PalletNo, LineNo);
+                end;
+
+                trigger EditExactComponentRequested(PalletNo: Integer; LineNo: Integer; Quantity: Decimal)
+                begin
+                    EditExactComponent(PalletNo, LineNo, Quantity);
                 end;
 
                 trigger AdjustFillTargetRequested(SourceLineNo: Integer; NewFillTarget: Decimal; Reason: Text)
@@ -1310,6 +1330,76 @@ page 58007 "SAL Stock & Logistics Planner"
         LoadScreen(StrSubstNo(PalletsAddedMsg, PalletCount), false);
     end;
 
+    local procedure AutoFillPallets(AllowMixed: Boolean)
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        PlanHeader: Record "SAL Plan Header";
+        CreatedPallets: Integer;
+        SkippedLines: Integer;
+    begin
+        GetSelectedDraft(PlanHeader);
+        AllocationManagement.AutoFillPallets(PlanHeader, AllowMixed, CreatedPallets, SkippedLines);
+        LoadScreen(StrSubstNo(AutoFillResultMsg, CreatedPallets, SkippedLines), false);
+    end;
+
+    local procedure EditExactComponent(PalletNo: Integer; LineNo: Integer; Quantity: Decimal)
+    var
+        PlanComponent: Record "SAL Plan Component";
+        PlanHeader: Record "SAL Plan Header";
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+        Difference: Decimal;
+    begin
+        GetSelectedDraft(PlanHeader);
+        if Quantity <= 0 then
+            Error(ComponentQuantityErr);
+        if not PlanPallet.Get(PlanHeader."No.", PlanHeader."Version No.", PalletNo) then
+            Error(PalletNotFoundErr, PalletNo);
+        if not PlanComponent.Get(PlanHeader."No.", PlanHeader."Version No.", PalletNo, LineNo) then
+            Error(ComponentNotFoundErr, PalletNo, LineNo);
+        if PlanComponent."Fulfilment Mode" <> PlanComponent."Fulfilment Mode"::ExactSKU then
+            Error(ExactComponentEditErr);
+        PlanSource.Get(PlanHeader."No.", PlanHeader."Version No.", PlanComponent."Source Line No.");
+        PlanSource.CalcFields("Exact Planned Quantity");
+        Difference := Quantity - PlanComponent.Quantity;
+        if PlanSource."Exact Planned Quantity" + Difference > PlanSource.Quantity - PlanSource."Fill Target Quantity" then
+            Error(ExactAllocationExceededErr, PlanSource."Line No.", PlanSource.Quantity - PlanSource."Fill Target Quantity");
+        PlanPallet."Target Quantity" += Difference;
+        if PlanPallet."Target Quantity" <= 0 then
+            Error(PalletTargetErr);
+        if (Difference <> 0) and (PlanPallet."Pallet Type" = PlanPallet."Pallet Type"::Standard) then
+            PlanPallet."Pallet Type" := PlanPallet."Pallet Type"::Custom;
+        PlanPallet.Modify(true);
+        PlanComponent.Validate(Quantity, Quantity);
+        PlanComponent.Modify(true);
+        LoadScreen(StrSubstNo(ComponentUpdatedMsg, PalletNo), false);
+    end;
+
+    local procedure EditPallet(PalletNo: Integer; PalletTypeText: Text; TargetQuantity: Decimal; Description: Text)
+    var
+        PlanHeader: Record "SAL Plan Header";
+        PlanPallet: Record "SAL Plan Pallet";
+        SelectedPalletType: Enum "SAL Pallet Type";
+    begin
+        GetSelectedDraft(PlanHeader);
+        if not PlanPallet.Get(PlanHeader."No.", PlanHeader."Version No.", PalletNo) then
+            Error(PalletNotFoundErr, PalletNo);
+        if not Evaluate(SelectedPalletType, PalletTypeText) then
+            Error(PalletTypeErr, PalletTypeText);
+        if TargetQuantity <= 0 then
+            Error(PalletTargetErr);
+        PlanPallet.CalcFields("Planned Quantity", "No. of Components");
+        if TargetQuantity < PlanPallet."Planned Quantity" then
+            Error(PalletAllocationExceededErr, PalletNo, TargetQuantity, PlanPallet."Planned Quantity");
+        if (SelectedPalletType = SelectedPalletType::Standard) and (PlanPallet."No. of Components" > 1) then
+            Error(StandardPalletAllocationErr, PalletNo);
+        PlanPallet."Pallet Type" := SelectedPalletType;
+        PlanPallet."Target Quantity" := TargetQuantity;
+        PlanPallet.Description := CopyStr(Description, 1, MaxStrLen(PlanPallet.Description));
+        PlanPallet.Modify(true);
+        LoadScreen(StrSubstNo(PalletUpdatedMsg, PalletNo), false);
+    end;
+
     local procedure DeletePallet(PalletNo: Integer)
     var
         PlanComponent: Record "SAL Plan Component";
@@ -1620,6 +1710,10 @@ page 58007 "SAL Stock & Logistics Planner"
         AddInReady: Boolean;
         SelectedPlanNo: Code[20];
         SelectedVersionNo: Integer;
+        AutoFillResultMsg: Label '%1 pallet(s) filled. %2 source line(s) need an allocation rule or manual planning.', Comment = '%1 = pallet count, %2 = skipped source lines';
+        ComponentUpdatedMsg: Label 'Pallet %1 quantity updated; changed standard pallets are now Custom.', Comment = '%1 = pallet no.';
+        ExactComponentEditErr: Label 'Only an exact SKU component can be adjusted directly. Use the fill-group allocation controls for fill components.';
+        PalletUpdatedMsg: Label 'Pallet %1 updated.', Comment = '%1 = pallet no.';
         ComponentAddedMsg: Label 'Component added to pallet %1.', Comment = '%1 = pallet number';
         FillComponentAddedMsg: Label 'Fill component added to pallet %1.', Comment = '%1 = pallet number';
         FlexibleFillComponentAddedMsg: Label 'Flexible fill instruction added to pallet %1. Packing can resolve any eligible product or size.', Comment = '%1 = pallet number';

@@ -721,6 +721,8 @@
         const canEdit = caps && caps.canEdit === true;
         const actions = canEdit ? '<div class="sal-action-row">' +
             '<button type="button" class="sal-button" data-action="add-demand" data-server-action>Add demand</button>' +
+            '<button type="button" class="sal-button is-primary" data-action="fill-pallets" data-server-action>Fill pallets</button>' +
+            (caps.canManageFillGroups ? '<button type="button" class="sal-button" data-action="open-pallet-rules">Pallet rules</button>' : '') +
             '<button type="button" class="sal-button" data-action="add-pallet" data-server-action>Add pallet group</button></div>' : '';
         return [
             '<div class="sal-panel-heading">',
@@ -786,6 +788,7 @@
         const components = pallet.components || [];
         const actions = canEdit ? '<div class="sal-action-row">' +
             '<button type="button" class="sal-link-button" data-action="add-component" data-pallet-no="' + escapeHtml(pallet.palletNo) + '" data-server-action>Add component</button>' +
+            '<button type="button" class="sal-link-button" data-action="edit-pallet" data-pallet-no="' + escapeHtml(pallet.palletNo) + '" data-server-action>Edit pallet</button>' +
             '<button type="button" class="sal-link-button" data-action="delete-pallet" data-pallet-no="' + escapeHtml(pallet.palletNo) + '" data-server-action>Remove</button></div>' : '';
         const productSummary = components.length ?
             components.map(function (component) {
@@ -811,6 +814,8 @@
                                 escapeHtml(component.itemNo) + (component.variantCode ? ' · ' + escapeHtml(component.variantCode) : ''), '</strong>',
                             '<span>', escapeHtml(number(component.quantity)), ' ', escapeHtml(component.uom || 'units'),
                                 ' · ', component.isFlexibleFill ? 'Resolved by packing' : escapeHtml(component.fulfilmentMode === 'Fill Group' ? 'Fill group' : 'Exact SKU'), '</span>',
+                            canEdit && component.fulfilmentMode !== 'Fill Group' ? '<button type="button" class="sal-link-button" data-action="edit-component" data-pallet-no="' + escapeHtml(pallet.palletNo) +
+                                '" data-line-no="' + escapeHtml(component.lineNo) + '" data-server-action>Edit quantity</button>' : '',
                             canEdit ? '<button type="button" class="sal-link-button" data-action="delete-component" data-pallet-no="' + escapeHtml(pallet.palletNo) +
                                 '" data-line-no="' + escapeHtml(component.lineNo) + '" data-server-action>Remove</button>' : '',
                         '</div>'
@@ -1113,6 +1118,24 @@
             submitPallet();
             return;
         }
+        if (action === 'submit-auto-fill') {
+            submitAutoFill();
+            return;
+        }
+        if (action === 'submit-edit-component') {
+            submitEditComponent();
+            return;
+        }
+        if (action === 'submit-edit-pallet') {
+            submitEditPallet();
+            return;
+        }
+        if (action === 'use-planned-quantity') {
+            const targetInput = elements.dialog.querySelector('#sal-dialog-edit-target');
+            if (targetInput)
+                targetInput.value = target.dataset.plannedQuantity || '';
+            return;
+        }
         if (action === 'submit-component') {
             submitComponent();
             return;
@@ -1139,6 +1162,10 @@
         }
         if (action === 'open-fill-groups') {
             openNative('OpenFillGroupsRequested', []);
+            return;
+        }
+        if (action === 'open-pallet-rules') {
+            openNative('OpenPalletRulesRequested', []);
             return;
         }
         if (action === 'new-sales-order') {
@@ -1216,6 +1243,10 @@
             addPallet();
             return;
         }
+        if (action === 'fill-pallets') {
+            openAutoFill();
+            return;
+        }
         if (action === 'convert-fill') {
             convertRemainingToFill(Number(target.dataset.sourceLine));
             return;
@@ -1231,6 +1262,14 @@
         }
         if (action === 'add-component') {
             addComponent(Number(target.dataset.palletNo));
+            return;
+        }
+        if (action === 'edit-component') {
+            editComponent(Number(target.dataset.palletNo), Number(target.dataset.lineNo));
+            return;
+        }
+        if (action === 'edit-pallet') {
+            editPallet(Number(target.dataset.palletNo));
             return;
         }
         if (action === 'delete-component') {
@@ -1576,6 +1615,100 @@
                 '<button class="sal-button is-primary" type="button" data-action="submit-pallet">Add pallet group</button></div>',
             '</div>'
         ].join(''), '#sal-dialog-pallet-type');
+    }
+
+    function openAutoFill() {
+        openDialog([
+            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Physical pallet plan</span><h2 id="sal-dialog-title">Fill pallets from demand</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Create full standard pallets from the unallocated exact order lines using active pallet rules. Short balances become editable Custom pallets. Existing allocations remain unchanged; fill-group balances and lines without rules remain for review.</p>',
+                '<div class="sal-dialog-grid">',
+                    '<label class="is-wide"><input id="sal-dialog-allow-mixed" type="checkbox"> Allow mixed sizes on a short pallet when they are from the same order, destination and unit, and fit the same capacity</label>',
+                '</div>',
+                '<p class="sal-dialog-intro">Mixed pallets show each exact product / size as a separate component. Use Add pallet group for a custom composition or quantity that should not follow a rule.</p>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-auto-fill">Fill pallets</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-allow-mixed');
+    }
+
+    function submitAutoFill() {
+        const allowMixed = Boolean(elements.dialog && elements.dialog.querySelector('#sal-dialog-allow-mixed')?.checked);
+        closeDialog();
+        invoke('AutoFillPalletsRequested', [allowMixed], true);
+    }
+
+    function editComponent(palletNo, lineNo) {
+        const pallet = ((localState.data.plan || {}).pallets || []).find(function (entry) { return Number(entry.palletNo) === palletNo; });
+        const component = pallet && (pallet.components || []).find(function (entry) { return Number(entry.lineNo) === lineNo; });
+        if (!component || component.fulfilmentMode === 'Fill Group')
+            return;
+        openDialog([
+            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Pallet ', escapeHtml(palletNo), '</span><h2 id="sal-dialog-title">Edit exact quantity</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">', escapeHtml(component.itemNo), ' · ', escapeHtml(component.uom || 'units'), '. The pallet target will update with this quantity. A changed Standard pallet becomes Custom.</p>',
+                '<label>Quantity<input id="sal-dialog-edit-quantity" type="number" min="0.01" step="0.01" value="', escapeHtml(component.quantity), '"></label>',
+                '<input id="sal-dialog-edit-pallet" type="hidden" value="', escapeHtml(palletNo), '">',
+                '<input id="sal-dialog-edit-line" type="hidden" value="', escapeHtml(lineNo), '">',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-edit-component">Save quantity</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-edit-quantity');
+    }
+
+    function submitEditComponent() {
+        const palletNo = Number(dialogValue('#sal-dialog-edit-pallet'));
+        const lineNo = Number(dialogValue('#sal-dialog-edit-line'));
+        const quantity = Number(dialogValue('#sal-dialog-edit-quantity'));
+        if (!Number.isSafeInteger(palletNo) || palletNo < 1 || !Number.isSafeInteger(lineNo) || lineNo < 1 || !Number.isFinite(quantity) || quantity <= 0) {
+            showDialogError('Enter a valid quantity greater than zero.');
+            return;
+        }
+        closeDialog();
+        invoke('EditExactComponentRequested', [palletNo, lineNo, quantity], true);
+    }
+
+    function editPallet(palletNo) {
+        const pallet = ((localState.data.plan || {}).pallets || []).find(function (entry) { return Number(entry.palletNo) === palletNo; });
+        if (!pallet)
+            return;
+        const types = ['Standard', 'Custom', 'Mixed'];
+        openDialog([
+            '<div class="sal-dialog" role="dialog" aria-modal="true" aria-labelledby="sal-dialog-title">',
+                '<div class="sal-dialog-head"><div><span class="sal-eyebrow">Pallet ', escapeHtml(palletNo), '</span><h2 id="sal-dialog-title">Edit pallet</h2></div>',
+                '<button class="sal-dialog-close" type="button" data-action="close-dialog" aria-label="Close">×</button></div>',
+                '<p class="sal-dialog-intro">Adjust the physical pallet type and target. It currently contains ', escapeHtml(number(pallet.plannedQuantity)), ' allocated units; the target cannot be lower.</p>',
+                '<div class="sal-dialog-grid">',
+                    '<label>Pallet type<select id="sal-dialog-edit-type">', types.map(function (type) {
+                        return '<option value="' + type + '"' + (type === pallet.palletType ? ' selected' : '') + '>' + type + '</option>';
+                    }).join(''), '</select></label>',
+                    '<label>Target quantity<input id="sal-dialog-edit-target" type="number" min="0.01" step="0.01" value="', escapeHtml(pallet.targetQuantity), '"></label>',
+                    '<label class="is-wide">Description<input id="sal-dialog-edit-description" maxlength="100" value="', escapeHtml(pallet.description || ''), '"></label>',
+                '</div>',
+                '<button class="sal-link-button" type="button" data-action="use-planned-quantity" data-planned-quantity="', escapeHtml(pallet.plannedQuantity), '">Set target to allocated quantity</button>',
+                '<input id="sal-dialog-edit-pallet-no" type="hidden" value="', escapeHtml(palletNo), '">',
+                '<div class="sal-dialog-error" id="sal-dialog-error" role="alert"></div>',
+                '<div class="sal-dialog-actions"><button class="sal-button" type="button" data-action="close-dialog">Cancel</button>',
+                '<button class="sal-button is-primary" type="button" data-action="submit-edit-pallet">Save pallet</button></div>',
+            '</div>'
+        ].join(''), '#sal-dialog-edit-type');
+    }
+
+    function submitEditPallet() {
+        const palletNo = Number(dialogValue('#sal-dialog-edit-pallet-no'));
+        const palletType = dialogValue('#sal-dialog-edit-type');
+        const targetQuantity = Number(dialogValue('#sal-dialog-edit-target'));
+        const description = dialogValue('#sal-dialog-edit-description').trim();
+        if (!Number.isSafeInteger(palletNo) || palletNo < 1 || !['Standard', 'Custom', 'Mixed'].includes(palletType) ||
+            !Number.isFinite(targetQuantity) || targetQuantity <= 0) {
+            showDialogError('Choose a valid pallet type and positive target quantity.');
+            return;
+        }
+        closeDialog();
+        invoke('EditPalletRequested', [palletNo, palletType, targetQuantity, description], true);
     }
 
     function addComponent(palletNo) {

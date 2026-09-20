@@ -1,5 +1,172 @@
 codeunit 58006 "SAL Allocation Management"
 {
+    procedure AutoFillPallets(var PlanHeader: Record "SAL Plan Header"; AllowMixed: Boolean; var CreatedPallets: Integer; var SkippedLines: Integer)
+    var
+        PendingSource: Record "SAL Plan Source" temporary;
+        PlanSource: Record "SAL Plan Source";
+        StandardPalletType: Enum "SAL Pallet Type";
+        PalletCapacity: Decimal;
+        Remaining: Decimal;
+    begin
+        CreatedPallets := 0;
+        SkippedLines := 0;
+        LockAndGetPlan(PlanHeader);
+        if PlanHeader.Status <> PlanHeader.Status::Draft then
+            Error(DraftRequiredErr, PlanHeader."No.", PlanHeader."Version No.", PlanHeader.Status);
+
+        PlanSource.SetRange("Plan No.", PlanHeader."No.");
+        PlanSource.SetRange("Version No.", PlanHeader."Version No.");
+        if PlanSource.FindSet() then
+            repeat
+                PlanSource.CalcFields("Exact Planned Quantity");
+                Remaining := PlanSource.Quantity - PlanSource."Fill Target Quantity" - PlanSource."Exact Planned Quantity";
+                if Remaining > 0 then
+                    if FindPalletCapacity(PlanSource, PalletCapacity) then begin
+                        while Remaining >= PalletCapacity do begin
+                            CreateExactPallet(PlanHeader, PlanSource, PalletCapacity, StandardPalletType::Standard, CreatedPallets);
+                            Remaining -= PalletCapacity;
+                        end;
+                        if Remaining > 0 then begin
+                            PendingSource.Init();
+                            PendingSource.TransferFields(PlanSource);
+                            PendingSource.Quantity := Remaining;
+                            PendingSource."Allocated Pallet Quantity" := PalletCapacity;
+                            PendingSource.Insert();
+                        end;
+                    end else
+                        SkippedLines += 1;
+            until PlanSource.Next() = 0;
+
+        if PendingSource.FindSet() then
+            repeat
+                if PendingSource.Quantity > 0 then
+                    CreateShortPallet(PlanHeader, PendingSource, AllowMixed, CreatedPallets);
+            until PendingSource.Next() = 0;
+
+        if CreatedPallets > 0 then
+            LogEvent(PlanHeader, AutoFilledEventTypeTxt,
+                StrSubstNo(AutoFilledDescriptionTxt, CreatedPallets, SkippedLines, AllowMixed));
+    end;
+
+    local procedure FindPalletCapacity(PlanSource: Record "SAL Plan Source"; var PalletCapacity: Decimal): Boolean
+    var
+        TemplateRule: Record "SAL Template Rule";
+        BestScore: Integer;
+        RuleScore: Integer;
+        FoundRule: Boolean;
+    begin
+        PalletCapacity := 0;
+        TemplateRule.SetRange(Active, true);
+        TemplateRule.SetRange("Unit of Measure Code", PlanSource."Unit of Measure Code");
+        if TemplateRule.FindSet() then
+            repeat
+                if ((TemplateRule."Customer No." = '') or (TemplateRule."Customer No." = PlanSource."Customer No.")) and
+                   ((TemplateRule."Ship-to Code" = '') or (TemplateRule."Ship-to Code" = PlanSource."Destination Code")) and
+                   ((TemplateRule."Item No." = '') or (TemplateRule."Item No." = PlanSource."Item No.")) and
+                   ((StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) or (TemplateRule."Item No." = PlanSource."Item No."))
+                then begin
+                    RuleScore := 0;
+                    if TemplateRule."Customer No." <> '' then
+                        RuleScore += 1;
+                    if TemplateRule."Ship-to Code" <> '' then
+                        RuleScore += 2;
+                    if TemplateRule."Item No." <> '' then
+                        RuleScore += 4;
+                    if FoundRule and (RuleScore = BestScore) then
+                        Error(AmbiguousRuleErr, PlanSource."Item No.", PlanSource."Customer No.", PlanSource."Destination Code");
+                    if not FoundRule or (RuleScore > BestScore) then begin
+                        FoundRule := true;
+                        BestScore := RuleScore;
+                        PalletCapacity := TemplateRule."Units per Pallet";
+                    end;
+                end;
+            until TemplateRule.Next() = 0;
+        exit(FoundRule);
+    end;
+
+    local procedure CreateExactPallet(PlanHeader: Record "SAL Plan Header"; PlanSource: Record "SAL Plan Source"; Quantity: Decimal; PalletType: Enum "SAL Pallet Type"; var CreatedPallets: Integer)
+    var
+        PlanPallet: Record "SAL Plan Pallet";
+    begin
+        if CreatedPallets >= 1000 then
+            Error(AutoFillLimitErr);
+        PlanPallet.Init();
+        PlanPallet."Plan No." := PlanHeader."No.";
+        PlanPallet."Version No." := PlanHeader."Version No.";
+        PlanPallet."Pallet Type" := PalletType;
+        PlanPallet."Target Quantity" := Quantity;
+        PlanPallet.Description := CopyStr(PlanSource."Item Description", 1, MaxStrLen(PlanPallet.Description));
+        PlanPallet.Insert(true);
+        AddExactComponent(PlanPallet, PlanSource, Quantity);
+        CreatedPallets += 1;
+    end;
+
+    local procedure CreateShortPallet(PlanHeader: Record "SAL Plan Header"; var PendingSource: Record "SAL Plan Source" temporary; AllowMixed: Boolean; var CreatedPallets: Integer)
+    var
+        OtherSource: Record "SAL Plan Source" temporary;
+        PlanPallet: Record "SAL Plan Pallet";
+        Capacity: Decimal;
+        TakeQuantity: Decimal;
+    begin
+        if CreatedPallets >= 1000 then
+            Error(AutoFillLimitErr);
+        Capacity := PendingSource."Allocated Pallet Quantity";
+        PlanPallet.Init();
+        PlanPallet."Plan No." := PlanHeader."No.";
+        PlanPallet."Version No." := PlanHeader."Version No.";
+        PlanPallet."Pallet Type" := PlanPallet."Pallet Type"::Custom;
+        PlanPallet."Target Quantity" := PendingSource.Quantity;
+        PlanPallet.Description := CopyStr(ShortPalletDescriptionTxt, 1, MaxStrLen(PlanPallet.Description));
+        PlanPallet.Insert(true);
+        AddExactComponent(PlanPallet, PendingSource, PendingSource.Quantity);
+        PendingSource.Quantity := 0;
+        PendingSource.Modify();
+        CreatedPallets += 1;
+
+        if not AllowMixed then
+            exit;
+        OtherSource.Copy(PendingSource, true);
+        if OtherSource.FindSet() then
+            repeat
+                if (OtherSource."Line No." <> PendingSource."Line No.") and (OtherSource.Quantity > 0) and
+                   ((OtherSource."Item No." <> PendingSource."Item No.") or
+                    (OtherSource."Variant Code" <> PendingSource."Variant Code")) and
+                   (OtherSource."Source Type" = PendingSource."Source Type") and
+                   (OtherSource."Source Document No." = PendingSource."Source Document No.") and
+                   (OtherSource."Customer No." = PendingSource."Customer No.") and
+                   (OtherSource."Destination Code" = PendingSource."Destination Code") and
+                   (OtherSource."Execution Route" = PendingSource."Execution Route") and
+                   (OtherSource."Facility Work Type" = PendingSource."Facility Work Type") and
+                   (OtherSource."Unit of Measure Code" = PendingSource."Unit of Measure Code") and
+                   (OtherSource."Allocated Pallet Quantity" = Capacity) and
+                   (PlanPallet."Target Quantity" < Capacity)
+                then begin
+                    TakeQuantity := OtherSource.Quantity;
+                    if TakeQuantity > Capacity - PlanPallet."Target Quantity" then
+                        TakeQuantity := Capacity - PlanPallet."Target Quantity";
+                    PlanPallet."Pallet Type" := PlanPallet."Pallet Type"::Mixed;
+                    PlanPallet."Target Quantity" += TakeQuantity;
+                    PlanPallet.Modify(true);
+                    AddExactComponent(PlanPallet, OtherSource, TakeQuantity);
+                    OtherSource.Quantity -= TakeQuantity;
+                    OtherSource.Modify();
+                end;
+            until OtherSource.Next() = 0;
+    end;
+
+    local procedure AddExactComponent(PlanPallet: Record "SAL Plan Pallet"; PlanSource: Record "SAL Plan Source"; Quantity: Decimal)
+    var
+        PlanComponent: Record "SAL Plan Component";
+    begin
+        PlanComponent.Init();
+        PlanComponent."Plan No." := PlanPallet."Plan No.";
+        PlanComponent."Version No." := PlanPallet."Version No.";
+        PlanComponent."Pallet No." := PlanPallet."Pallet No.";
+        PlanComponent.Validate("Source Line No.", PlanSource."Line No.");
+        PlanComponent.Validate(Quantity, Quantity);
+        PlanComponent.Insert(true);
+    end;
+
     procedure ConvertRemainingToFill(var CurrentPlanHeader: Record "SAL Plan Header"; SourceLineNo: Integer; FillGroupCode: Code[20]; ConvertQuantity: Decimal; AllowMixed: Boolean; MembersJson: Text; Reason: Text; var ResultPlanHeader: Record "SAL Plan Header")
     var
         PlanSource: Record "SAL Plan Source";
@@ -540,6 +707,11 @@ codeunit 58006 "SAL Allocation Management"
     end;
 
     var
+        AmbiguousRuleErr: Label 'More than one equally specific pallet rule matches item %1, customer %2 and destination %3. Resolve duplicate rules before auto-filling.', Comment = '%1 = item, %2 = customer, %3 = destination';
+        AutoFilledDescriptionTxt: Label '%1 pallets auto-filled; %2 exact source lines skipped without a matching rule. Mixed short pallets allowed: %3.', Comment = '%1 = pallet count, %2 = skipped line count, %3 = mixed choice';
+        AutoFilledEventTypeTxt: Label 'Pallets Auto-filled', Locked = true;
+        AutoFillLimitErr: Label 'Auto-fill would create more than 1,000 pallets. Split the demand or review the pallet rules.';
+        ShortPalletDescriptionTxt: Label 'Short or mixed pallet';
         AdjustBelowPlannedErr: Label 'The new fill target of %1 cannot be below the %2 units already planned to fill members.', Comment = '%1 = proposed target, %2 = fill planned';
         AdjustExactConflictErr: Label 'The new fill target of %1 would leave less exact demand than the %2 exact units already planned.', Comment = '%1 = proposed target, %2 = exact planned';
         AdjustTargetRangeErr: Label 'Enter a new fill target from zero up to, but not including, the current target of %1. Use Convert remaining to fill when increasing it.', Comment = '%1 = current target';
