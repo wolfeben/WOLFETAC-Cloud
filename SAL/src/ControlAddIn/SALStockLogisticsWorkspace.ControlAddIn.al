@@ -21,4 +21,5 @@ controladdin "SAL Stock Logistics Workspace"
     event RefreshRequested();
     event OpenSourceRequested(SourceType: Text; DocumentNo: Text);
     event OpenPlanRequested(PlanNo: Text; VersionNo: Integer);
+    event OpenActualPalletRequested(ItemNo: Text; VariantCode: Text; PalletNo: Text);
 }

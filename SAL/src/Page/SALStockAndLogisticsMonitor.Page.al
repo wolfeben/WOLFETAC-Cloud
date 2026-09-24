@@ -27,6 +27,8 @@ page 58006 "SAL Stock & Logistics Monitor"
         tabledata "Purch. Inv. Header" = r,
         tabledata "Purch. Inv. Line" = r,
         tabledata "Shipping Agent" = r,
+        tabledata "DIY_Pallet Allocation" = r,
+        tabledata "DIY_Pallet Information" = r,
         tabledata Location = r;
 
     layout
@@ -56,6 +58,11 @@ page 58006 "SAL Stock & Logistics Monitor"
                 trigger OpenPlanRequested(PlanNo: Text; VersionNo: Integer)
                 begin
                     OpenPlan(PlanNo, VersionNo);
+                end;
+
+                trigger OpenActualPalletRequested(ItemNo: Text; VariantCode: Text; PalletNo: Text)
+                begin
+                    OpenActualPallet(ItemNo, VariantCode, PalletNo);
                 end;
             }
         }
@@ -590,6 +597,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         PlanComponent: Record "SAL Plan Component";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
+        ActualPalletDetails: JsonArray;
         PalletDetails: JsonArray;
         SizeItem: JsonObject;
         SizeSummary: JsonArray;
@@ -621,6 +629,10 @@ page 58006 "SAL Stock & Logistics Monitor"
         RouteSummary: Text;
         WorkTypeSummary: Text;
     begin
+        BuildActualPalletDetails(SourceType, DocumentNo, ActualPalletDetails);
+        Item.Add('actualPalletCount', ActualPalletDetails.Count());
+        Item.Add('actualPalletDetails', ActualPalletDetails);
+
         if (DocumentNo = '') or not FindActiveSALPlan(SourceType, DocumentNo, PlanHeader) then begin
             if SourceReleased then
                 AddEmptySALPlanContext(Item, 'Marketer not confirmed', 'awaiting-plan', 'Awaiting plan')
@@ -838,8 +850,155 @@ page 58006 "SAL Stock & Logistics Monitor"
         until PlanPallet.Next() = 0;
     end;
 
-    local procedure AddNoSALPlanContext(var Item: JsonObject; Marketer: Text)
+    local procedure BuildActualPalletDetails(SourceType: Enum "SAL Source Type"; DocumentNo: Code[20]; var ActualPalletDetails: JsonArray)
+    var
+        Allocation: Record "DIY_Pallet Allocation";
+        PalletInfo: Record "DIY_Pallet Information";
+        ComponentItem: JsonObject;
+        Components: JsonArray;
+        PalletItem: JsonObject;
+        PalletNos: List of [Code[20]];
+        ComponentKeys: List of [Text];
+        ComponentKey: Text;
+        PalletNo: Code[20];
+        LotSummary: Text;
+        LocationSummary: Text;
+        StatusSummary: Text;
+        SSCCSummary: Text;
+        DispatchSummary: Text;
+        OriginalPalletSummary: Text;
+        TotalInventory: Decimal;
+        EarliestPackingDate: Date;
+        LatestExpirationDate: Date;
     begin
+        Clear(ActualPalletDetails);
+        if DocumentNo = '' then
+            exit;
+
+        Allocation.SetRange("Sales Order No.", DocumentNo);
+        case SourceType of
+            SourceType::SalesOrder:
+                Allocation.SetRange("Document Type", Allocation."Document Type"::Order);
+            SourceType::TransferOrder:
+                Allocation.SetRange("Document Type", Allocation."Document Type"::"Transfer Order");
+            else
+                exit;
+        end;
+
+        if Allocation.FindSet() then
+            repeat
+                if (Allocation."Pallet No." <> '') and not PalletNos.Contains(Allocation."Pallet No.") then
+                    PalletNos.Add(Allocation."Pallet No.");
+            until Allocation.Next() = 0;
+
+        foreach PalletNo in PalletNos do begin
+            Clear(Components);
+            Clear(ComponentKeys);
+            Clear(LotSummary);
+            Clear(LocationSummary);
+            Clear(StatusSummary);
+            Clear(SSCCSummary);
+            Clear(DispatchSummary);
+            Clear(OriginalPalletSummary);
+            Clear(TotalInventory);
+            Clear(EarliestPackingDate);
+            Clear(LatestExpirationDate);
+
+            Allocation.Reset();
+            Allocation.SetRange("Pallet No.", PalletNo);
+            Allocation.SetRange("Sales Order No.", DocumentNo);
+            case SourceType of
+                SourceType::SalesOrder:
+                    Allocation.SetRange("Document Type", Allocation."Document Type"::Order);
+                SourceType::TransferOrder:
+                    Allocation.SetRange("Document Type", Allocation."Document Type"::"Transfer Order");
+            end;
+            if Allocation.FindSet() then
+                repeat
+                    ComponentKey := Allocation."Item No." + '|' + Allocation."Variant Code";
+                    if not ComponentKeys.Contains(ComponentKey) then begin
+                        ComponentKeys.Add(ComponentKey);
+                        Clear(ComponentItem);
+                        ComponentItem.Add('itemNo', Allocation."Item No.");
+                        ComponentItem.Add('variantCode', Allocation."Variant Code");
+                        ComponentItem.Add('palletNo', Allocation."Pallet No.");
+                        ComponentItem.Add('sourceLineNo', Allocation."Sales Line No.");
+
+                        if PalletInfo.Get(Allocation."Item No.", Allocation."Variant Code", Allocation."Pallet No.") then begin
+                            PalletInfo.CalcFields(Inventory, "Current Location", "Expiration Date");
+                            ComponentItem.Add('description', PalletInfo.Description);
+                            ComponentItem.Add('lotNo', PalletInfo."Lot No.");
+                            ComponentItem.Add('inventory', PalletInfo.Inventory);
+                            ComponentItem.Add('unitOfMeasure', PalletInfo."Base Unit of Measure");
+                            ComponentItem.Add('status', Format(PalletInfo.Status));
+                            ComponentItem.Add('sscc', PalletInfo.SSCC);
+                            ComponentItem.Add('currentLocation', PalletInfo."Current Location");
+                            ComponentItem.Add('expirationDate', FormatDate(PalletInfo."Expiration Date"));
+                            ComponentItem.Add('originalPackingDate', FormatDate(PalletInfo."Original Packing Date"));
+
+                            AddDelimitedValue(LotSummary, PalletInfo."Lot No.");
+                            AddDelimitedValue(LocationSummary, PalletInfo."Current Location");
+                            AddDelimitedValue(StatusSummary, Format(PalletInfo.Status));
+                            AddDelimitedValue(SSCCSummary, PalletInfo.SSCC);
+                            AddDelimitedValue(DispatchSummary, PalletInfo."Dispatch No.");
+                            AddDelimitedValue(OriginalPalletSummary, PalletInfo."Original Pallet No.");
+                            TotalInventory += PalletInfo.Inventory;
+                            if (PalletInfo."Original Packing Date" <> 0D) and
+                               ((EarliestPackingDate = 0D) or (PalletInfo."Original Packing Date" < EarliestPackingDate))
+                            then
+                                EarliestPackingDate := PalletInfo."Original Packing Date";
+                            if PalletInfo."Expiration Date" > LatestExpirationDate then
+                                LatestExpirationDate := PalletInfo."Expiration Date";
+                        end else begin
+                            ComponentItem.Add('description', 'Pallet master record not found');
+                            ComponentItem.Add('lotNo', '');
+                            ComponentItem.Add('inventory', 0);
+                            ComponentItem.Add('unitOfMeasure', '');
+                            ComponentItem.Add('status', 'Allocation only');
+                            ComponentItem.Add('sscc', '');
+                            ComponentItem.Add('currentLocation', '');
+                            ComponentItem.Add('expirationDate', '');
+                            ComponentItem.Add('originalPackingDate', '');
+                        end;
+                        Components.Add(ComponentItem);
+                    end;
+                until Allocation.Next() = 0;
+
+            Clear(PalletItem);
+            PalletItem.Add('palletNo', PalletNo);
+            PalletItem.Add('lotNumbers', LotSummary);
+            PalletItem.Add('sscc', SSCCSummary);
+            PalletItem.Add('status', StatusSummary);
+            PalletItem.Add('currentLocation', LocationSummary);
+            PalletItem.Add('inventory', TotalInventory);
+            PalletItem.Add('componentCount', Components.Count());
+            PalletItem.Add('originalPackingDate', FormatDate(EarliestPackingDate));
+            PalletItem.Add('expirationDate', FormatDate(LatestExpirationDate));
+            PalletItem.Add('dispatchNo', DispatchSummary);
+            PalletItem.Add('originalPalletNo', OriginalPalletSummary);
+            PalletItem.Add('components', Components);
+            ActualPalletDetails.Add(PalletItem);
+        end;
+    end;
+
+    local procedure AddDelimitedValue(var Summary: Text; Value: Text)
+    begin
+        if Value = '' then
+            exit;
+        if Summary = '' then begin
+            Summary := Value;
+            exit;
+        end;
+        if StrPos(' · ' + Summary + ' · ', ' · ' + Value + ' · ') = 0 then
+            Summary += ' · ' + Value;
+    end;
+
+    local procedure AddNoSALPlanContext(var Item: JsonObject; Marketer: Text)
+    var
+        ActualPalletDetails: JsonArray;
+    begin
+        Item.Add('actualPalletCount', 0);
+        Item.Add('actualPalletDetails', ActualPalletDetails);
         AddEmptySALPlanContext(Item, Marketer, 'not-applicable', 'Not applicable');
     end;
 
@@ -1134,6 +1293,21 @@ page 58006 "SAL Stock & Logistics Monitor"
         Page.Run(Page::"SAL Stock & Logistics Planner", PlanHeader);
     end;
 
+    local procedure OpenActualPallet(ItemNoText: Text; VariantCodeText: Text; PalletNoText: Text)
+    var
+        PalletInfo: Record "DIY_Pallet Information";
+        ItemNo: Code[20];
+        VariantCode: Code[20];
+        PalletNo: Code[20];
+    begin
+        ItemNo := CopyStr(ItemNoText, 1, MaxStrLen(ItemNo));
+        VariantCode := CopyStr(VariantCodeText, 1, MaxStrLen(VariantCode));
+        PalletNo := CopyStr(PalletNoText, 1, MaxStrLen(PalletNo));
+        if not PalletInfo.Get(ItemNo, VariantCode, PalletNo) then
+            Error(ActualPalletNotFoundErr, PalletNo, ItemNo, VariantCode);
+        Page.Run(Page::"DIY_Pallet No. Info. Card", PalletInfo);
+    end;
+
     local procedure FormatDate(Value: Date): Text
     begin
         if Value = 0D then
@@ -1152,5 +1326,6 @@ page 58006 "SAL Stock & Logistics Monitor"
         MissingDateCount: Integer;
         ReferenceCount: Integer;
         PlanNotFoundErr: Label 'SAL plan %1 version %2 was not found.', Comment = '%1 = plan no., %2 = version no.';
+        ActualPalletNotFoundErr: Label 'Pallet %1 for item %2 and variant %3 was not found in Avocados Core.', Comment = '%1 = pallet no., %2 = item no., %3 = variant code';
         SourceTypeErr: Label '%1 is not a supported packing and logistics monitor source type.', Comment = '%1 = supplied source type';
 }

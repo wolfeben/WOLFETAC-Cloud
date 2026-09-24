@@ -602,8 +602,12 @@
             (item.hasPendingDraft ? ' · draft ' + text(item.pendingDraftPlanNo) + ' v' + number(item.pendingDraftVersionNo) + ' pending' : '') :
             'Select in Planner to create one';
         const priorityValue = Number(item.salPriority) > 0 ? number(item.salPriority) : 'Not set';
-        const palletValue = hasPlan ? number(item.palletCount) + ' involved' : 'No pallet plan';
-        const palletNote = hasPlan ? 'Selected document · ' + number(item.standardPalletCount) + ' standard · ' + number(item.customPalletCount) + ' custom · ' + number(item.mixedPalletCount) + ' mixed' : 'Create a SAL plan to define physical pallets';
+        const actualPalletCount = Number(item.actualPalletCount || 0);
+        const plannedPalletCount = Number(item.palletCount || 0);
+        const palletValue = actualPalletCount + ' allocated' + (hasPlan ? ' · ' + plannedPalletCount + ' planned' : '');
+        const palletNote = actualPalletCount ? 'Actual Avocados Core pallet IDs and lots are available' :
+            hasPlan ? 'No actual Core pallets allocated yet · ' + number(item.standardPalletCount) + ' standard · ' + number(item.customPalletCount) + ' custom · ' + number(item.mixedPalletCount) + ' mixed planned' :
+            'No actual pallets allocated and no SAL plan linked';
         const quantityValue = movementQuantitySummary(item);
         const quantityNote = number(item.lineCount) + ' BC item lines · original unit of measure retained';
 
@@ -641,7 +645,7 @@
             renderSizeSummary(item),
             '<section class="frm-panels">',
                 '<article><span class="frm-eyebrow">CURRENT DATA TRUTH</span><h3>', escapeHtml(item.connectionState || 'BC document data'), '</h3><p>', escapeHtml(item.dataNote || 'No additional data note supplied.'), '</p></article>',
-                '<article><span class="frm-eyebrow">UNCONSIGNED &amp; PACKING EXCEPTIONS</span><h3>Not connected</h3><p>Physical pallet IDs, scan mismatches, completion and Unconsigned composition remain on-prem. No zero count is shown because the Cloud value is unknown.</p></article>',
+                '<article><span class="frm-eyebrow">PALLET &amp; PACKING DATA</span><h3>', actualPalletCount ? escapeHtml(number(actualPalletCount) + ' allocated pallet' + (actualPalletCount === 1 ? '' : 's')) : 'No allocated pallets', '</h3><p>Allocated pallet IDs, lots, SSCC, inventory and location come from Avocados Core. Scanner mismatches, completion and Unconsigned composition remain unavailable until the Packing Facility feed is connected.</p></article>',
                 '<article><span class="frm-eyebrow">FINANCE &amp; INVOICE</span><h3>', escapeHtml(commercialInvoiceNo), '</h3><p>', escapeHtml(commercialInvoiceNote), '. Freight supplier invoices remain a separate future workflow and will require Finance approval.</p>', commercialInvoiceAction, '</article>',
                 '<article><span class="frm-eyebrow">NEXT CONNECTIONS</span><h3>Packing Facility, carrier and FruitBank</h3><p>Versioned facility acknowledgement and pallet events will activate Yet to pack, Packing, Ready and Unconsigned. Carrier milestones and FruitBank can then share the same movement identity.</p></article>',
             '</section>'
@@ -652,25 +656,64 @@
         return Array.isArray(item && item.palletDetails) ? item.palletDetails : [];
     }
 
+    function actualPalletDetails(item) {
+        return Array.isArray(item && item.actualPalletDetails) ? item.actualPalletDetails : [];
+    }
+
     function palletMetricCard(item, value, note) {
-        if (!item.salPlanNo || !palletDetails(item).length)
-            return metricCard('Physical pallet plan', value, note);
+        if (!actualPalletDetails(item).length && !palletDetails(item).length)
+            return metricCard('Pallet tracking', value, note);
         return '<button class="frm-metric frm-metric-button" type="button" data-action="toggle-pallets" aria-expanded="' +
-            String(state.palletsExpanded) + '"><span>Physical pallet plan</span><strong>' + escapeHtml(value) +
-            '</strong><small>' + escapeHtml(note) + '</small><em>' + (state.palletsExpanded ? 'Hide pallet listing' : 'View pallet IDs and composition') + '</em></button>';
+            String(state.palletsExpanded) + '"><span>Pallet tracking</span><strong>' + escapeHtml(value) +
+            '</strong><small>' + escapeHtml(note) + '</small><em>' + (state.palletsExpanded ? 'Hide pallet listing' : 'View actual IDs, lots and plan') + '</em></button>';
     }
 
     function renderPalletDetails(item) {
-        const pallets = palletDetails(item);
-        if (!state.palletsExpanded || !pallets.length)
+        const actualPallets = actualPalletDetails(item);
+        const plannedPallets = palletDetails(item);
+        if (!state.palletsExpanded || (!actualPallets.length && !plannedPallets.length))
             return '';
-        return '<section class="frm-pallets"><div class="frm-section-head"><div><span class="frm-eyebrow">PLANNED PALLETS</span>' +
-            '<h3>Pallet IDs and composition</h3></div><div class="frm-section-actions"><span class="frm-chip">' +
-            escapeHtml(number(pallets.length)) + ' pallet' + (pallets.length === 1 ? '' : 's') + '</span>' +
-            '<button class="frm-button" type="button" data-action="open-plan" data-plan-no="' + escapeHtml(item.salPlanNo) +
-            '" data-version-no="' + escapeHtml(item.salPlanVersionNo) + '">Open full SAL plan</button></div></div>' +
-            '<p class="frm-pallet-note">Pallet 1, Pallet 2 and similar values are planning sequence IDs. The labelled/scanned physical pallet ID will appear separately when the Packing Facility feed supplies it.</p>' +
-            '<div class="frm-pallet-list">' + pallets.map(renderPallet).join('') + '</div></section>';
+        const actualSection = '<div class="frm-pallet-group is-actual"><div class="frm-section-head"><div><span class="frm-eyebrow">ACTUAL / ALLOCATED PALLETS</span>' +
+            '<h3>Avocados Core pallet and lot tracking</h3></div><span class="frm-chip">' + escapeHtml(number(actualPallets.length)) +
+            ' allocated</span></div>' + (actualPallets.length ? '<div class="frm-pallet-list">' + actualPallets.map(renderActualPallet).join('') + '</div>' :
+                '<div class="frm-component-empty">No actual pallet has been allocated to this document in Avocados Core yet.</div>') + '</div>';
+        const planAction = item.salPlanNo ? '<button class="frm-button" type="button" data-action="open-plan" data-plan-no="' + escapeHtml(item.salPlanNo) +
+            '" data-version-no="' + escapeHtml(item.salPlanVersionNo) + '">Open full SAL plan</button>' : '';
+        const plannedSection = '<div class="frm-pallet-group is-planned"><div class="frm-section-head"><div><span class="frm-eyebrow">PLANNED PALLETS</span>' +
+            '<h3>SAL intended pallet composition</h3></div><div class="frm-section-actions"><span class="frm-chip">' +
+            escapeHtml(number(plannedPallets.length)) + ' planned</span>' + planAction + '</div></div>' +
+            '<p class="frm-pallet-note">Pallet 1, Pallet 2 and similar values are SAL planning sequence IDs. They are not presented as physical barcode IDs and are not assumed to match an allocated Core pallet.</p>' +
+            (plannedPallets.length ? '<div class="frm-pallet-list">' + plannedPallets.map(renderPallet).join('') + '</div>' :
+                '<div class="frm-component-empty">No SAL pallet plan is linked to this document.</div>') + '</div>';
+        return '<section class="frm-pallets">' + actualSection + plannedSection + '</section>';
+    }
+
+    function renderActualPallet(pallet) {
+        const components = Array.isArray(pallet.components) ? pallet.components : [];
+        return '<article class="frm-pallet-card is-actual"><div class="frm-pallet-head"><div><span class="frm-eyebrow">ACTUAL PALLET ID</span>' +
+            '<h4>' + escapeHtml(pallet.palletNo || 'Pallet number unavailable') + '</h4></div><div class="frm-pallet-chips">' +
+            '<span class="frm-chip is-success">' + escapeHtml(pallet.status || 'Status not supplied') + '</span>' +
+            (pallet.lotNumbers ? '<span class="frm-chip">Lot ' + escapeHtml(pallet.lotNumbers) + '</span>' : '<span class="frm-chip is-warning">Lot not supplied</span>') + '</div></div>' +
+            '<div class="frm-pallet-facts"><span><small>Inventory</small><strong>' + escapeHtml(number(pallet.inventory)) +
+            '</strong></span><span><small>Location</small><strong>' + escapeHtml(pallet.currentLocation || 'Not supplied') +
+            '</strong></span><span><small>SSCC</small><strong>' + escapeHtml(pallet.sscc || 'Not supplied') +
+            '</strong></span><span><small>Packed / expires</small><strong>' + escapeHtml(dateLabel(pallet.originalPackingDate)) + ' / ' +
+            escapeHtml(dateLabel(pallet.expirationDate)) + '</strong></span></div>' +
+            (pallet.dispatchNo || pallet.originalPalletNo ? '<p class="frm-pallet-description">' +
+                escapeHtml((pallet.dispatchNo ? 'Dispatch ' + pallet.dispatchNo : '') + (pallet.dispatchNo && pallet.originalPalletNo ? ' · ' : '') +
+                    (pallet.originalPalletNo ? 'Original pallet ' + pallet.originalPalletNo : '')) + '</p>' : '') +
+            '<div class="frm-component-list">' + (components.length ? components.map(renderActualPalletComponent).join('') :
+                '<div class="frm-component-empty">No product components were found for this pallet allocation.</div>') + '</div></article>';
+    }
+
+    function renderActualPalletComponent(component) {
+        const product = component.itemNo + (component.variantCode ? ' / ' + component.variantCode : '');
+        return '<div class="frm-component is-actual"><div><strong>' + escapeHtml(product || 'Product not set') +
+            '</strong><small>' + escapeHtml((component.description || '') + (component.lotNo ? ' · Lot ' + component.lotNo : ' · Lot not supplied')) +
+            '</small></div><span>' + escapeHtml(number(component.inventory)) + ' ' + escapeHtml(component.unitOfMeasure || 'units') +
+            '</span><button class="frm-button frm-component-action" type="button" data-action="open-actual-pallet" data-item-no="' +
+            escapeHtml(component.itemNo) + '" data-variant-code="' + escapeHtml(component.variantCode) + '" data-pallet-no="' +
+            escapeHtml(component.palletNo) + '">Open pallet record</button></div>';
     }
 
     function renderPallet(pallet) {
@@ -774,6 +817,10 @@
         }
         if (target.dataset.action === 'open-plan') {
             openNative('OpenPlanRequested', [text(target.dataset.planNo), Number(target.dataset.versionNo || 0)]);
+            return;
+        }
+        if (target.dataset.action === 'open-actual-pallet') {
+            openNative('OpenActualPalletRequested', [text(target.dataset.itemNo), text(target.dataset.variantCode), text(target.dataset.palletNo)]);
             return;
         }
         if (target.dataset.view) {

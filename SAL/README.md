@@ -48,6 +48,13 @@ Monitor pallet drill-down (app version 1.1.0.24):
 - Its drill-down lists the SAL planning sequence, Standard/Custom/Mixed type, target and planned quantities, component products/sizes and quantities.
 - Planning sequence values such as Pallet 1 are not presented as physical barcode IDs. Until the Packing Facility integration supplies the labelled/scanned identity, the physical ID and packing status explicitly show as unavailable.
 
+Actual pallet and lot tracking (app version 1.1.0.25):
+
+- Page 58006 reads actual pallet allocations directly from Avocados Core for Sales Orders and Transfer Orders, independently of whether the document has a SAL plan.
+- The pallet drill-down separates **Actual / Allocated Pallets** from **Planned Pallets**. Actual rows show the labelled pallet number, lot, SSCC, Core lifecycle status, current location, inventory, packing/expiry dates and every item/variant component found on that pallet.
+- **Open pallet record** opens the authoritative Avocados Core pallet information card for the selected product component. SAL planning sequence numbers remain a separate intended-plan layer and are never presented as the physical pallet barcode.
+- This Cloud allocation view does not claim scanner completion or Unconsigned status. Those remain dependent on the versioned Packing Facility feed.
+
 Transcript follow-ups intentionally outside the 1.1.0.0 fill slice are: scanner-backed completion and reclassification of already released work, 80-percent/amber near-full status, freight-leg gating for pallet-pool movements and invoice matching, EDI item-mapping exceptions, and setup-change history.
 
 Compile and publish from this folder only. Never publish the preserved `D:\WOLFETAC\Cloud\App` copy or an old combined `WOLFETAC Cloud` package.

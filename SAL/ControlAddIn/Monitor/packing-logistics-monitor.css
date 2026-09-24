@@ -248,6 +248,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 
 .frm-chip.is-cloud { background: var(--frm-teal-soft); color: var(--frm-teal); }
 .frm-chip.is-warning { background: var(--frm-amber-soft); color: #804c00; }
+.frm-chip.is-success { background: #e8f5ef; color: #176b4a; }
 
 .frm-concept {
     margin-top: 10px;
@@ -679,6 +680,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
     background: #f6f9fc;
 }
 
+.frm-pallet-group + .frm-pallet-group {
+    margin-top: 17px;
+    padding-top: 16px;
+    border-top: 1px solid #c7d4df;
+}
+
+.frm-pallet-group.is-actual .frm-pallet-card { border-color: #8bc9bd; }
+.frm-pallet-card.is-actual { background: #f8fffc; }
+
 .frm-section-actions,
 .frm-pallet-chips {
     display: flex;
@@ -748,12 +758,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 }
 
 .frm-component { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.frm-component > div { min-width: 0; }
+.frm-component > div { min-width: 0; flex: 1 1 auto; }
 .frm-component strong,
 .frm-component small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .frm-component small,
 .frm-component-empty { color: var(--frm-muted); font-size: 11px; }
 .frm-component > span { flex: 0 0 auto; color: var(--frm-teal); font-weight: 850; }
+.frm-component-action { flex: 0 0 auto; padding: 6px 9px; font-size: 11px; }
 
 .frm-panels {
     margin-top: 14px;
