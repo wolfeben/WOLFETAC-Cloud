@@ -652,6 +652,109 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .frm-metric strong { display: block; margin: 5px 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
 .frm-metric small { display: block; color: var(--frm-muted); }
 
+.frm-metric-button {
+    width: 100%;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.frm-metric-button:hover,
+.frm-metric-button:focus-visible {
+    border-color: var(--frm-teal);
+    box-shadow: 0 0 0 2px rgba(0, 111, 103, .12);
+    outline: none;
+}
+
+.frm-metric-button:active { transform: translateY(1px); }
+.frm-metric-button em { display: block; margin-top: 7px; color: var(--frm-teal); font-size: 12px; font-style: normal; font-weight: 800; }
+
+.frm-pallets {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #9fb5ca;
+    border-radius: 11px;
+    background: #f6f9fc;
+}
+
+.frm-section-actions,
+.frm-pallet-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.frm-pallet-note {
+    margin: 9px 0 0 !important;
+    color: var(--frm-muted);
+    font-size: 12px;
+}
+
+.frm-pallet-list {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.frm-pallet-card {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--frm-line);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.frm-pallet-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.frm-pallet-head h4 { margin: 3px 0 0; font-size: 17px; }
+
+.frm-pallet-facts {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.frm-pallet-facts > span {
+    min-width: 0;
+    padding: 7px;
+    border-radius: 7px;
+    background: var(--frm-soft);
+}
+
+.frm-pallet-facts small,
+.frm-pallet-facts strong { display: block; }
+.frm-pallet-facts small { color: var(--frm-muted); font-size: 10px; text-transform: uppercase; }
+.frm-pallet-facts strong { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.frm-pallet-description { margin: 8px 0 0 !important; color: var(--frm-muted); font-size: 12px; }
+
+.frm-component-list { margin-top: 9px; display: grid; gap: 5px; }
+.frm-component,
+.frm-component-empty {
+    min-width: 0;
+    padding: 8px 9px;
+    border: 1px solid var(--frm-line);
+    border-radius: 7px;
+    background: #fbfcfd;
+}
+
+.frm-component { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.frm-component > div { min-width: 0; }
+.frm-component strong,
+.frm-component small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frm-component small,
+.frm-component-empty { color: var(--frm-muted); font-size: 11px; }
+.frm-component > span { flex: 0 0 auto; color: var(--frm-teal); font-weight: 850; }
+
 .frm-panels {
     margin-top: 14px;
     display: grid;
@@ -791,6 +894,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .frm-app.is-compact .frm-grid,
 .frm-app.is-compact .frm-panels,
 .frm-app.is-compact .frm-sizes { margin-top: 9px; }
+.frm-app.is-compact .frm-pallets { margin-top: 9px; }
 .frm-app.is-compact .frm-movement-lines { margin-top: 9px; }
 
 @media (max-width: 1180px) {
@@ -803,6 +907,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
     .frm-layout { grid-template-columns: 340px minmax(0, 1fr); }
     .frm-calendar-day { min-height: 125px; }
     .frm-grid, .frm-panels { grid-template-columns: repeat(2, 1fr); }
+    .frm-pallet-list { grid-template-columns: 1fr; }
     .frm-journey { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .frm-step::after { display: none; }
     .frm-size-grid, .frm-movement-line-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -827,6 +932,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
     .frm-step { grid-template-columns: 18px 1fr; grid-template-rows: auto; gap: 8px; }
     .frm-step::after { left: 8px; right: auto; top: 17px; bottom: -10px; width: 2px; height: auto; }
     .frm-grid, .frm-panels, .frm-size-grid, .frm-movement-line-grid { grid-template-columns: 1fr; }
+    .frm-pallet-facts { grid-template-columns: repeat(2, 1fr); }
+    .frm-pallet-head, .frm-section-head { align-items: stretch; flex-direction: column; }
     .frm-detail-actions { justify-content: flex-start; }
     .frm-section-head { align-items: stretch; flex-direction: column; }
     .frm-calendar-view { overflow-x: auto; }

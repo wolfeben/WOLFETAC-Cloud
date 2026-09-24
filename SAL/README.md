@@ -42,6 +42,12 @@ Movement source lines (app version 1.1.0.2):
 - Transfer lines distinguish outstanding quantity from quantity already in transit.
 - Units are not silently converted. In particular, `TE` remains `TE` unless a verified item unit-of-measure conversion is introduced separately.
 
+Monitor pallet drill-down (app version 1.1.0.24):
+
+- The Physical pallet plan summary on page 58006 is clickable when the selected document has planned pallets.
+- Its drill-down lists the SAL planning sequence, Standard/Custom/Mixed type, target and planned quantities, component products/sizes and quantities.
+- Planning sequence values such as Pallet 1 are not presented as physical barcode IDs. Until the Packing Facility integration supplies the labelled/scanned identity, the physical ID and packing status explicitly show as unavailable.
+
 Transcript follow-ups intentionally outside the 1.1.0.0 fill slice are: scanner-backed completion and reclassification of already released work, 80-percent/amber near-full status, freight-leg gating for pallet-pool movements and invoice matching, EDI item-mapping exceptions, and setup-change history.
 
 Compile and publish from this folder only. Never publish the preserved `D:\WOLFETAC\Cloud\App` copy or an old combined `WOLFETAC Cloud` package.

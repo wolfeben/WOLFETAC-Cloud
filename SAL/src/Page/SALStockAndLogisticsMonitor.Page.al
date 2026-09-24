@@ -590,6 +590,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         PlanComponent: Record "SAL Plan Component";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
+        PalletDetails: JsonArray;
         SizeItem: JsonObject;
         SizeSummary: JsonArray;
         DescriptionByProduct: Dictionary of [Text, Text];
@@ -719,6 +720,8 @@ page 58006 "SAL Stock & Logistics Monitor"
                         MixedPalletCount += 1;
                 end;
 
+        BuildPalletDetails(PlanHeader, PalletNos, PalletDetails);
+
         case PlanHeader.Status of
             PlanHeader.Status::Draft:
                 begin
@@ -757,6 +760,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('standardPalletCount', StandardPalletCount);
         Item.Add('customPalletCount', CustomPalletCount);
         Item.Add('mixedPalletCount', MixedPalletCount);
+        Item.Add('palletDetails', PalletDetails);
         Item.Add('route', RouteSummary);
         Item.Add('workType', WorkTypeSummary);
         Item.Add('routingConfirmed', AllRoutingConfirmed);
@@ -775,6 +779,65 @@ page 58006 "SAL Stock & Logistics Monitor"
             Item.Add('marketer', 'Marketer not confirmed');
     end;
 
+    local procedure BuildPalletDetails(PlanHeader: Record "SAL Plan Header"; PalletNos: List of [Integer]; var PalletDetails: JsonArray)
+    var
+        PlanComponent: Record "SAL Plan Component";
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+        ComponentItem: JsonObject;
+        Components: JsonArray;
+        PalletItem: JsonObject;
+        ProductCode: Text;
+    begin
+        Clear(PalletDetails);
+        PlanPallet.SetRange("Plan No.", PlanHeader."No.");
+        PlanPallet.SetRange("Version No.", PlanHeader."Version No.");
+        if not PlanPallet.FindSet() then
+            exit;
+        repeat
+            if PalletNos.Contains(PlanPallet."Pallet No.") then begin
+                Clear(Components);
+                PlanComponent.SetRange("Plan No.", PlanPallet."Plan No.");
+                PlanComponent.SetRange("Version No.", PlanPallet."Version No.");
+                PlanComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
+                if PlanComponent.FindSet() then
+                    repeat
+                        ProductCode := PlanComponent."Item No.";
+                        if PlanComponent."Variant Code" <> '' then
+                            ProductCode := StrSubstNo('%1 / %2', ProductCode, PlanComponent."Variant Code");
+                        Clear(ComponentItem);
+                        ComponentItem.Add('lineNo', PlanComponent."Line No.");
+                        ComponentItem.Add('sourceLineNo', PlanComponent."Source Line No.");
+                        ComponentItem.Add('productCode', ProductCode);
+                        ComponentItem.Add('description', PlanComponent.Description);
+                        ComponentItem.Add('quantity', PlanComponent.Quantity);
+                        ComponentItem.Add('unitOfMeasure', PlanComponent."Unit of Measure Code");
+                        ComponentItem.Add('fulfilmentMode', Format(PlanComponent."Fulfilment Mode"));
+                        if PlanSource.Get(PlanComponent."Plan No.", PlanComponent."Version No.", PlanComponent."Source Line No.") then
+                            ComponentItem.Add('sourceDocumentNo', PlanSource."Source Document No.")
+                        else
+                            ComponentItem.Add('sourceDocumentNo', '');
+                        Components.Add(ComponentItem);
+                    until PlanComponent.Next() = 0;
+
+                PlanPallet.CalcFields("Planned Quantity", "No. of Components");
+                Clear(PalletItem);
+                PalletItem.Add('sequenceNo', PlanPallet."Pallet No.");
+                PalletItem.Add('plannedPalletId', StrSubstNo('Pallet %1', PlanPallet."Pallet No."));
+                PalletItem.Add('physicalPalletId', '');
+                PalletItem.Add('physicalIdStatus', 'Awaiting Packing Facility ID');
+                PalletItem.Add('palletType', Format(PlanPallet."Pallet Type"));
+                PalletItem.Add('description', PlanPallet.Description);
+                PalletItem.Add('targetQuantity', PlanPallet."Target Quantity");
+                PalletItem.Add('plannedQuantity', PlanPallet."Planned Quantity");
+                PalletItem.Add('componentCount', PlanPallet."No. of Components");
+                PalletItem.Add('packingStatus', 'Packing Facility feed not connected');
+                PalletItem.Add('components', Components);
+                PalletDetails.Add(PalletItem);
+            end;
+        until PlanPallet.Next() = 0;
+    end;
+
     local procedure AddNoSALPlanContext(var Item: JsonObject; Marketer: Text)
     begin
         AddEmptySALPlanContext(Item, Marketer, 'not-applicable', 'Not applicable');
@@ -782,6 +845,7 @@ page 58006 "SAL Stock & Logistics Monitor"
 
     local procedure AddEmptySALPlanContext(var Item: JsonObject; Marketer: Text; PackingStatusKey: Text; PackingStatusLabel: Text)
     var
+        PalletDetails: JsonArray;
         SizeSummary: JsonArray;
     begin
         Item.Add('salPlanNo', '');
@@ -801,6 +865,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('standardPalletCount', 0);
         Item.Add('customPalletCount', 0);
         Item.Add('mixedPalletCount', 0);
+        Item.Add('palletDetails', PalletDetails);
         Item.Add('route', '');
         Item.Add('workType', '');
         Item.Add('routingConfirmed', false);

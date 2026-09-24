@@ -10,6 +10,7 @@
         layout: 'queue',
         calendarCursor: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         compact: false,
+        palletsExpanded: false,
         fullscreenPending: false,
         fullscreenNotice: ''
     };
@@ -628,13 +629,14 @@
             '<section class="frm-grid">',
                 metricCard('SAL plan', planValue, planNote),
                 metricCard('Priority / finish', priorityValue, item.requiredFinishDate ? 'Finish ' + dateLabel(item.requiredFinishDate) + ' · dispatch ' + dateLabel(item.dispatchDate) : 'SAL dates not set'),
-                metricCard('Physical pallet plan', palletValue, palletNote),
+                palletMetricCard(item, palletValue, palletNote),
                 metricCard('Selected document units', quantityValue, quantityNote),
                 metricCard('Facility packing status', item.packingProgressKnown ? item.packingStatus : '—', packingDetail),
                 metricCard('Route / work', item.route || 'Not set', item.workType || 'Not set'),
                 metricCard('Carrier / reference', item.carrier || 'Not supplied', hasReference ? item.bookingReference : item.service || 'Reference not supplied'),
                 metricCard(hasArrived ? 'Actual arrival' : 'Planned / expected arrival', hasArrived ? dateLabel(item.actualArrival) : dateLabel(item.eta), hasArrived ? item.dateSource : item.eta ? item.dateSource : 'Carrier ETA not connected'),
             '</section>',
+            renderPalletDetails(item),
             renderMovementLines(item),
             renderSizeSummary(item),
             '<section class="frm-panels">',
@@ -644,6 +646,53 @@
                 '<article><span class="frm-eyebrow">NEXT CONNECTIONS</span><h3>Packing Facility, carrier and FruitBank</h3><p>Versioned facility acknowledgement and pallet events will activate Yet to pack, Packing, Ready and Unconsigned. Carrier milestones and FruitBank can then share the same movement identity.</p></article>',
             '</section>'
         ].join('');
+    }
+
+    function palletDetails(item) {
+        return Array.isArray(item && item.palletDetails) ? item.palletDetails : [];
+    }
+
+    function palletMetricCard(item, value, note) {
+        if (!item.salPlanNo || !palletDetails(item).length)
+            return metricCard('Physical pallet plan', value, note);
+        return '<button class="frm-metric frm-metric-button" type="button" data-action="toggle-pallets" aria-expanded="' +
+            String(state.palletsExpanded) + '"><span>Physical pallet plan</span><strong>' + escapeHtml(value) +
+            '</strong><small>' + escapeHtml(note) + '</small><em>' + (state.palletsExpanded ? 'Hide pallet listing' : 'View pallet IDs and composition') + '</em></button>';
+    }
+
+    function renderPalletDetails(item) {
+        const pallets = palletDetails(item);
+        if (!state.palletsExpanded || !pallets.length)
+            return '';
+        return '<section class="frm-pallets"><div class="frm-section-head"><div><span class="frm-eyebrow">PLANNED PALLETS</span>' +
+            '<h3>Pallet IDs and composition</h3></div><div class="frm-section-actions"><span class="frm-chip">' +
+            escapeHtml(number(pallets.length)) + ' pallet' + (pallets.length === 1 ? '' : 's') + '</span>' +
+            '<button class="frm-button" type="button" data-action="open-plan" data-plan-no="' + escapeHtml(item.salPlanNo) +
+            '" data-version-no="' + escapeHtml(item.salPlanVersionNo) + '">Open full SAL plan</button></div></div>' +
+            '<p class="frm-pallet-note">Pallet 1, Pallet 2 and similar values are planning sequence IDs. The labelled/scanned physical pallet ID will appear separately when the Packing Facility feed supplies it.</p>' +
+            '<div class="frm-pallet-list">' + pallets.map(renderPallet).join('') + '</div></section>';
+    }
+
+    function renderPallet(pallet) {
+        const components = Array.isArray(pallet.components) ? pallet.components : [];
+        const physicalId = pallet.physicalPalletId || pallet.physicalIdStatus || 'Awaiting Packing Facility ID';
+        return '<article class="frm-pallet-card"><div class="frm-pallet-head"><div><span class="frm-eyebrow">PLANNED PALLET</span>' +
+            '<h4>' + escapeHtml(pallet.plannedPalletId || ('Pallet ' + number(pallet.sequenceNo))) + '</h4></div>' +
+            '<div class="frm-pallet-chips"><span class="frm-chip">' + escapeHtml(pallet.palletType || 'Not set') + '</span>' +
+            '<span class="frm-chip is-warning">' + escapeHtml(physicalId) + '</span></div></div>' +
+            '<div class="frm-pallet-facts"><span><small>Target</small><strong>' + escapeHtml(number(pallet.targetQuantity)) +
+            '</strong></span><span><small>Planned</small><strong>' + escapeHtml(number(pallet.plannedQuantity)) +
+            '</strong></span><span><small>Components</small><strong>' + escapeHtml(number(pallet.componentCount)) +
+            '</strong></span><span><small>Packing status</small><strong>' + escapeHtml(pallet.packingStatus || 'Not supplied') + '</strong></span></div>' +
+            (pallet.description ? '<p class="frm-pallet-description">' + escapeHtml(pallet.description) + '</p>' : '') +
+            '<div class="frm-component-list">' + (components.length ? components.map(renderPalletComponent).join('') :
+                '<div class="frm-component-empty">No product components have been added.</div>') + '</div></article>';
+    }
+
+    function renderPalletComponent(component) {
+        return '<div class="frm-component"><div><strong>' + escapeHtml(component.productCode || 'Product not set') +
+            '</strong><small>' + escapeHtml(component.description || component.fulfilmentMode || '') + '</small></div><span>' +
+            escapeHtml(number(component.quantity)) + ' ' + escapeHtml(component.unitOfMeasure || 'units') + '</span></div>';
     }
 
     function renderMovementLines(item) {
@@ -709,7 +758,13 @@
         }
         if (target.dataset.action === 'select') {
             state.selectedId = text(target.dataset.id);
+            state.palletsExpanded = false;
             renderList();
+            renderDetail();
+            return;
+        }
+        if (target.dataset.action === 'toggle-pallets') {
+            state.palletsExpanded = !state.palletsExpanded;
             renderDetail();
             return;
         }
