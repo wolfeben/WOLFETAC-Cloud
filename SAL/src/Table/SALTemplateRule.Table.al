@@ -1,6 +1,6 @@
 table 58007 "SAL Template Rule"
 {
-    Caption = 'SAL Pallet Allocation Rule';
+    Caption = 'Customer Pallet Rule';
     DataClassification = CustomerContent;
     DataPerCompany = true;
 
@@ -34,6 +34,7 @@ table 58007 "SAL Template Rule"
         {
             Caption = 'Ship-to Code';
             DataClassification = CustomerContent;
+            TableRelation = "Ship-to Address".Code where("Customer No." = field("Customer No."));
             ToolTip = 'Optional destination override for this customer. Leave blank for all ship-to addresses.';
         }
         field(6; "Item No."; Code[20])
@@ -56,6 +57,34 @@ table 58007 "SAL Template Rule"
             DataClassification = CustomerContent;
             DecimalPlaces = 0 : 5;
             MinValue = 0.00001;
+        }
+        field(9; "Pallet Template Code"; Code[20])
+        {
+            Caption = 'Pallet Template Code';
+            DataClassification = CustomerContent;
+            TableRelation = "SAL Pallet Template".Code where(Active = const(true));
+            ToolTip = 'Optionally specifies the physical pallet format and mixed-pallet policy to snapshot onto pallets created by this rule.';
+
+            trigger OnValidate()
+            var
+                PalletTemplate: Record "SAL Pallet Template";
+            begin
+                if "Pallet Template Code" = '' then
+                    exit;
+                PalletTemplate.Get("Pallet Template Code");
+                PalletTemplate.TestField(Active, true);
+                if "Unit of Measure Code" = '' then
+                    "Unit of Measure Code" := PalletTemplate."Unit of Measure Code";
+                if "Units per Pallet" = 0 then
+                    "Units per Pallet" := PalletTemplate."Units per Pallet";
+                "Mixed Pallet Policy" := PalletTemplate."Mixed Pallet Policy";
+            end;
+        }
+        field(10; "Mixed Pallet Policy"; Enum "SAL Mixed Pallet Policy")
+        {
+            Caption = 'Mixed Pallets';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies whether this rule permits mixed product or size pallets. Planner choice preserves the planner selection.';
         }
     }
 

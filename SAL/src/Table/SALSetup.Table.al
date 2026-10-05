@@ -22,6 +22,40 @@ table 58000 "SAL Setup"
             DataClassification = CustomerContent;
             TableRelation = "No. Series".Code;
         }
+        field(4; "Default Packed UOM"; Code[10])
+        {
+            Caption = 'Default Packed UOM';
+            DataClassification = CustomerContent;
+            InitValue = 'TE';
+            TableRelation = "Unit of Measure".Code;
+            ToolTip = 'Specifies the order-line unit that uses the standard packed pallet quantity when no customer or allocation rule matches.';
+        }
+        field(5; "Default Packed Qty. per Pallet"; Decimal)
+        {
+            Caption = 'Default Packed Quantity per Pallet';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            InitValue = 160;
+            MinValue = 0;
+            ToolTip = 'Specifies the standard packed quantity per pallet used after customer, ship-to, item and global allocation rules.';
+        }
+        field(6; "Default Bulk UOM"; Code[10])
+        {
+            Caption = 'Default Bulk UOM';
+            DataClassification = CustomerContent;
+            InitValue = 'BK';
+            TableRelation = "Unit of Measure".Code;
+            ToolTip = 'Specifies the order-line unit that uses the standard bulk pallet quantity when no customer or allocation rule matches.';
+        }
+        field(7; "Default Bulk Qty. per Pallet"; Decimal)
+        {
+            Caption = 'Default Bulk Quantity per Pallet';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            InitValue = 96;
+            MinValue = 0;
+            ToolTip = 'Specifies the standard bulk quantity per pallet used after customer, ship-to, item and global allocation rules.';
+        }
     }
 
     keys

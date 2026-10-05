@@ -27,6 +27,26 @@ page 58000 "SAL Setup"
                     ToolTip = 'Specifies the pallet type proposed when a planner adds a physical pallet.';
                 }
             }
+            group("Automatic pallet quantities")
+            {
+                Caption = 'Automatic pallet quantities';
+                field("Default Packed UOM"; Rec."Default Packed UOM")
+                {
+                    ApplicationArea = All;
+                }
+                field("Default Packed Qty. per Pallet"; Rec."Default Packed Qty. per Pallet")
+                {
+                    ApplicationArea = All;
+                }
+                field("Default Bulk UOM"; Rec."Default Bulk UOM")
+                {
+                    ApplicationArea = All;
+                }
+                field("Default Bulk Qty. per Pallet"; Rec."Default Bulk Qty. per Pallet")
+                {
+                    ApplicationArea = All;
+                }
+            }
         }
     }
 

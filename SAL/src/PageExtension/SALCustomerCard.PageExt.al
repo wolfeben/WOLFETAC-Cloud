@@ -28,6 +28,19 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                 {
                     ApplicationArea = All;
                 }
+                field("SAL Active Pallet Rules"; Rec."SAL Active Pallet Rules")
+                {
+                    ApplicationArea = All;
+                    DrillDown = true;
+
+                    trigger OnDrillDown()
+                    var
+                        PalletRule: Record "SAL Template Rule";
+                    begin
+                        PalletRule.SetRange("Customer No.", Rec."No.");
+                        Page.Run(Page::"SAL Template Rules", PalletRule);
+                    end;
+                }
                 field("SAL Freight Company"; Rec."Shipping Agent Code")
                 {
                     ApplicationArea = All;
@@ -65,7 +78,7 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
             action("SAL Pallet Allocation Rules")
             {
                 ApplicationArea = All;
-                Caption = 'SAL Pallet Allocation Rules';
+                Caption = 'Customer Pallet Rules';
                 Image = SetupLines;
                 RunObject = page "SAL Template Rules";
                 RunPageLink = "Customer No." = field("No.");

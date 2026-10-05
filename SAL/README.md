@@ -29,15 +29,16 @@ Pallet auto-fill (app version 1.1.0.23):
 
 - On a Draft plan, **Fill pallets** first completes existing exact or mixed pallets from compatible remaining order lines without requiring a pallet rule. When all compatible demand is exhausted, an underfilled pallet's target is reduced to its planned quantity; an underfilled Standard becomes Custom. Existing components are preserved. It then creates additional pallets from the unallocated exact balance using active pallet rules. Fill-group balances are not automatically allocated.
 - When **Allow mixed** is selected, a blank draft pallet can be composed from all compatible unallocated exact source lines, without entering every size by hand. A blank Standard changes to Mixed when it contains different products. The entered target is a maximum; if less compatible demand exists, the target is reduced to the quantity allocated. Different source orders, routes, destinations or units are not silently combined.
-- Page 58011 stores active allocation rules in the original order-line unit, optionally scoped to customer, ship-to and exact item. The most specific matching rule wins. Set Woolworths WA to 152 using its actual customer and ship-to codes. No universal TE/BK/BKBN capacities are seeded because the same unit can have different item capacities; BKBN requires an exact item rule.
+- Page 58011 stores active Customer Pallet Rules in the original order-line unit, optionally scoped to customer, ship-to and exact item. The most specific matching rule wins. Set Woolworths WA to 152 using its actual customer and ship-to codes. Rules can also select a reusable physical pallet template and mixed-pallet policy.
+- Stock & Logistics Setup supplies the final standard fallbacks: packed `TE` = 160 and bulk `BK` = 96 by default. Both the UOM codes and quantities are configurable. BKBN remains explicit because its physical quantity depends on the exact product configuration.
 - Full pallets are Standard; a short remainder is Custom. The optional **Allow mixed** combines compatible short exact lines from the same order, destination, route, unit and capacity into one Mixed pallet with separate components.
 - Draft pallet type/target and exact component quantity can be edited afterward. Changing a Standard component quantity converts that pallet to Custom. Standard BC validation still gates release.
 
 Customer pallet defaults (app version 1.1.0.26):
 
 - The Customer Card has an **SAL Packing** section with **Pallet Quantity UOM** and **Units per Pallet**. For example, Woolworths WA can use `TE` and `152` without recreating the same generic rule on every plan.
-- Auto-fill resolves capacity in this order: a detailed rule for the customer/ship-to/item, the Customer Card default when its UOM exactly matches the demand line, then a generic item/UOM rule.
-- The **SAL Pallet Allocation Rules** Customer Card action opens detailed exceptions already filtered to that customer. Use these when a customer needs different capacities by ship-to, item, TE/BK/BKBN or another order-line unit.
+- Auto-fill resolves capacity in this order: a detailed rule for the customer/ship-to/item, the Customer Card default when its UOM exactly matches the demand line, a generic item/UOM rule, then the configured standard packed or bulk fallback.
+- The **Customer Pallet Rules** Customer Card action and active-rule drilldown open detailed exceptions already filtered to that customer. Use these when a customer needs different capacities by ship-to, item, TE/BK/BKBN or another order-line unit.
 - A customer default never silently converts units and cannot be used when its configured UOM differs from the source line.
 
 Customer pallet templates (app version 1.1.0.27):

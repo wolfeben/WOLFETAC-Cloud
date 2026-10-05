@@ -5,7 +5,7 @@ page 58011 "SAL Template Rules"
     DelayedInsert = true;
     ApplicationArea = All;
     UsageCategory = Administration;
-    Caption = 'SAL Pallet Allocation Rules';
+    Caption = 'Customer Pallet Rules';
     AdditionalSearchTerms = 'SAL,Pallet,Customer,Ship-to,Allocation';
 
     layout
@@ -22,6 +22,8 @@ page 58011 "SAL Template Rules"
                 field("Item No."; Rec."Item No.") { ApplicationArea = All; }
                 field("Unit of Measure Code"; Rec."Unit of Measure Code") { ApplicationArea = All; }
                 field("Units per Pallet"; Rec."Units per Pallet") { ApplicationArea = All; }
+                field("Pallet Template Code"; Rec."Pallet Template Code") { ApplicationArea = All; }
+                field("Mixed Pallet Policy"; Rec."Mixed Pallet Policy") { ApplicationArea = All; }
             }
         }
     }

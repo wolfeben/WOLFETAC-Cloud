@@ -75,6 +75,14 @@ tableextension 58014 "SAL Customer Extension" extends Customer
             DataClassification = CustomerContent;
             ToolTip = 'Specifies known customer handling, packing, temperature or dispatch conditions for stock and logistics planning.';
         }
+        field(58007; "SAL Active Pallet Rules"; Integer)
+        {
+            Caption = 'Active Pallet Rules';
+            FieldClass = FlowField;
+            CalcFormula = count("SAL Template Rule" where("Customer No." = field("No."), Active = const(true)));
+            Editable = false;
+            ToolTip = 'Shows the number of active customer, ship-to or item-specific pallet rules for this customer.';
+        }
     }
 
     var

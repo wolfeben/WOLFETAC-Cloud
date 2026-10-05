@@ -265,9 +265,11 @@ codeunit 58006 "SAL Allocation Management"
     local procedure FindPalletCapacity(PlanSource: Record "SAL Plan Source"; var PalletCapacity: Decimal): Boolean
     var
         Customer: Record Customer;
+        MatchedRule: Record "SAL Template Rule";
+        SALSetup: Record "SAL Setup";
     begin
         PalletCapacity := 0;
-        if FindBestTemplateRule(PlanSource, true, PalletCapacity) then
+        if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
             exit(true);
 
         if (StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) and
@@ -280,16 +282,36 @@ codeunit 58006 "SAL Allocation Management"
                 exit(true);
             end;
 
-        exit(FindBestTemplateRule(PlanSource, false, PalletCapacity));
+        if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
+            exit(true);
+
+        if not SALSetup.Get('') then begin
+            SALSetup.Init();
+            SALSetup."Primary Key" := '';
+        end;
+        if (PlanSource."Unit of Measure Code" = SALSetup."Default Packed UOM") and
+           (SALSetup."Default Packed Qty. per Pallet" > 0)
+        then begin
+            PalletCapacity := SALSetup."Default Packed Qty. per Pallet";
+            exit(true);
+        end;
+        if (PlanSource."Unit of Measure Code" = SALSetup."Default Bulk UOM") and
+           (SALSetup."Default Bulk Qty. per Pallet" > 0)
+        then begin
+            PalletCapacity := SALSetup."Default Bulk Qty. per Pallet";
+            exit(true);
+        end;
+        exit(false);
     end;
 
-    local procedure FindBestTemplateRule(PlanSource: Record "SAL Plan Source"; CustomerSpecific: Boolean; var PalletCapacity: Decimal): Boolean
+    local procedure FindBestTemplateRule(PlanSource: Record "SAL Plan Source"; CustomerSpecific: Boolean; var PalletCapacity: Decimal; var MatchedRule: Record "SAL Template Rule"): Boolean
     var
         TemplateRule: Record "SAL Template Rule";
         BestScore: Integer;
         RuleScore: Integer;
         FoundRule: Boolean;
     begin
+        Clear(MatchedRule);
         TemplateRule.SetRange(Active, true);
         TemplateRule.SetRange("Unit of Measure Code", PlanSource."Unit of Measure Code");
         if CustomerSpecific then
@@ -314,6 +336,7 @@ codeunit 58006 "SAL Allocation Management"
                         FoundRule := true;
                         BestScore := RuleScore;
                         PalletCapacity := TemplateRule."Units per Pallet";
+                        MatchedRule := TemplateRule;
                     end;
                 end;
             until TemplateRule.Next() = 0;
@@ -395,28 +418,61 @@ codeunit 58006 "SAL Allocation Management"
     local procedure ApplyCustomerPalletDefaults(PlanSource: Record "SAL Plan Source"; var PlanPallet: Record "SAL Plan Pallet")
     var
         Customer: Record Customer;
+        MatchedRule: Record "SAL Template Rule";
+        PalletTemplate: Record "SAL Pallet Template";
+        PalletCapacity: Decimal;
+    begin
+        if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then begin
+            ApplyRulePalletDefaults(MatchedRule, PlanPallet);
+            exit;
+        end;
+        if (PlanSource."Customer No." = '') or not Customer.Get(PlanSource."Customer No.") then
+            Clear(Customer);
+        if (Customer."No." <> '') and
+           (Customer."SAL Pallet Template Code" <> '') and
+           (Customer."SAL Pallet Quantity UOM" = PlanSource."Unit of Measure Code")
+        then begin
+            PlanPallet."Pallet Template Code" := Customer."SAL Pallet Template Code";
+            PlanPallet."Mixed Pallet Policy" := Customer."SAL Mixed Pallet Policy";
+            if PalletTemplate.Get(Customer."SAL Pallet Template Code") then
+                PlanPallet."Physical Pallet Type" := PalletTemplate."Physical Pallet Type";
+            exit;
+        end;
+        if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
+            ApplyRulePalletDefaults(MatchedRule, PlanPallet);
+    end;
+
+    local procedure ApplyRulePalletDefaults(MatchedRule: Record "SAL Template Rule"; var PlanPallet: Record "SAL Plan Pallet")
+    var
         PalletTemplate: Record "SAL Pallet Template";
     begin
-        if (PlanSource."Customer No." = '') or not Customer.Get(PlanSource."Customer No.") then
+        PlanPallet."Mixed Pallet Policy" := MatchedRule."Mixed Pallet Policy";
+        if MatchedRule."Pallet Template Code" = '' then
             exit;
-        if (Customer."SAL Pallet Template Code" = '') or
-           (Customer."SAL Pallet Quantity UOM" <> PlanSource."Unit of Measure Code")
-        then
-            exit;
-        PlanPallet."Pallet Template Code" := Customer."SAL Pallet Template Code";
-        PlanPallet."Mixed Pallet Policy" := Customer."SAL Mixed Pallet Policy";
-        if PalletTemplate.Get(Customer."SAL Pallet Template Code") then
+        PlanPallet."Pallet Template Code" := MatchedRule."Pallet Template Code";
+        if PalletTemplate.Get(MatchedRule."Pallet Template Code") then
             PlanPallet."Physical Pallet Type" := PalletTemplate."Physical Pallet Type";
     end;
 
     local procedure CanMixSource(PlanSource: Record "SAL Plan Source"; PlannerAllowsMixed: Boolean): Boolean
     var
         Customer: Record Customer;
+        MatchedRule: Record "SAL Template Rule";
+        PalletCapacity: Decimal;
     begin
         if not PlannerAllowsMixed then
             exit(false);
+        if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
+            if MatchedRule."Mixed Pallet Policy" = MatchedRule."Mixed Pallet Policy"::NotAllowed then
+                exit(false)
+            else
+                if MatchedRule."Mixed Pallet Policy" = MatchedRule."Mixed Pallet Policy"::Allowed then
+                    exit(true);
         if (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.") then
             if Customer."SAL Mixed Pallet Policy" = Customer."SAL Mixed Pallet Policy"::NotAllowed then
+                exit(false);
+        if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
+            if MatchedRule."Mixed Pallet Policy" = MatchedRule."Mixed Pallet Policy"::NotAllowed then
                 exit(false);
         exit(true);
     end;

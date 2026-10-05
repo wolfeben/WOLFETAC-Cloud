@@ -91,6 +91,67 @@ codeunit 58802 "SAL Auto Fill Tests"
     end;
 
     [Test]
+    procedure SetupProvidesStandardPackedAndBulkFallbacks()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreateSetupDefaults('TE', 160, 'BK', 96);
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-PACKED', 160, 'TE', Source);
+        CreateSource(Plan, 20000, 'ITEM-BULK', 96, 'BK', Source);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'setup defaults must allocate packed and bulk demand');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Target Quantity" = 160, 'packed fallback must use 160');
+        Pallet.Get(Plan."No.", Plan."Version No.", 2);
+        AssertThat(Pallet."Target Quantity" = 96, 'bulk fallback must use 96');
+    end;
+
+    [Test]
+    procedure CustomerRuleSnapshotsTemplateAndMixedPolicy()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Rule: Record "SAL Template Rule";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePalletTemplate('WA-152', 'CHEP', 'TE', 152, Enum::"SAL Mixed Pallet Policy"::NotAllowed);
+        CreateCustomer('WOOLIES-RULE', '', 0, Customer);
+        CreateRule('TE', Customer."No.", 'WA', '', 152);
+        Rule.SetRange("Customer No.", Customer."No.");
+        Rule.SetRange("Ship-to Code", 'WA');
+        Rule.FindFirst();
+        Rule.Validate("Pallet Template Code", 'WA-152');
+        Rule.Modify(true);
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-A', 152, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source."Destination Code" := 'WA';
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, true, Created, Updated, Skipped);
+
+        AssertThat((Created = 1) and (Skipped = 0), 'the customer rule must create one 152-unit pallet');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Pallet Template Code" = 'WA-152', 'rule template must be snapshotted');
+        AssertThat(Pallet."Physical Pallet Type" = 'CHEP', 'rule physical pallet type must be snapshotted');
+        AssertThat(Pallet."Mixed Pallet Policy" = Pallet."Mixed Pallet Policy"::NotAllowed, 'rule mixed policy must be snapshotted');
+    end;
+
+    [Test]
     procedure CustomerCardCapacityOverridesGenericRuleForMatchingUnit()
     var
         Allocation: Codeunit "SAL Allocation Management";
@@ -334,6 +395,22 @@ codeunit 58802 "SAL Auto Fill Tests"
         Customer."SAL Pallet Quantity UOM" := Uom;
         Customer."SAL Units per Pallet" := Capacity;
         Customer.Insert(true);
+    end;
+
+    local procedure CreateSetupDefaults(PackedUom: Code[10]; PackedQuantity: Decimal; BulkUom: Code[10]; BulkQuantity: Decimal)
+    var
+        Setup: Record "SAL Setup";
+    begin
+        if not Setup.Get('') then begin
+            Setup.Init();
+            Setup."Primary Key" := '';
+            Setup.Insert(true);
+        end;
+        Setup."Default Packed UOM" := PackedUom;
+        Setup."Default Packed Qty. per Pallet" := PackedQuantity;
+        Setup."Default Bulk UOM" := BulkUom;
+        Setup."Default Bulk Qty. per Pallet" := BulkQuantity;
+        Setup.Modify(true);
     end;
 
     local procedure CreatePalletTemplate(TemplateCode: Code[20]; PhysicalPalletType: Code[20]; Uom: Code[10]; Capacity: Decimal; MixedPolicy: Enum "SAL Mixed Pallet Policy")
