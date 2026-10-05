@@ -20,10 +20,15 @@ page 58011 "SAL Template Rules"
                 field("Customer No."; Rec."Customer No.") { ApplicationArea = All; }
                 field("Ship-to Code"; Rec."Ship-to Code") { ApplicationArea = All; }
                 field("Item No."; Rec."Item No.") { ApplicationArea = All; }
+                field("Item Category Code"; Rec."Item Category Code") { ApplicationArea = All; }
+                field("Order Type"; Rec."Order Type") { ApplicationArea = All; }
+                field("Freight Company Code"; Rec."Freight Company Code") { ApplicationArea = All; }
                 field("Unit of Measure Code"; Rec."Unit of Measure Code") { ApplicationArea = All; }
                 field("Units per Pallet"; Rec."Units per Pallet") { ApplicationArea = All; }
                 field("Pallet Template Code"; Rec."Pallet Template Code") { ApplicationArea = All; }
                 field("Mixed Pallet Policy"; Rec."Mixed Pallet Policy") { ApplicationArea = All; }
+                field("Effective From Date"; Rec."Effective From Date") { ApplicationArea = All; }
+                field("Effective To Date"; Rec."Effective To Date") { ApplicationArea = All; }
             }
         }
     }

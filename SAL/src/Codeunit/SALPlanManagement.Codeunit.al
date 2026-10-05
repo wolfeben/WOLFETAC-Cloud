@@ -9,6 +9,7 @@ codeunit 58001 "SAL Plan Management"
     procedure ReleasePlan(var PlanHeader: Record "SAL Plan Header")
     var
         PreviousPlanHeader: Record "SAL Plan Header";
+        PublishManagement: Codeunit "SAL Publish Management";
     begin
         LockAndGetDraftPlan(PlanHeader);
         ValidateAndStamp(PlanHeader);
@@ -25,6 +26,7 @@ codeunit 58001 "SAL Plan Management"
         end;
 
         PlanHeader.MarkReleased();
+        PublishManagement.PublishReleasedPlan(PlanHeader);
         LogEvent(PlanHeader."No.", PlanHeader."Version No.", ReleasedEventTypeTxt, ReleasedDescriptionTxt);
     end;
 

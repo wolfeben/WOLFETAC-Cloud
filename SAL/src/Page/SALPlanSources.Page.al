@@ -62,6 +62,11 @@ page 58015 "SAL Plan Sources"
                     Editable = false;
                     ToolTip = 'Specifies the product description.';
                 }
+                field("Item Category Code"; Rec."Item Category Code")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                }
                 field(Quantity; Rec.Quantity)
                 {
                     ApplicationArea = All;
@@ -115,6 +120,19 @@ page 58015 "SAL Plan Sources"
                     ApplicationArea = All;
                     Editable = false;
                     ToolTip = 'Specifies the unit of measure for the required and planned quantities.';
+                }
+                field("Pallet Quantity Override"; Rec."Pallet Quantity Override")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Overrides customer and global pallet quantities for this specific source order line.';
+                }
+                field("Pallet Template Override"; Rec."Pallet Template Override")
+                {
+                    ApplicationArea = All;
+                }
+                field("Mixed Pallet Override"; Rec."Mixed Pallet Override")
+                {
+                    ApplicationArea = All;
                 }
                 field("Execution Route"; Rec."Execution Route")
                 {

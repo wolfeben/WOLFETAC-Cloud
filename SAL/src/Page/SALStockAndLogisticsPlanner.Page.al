@@ -701,6 +701,10 @@ page 58007 "SAL Stock & Logistics Planner"
         Header.Add('plannedQuantity', PlanHeader."Total Planned Quantity");
         Header.Add('validatedAt', FormatDateTime(PlanHeader."Validated Date Time"));
         Header.Add('releasedAt', FormatDateTime(PlanHeader."Released Date Time"));
+        Header.Add('facilityMessageId', LowerCase(Format(PlanHeader."Facility Message Id")));
+        Header.Add('facilityStatus', Format(PlanHeader."Facility Status"));
+        Header.Add('facilityPublishedAt', FormatDateTime(PlanHeader."Facility Published At"));
+        Header.Add('facilityLastFeedbackAt', FormatDateTime(PlanHeader."Facility Last Feedback At"));
         Header.Add('modifiedAt', FormatDateTime(PlanHeader.SystemModifiedAt));
         Header.Add('suggestion', PlanManagement.GetPlannerSuggestion(PlanHeader));
     end;
@@ -1062,6 +1066,7 @@ page 58007 "SAL Stock & Logistics Planner"
             end;
             DemandManagement.RefreshDemand(ActivePlanHeader);
             AddDocumentDemand(ActivePlanHeader, SourceType, DocumentNo, AddedCount, SkippedCount);
+            AutoPreparePlan(ActivePlanHeader);
             SelectedPlanNo := ActivePlanHeader."No.";
             SelectedVersionNo := ActivePlanHeader."Version No.";
             LoadScreen(StrSubstNo(ExistingPlanUpdatedMsg, ActivePlanHeader."No.", ActivePlanHeader."Version No."), false);
@@ -1077,6 +1082,7 @@ page 58007 "SAL Stock & Logistics Planner"
         AddDocumentDemand(PlanHeader, SourceType, DocumentNo, AddedCount, SkippedCount);
         if AddedCount = 0 then
             Error(NoCandidateDemandErr, SourceTypeText, DocumentNo);
+        AutoPreparePlan(PlanHeader);
 
         SelectedPlanNo := PlanHeader."No.";
         SelectedVersionNo := PlanHeader."Version No.";
@@ -1176,6 +1182,16 @@ page 58007 "SAL Stock & Logistics Planner"
             SourceType::TransferOrder:
                 DemandManagement.AddTransferOrderDemand(PlanHeader, DocumentNo, AddedCount, SkippedCount);
         end;
+    end;
+
+    local procedure AutoPreparePlan(var PlanHeader: Record "SAL Plan Header")
+    var
+        AllocationManagement: Codeunit "SAL Allocation Management";
+        CreatedPallets: Integer;
+        SkippedLines: Integer;
+        UpdatedPallets: Integer;
+    begin
+        AllocationManagement.AutoFillPallets(PlanHeader, false, CreatedPallets, UpdatedPallets, SkippedLines);
     end;
 
     local procedure AssignFallbackPlanNoIfRequired(var PlanHeader: Record "SAL Plan Header"; SourceType: Enum "SAL Source Type"; DocumentNo: Code[20])

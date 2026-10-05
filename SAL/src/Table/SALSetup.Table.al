@@ -56,6 +56,20 @@ table 58000 "SAL Setup"
             MinValue = 0;
             ToolTip = 'Specifies the standard bulk quantity per pallet used after customer, ship-to, item and global allocation rules.';
         }
+        field(8; "TAC Marketer Customer No."; Code[20])
+        {
+            Caption = 'TAC Marketer Customer No.';
+            DataClassification = CustomerContent;
+            TableRelation = Customer."No.";
+            ToolTip = 'Specifies the Business Central customer record that represents The Avocados Collective for marketer validation.';
+        }
+        field(9; "Costa Marketer Customer No."; Code[20])
+        {
+            Caption = 'Costa Marketer Customer No.';
+            DataClassification = CustomerContent;
+            TableRelation = Customer."No.";
+            ToolTip = 'Specifies the Business Central customer record that represents Costa for marketer validation.';
+        }
     }
 
     keys

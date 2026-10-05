@@ -34,12 +34,20 @@ Pallet auto-fill (app version 1.1.0.23):
 - Full pallets are Standard; a short remainder is Custom. The optional **Allow mixed** combines compatible short exact lines from the same order, destination, route, unit and capacity into one Mixed pallet with separate components.
 - Draft pallet type/target and exact component quantity can be edited afterward. Changing a Standard component quantity converts that pallet to Custom. Standard BC validation still gates release.
 
-Customer pallet defaults (app version 1.1.0.26):
+Customer and order pallet defaults:
 
 - The Customer Card has an **SAL Packing** section with **Pallet Quantity UOM** and **Units per Pallet**. For example, Woolworths WA can use `TE` and `152` without recreating the same generic rule on every plan.
 - Auto-fill resolves capacity in this order: a detailed rule for the customer/ship-to/item, the Customer Card default when its UOM exactly matches the demand line, a generic item/UOM rule, then the configured standard packed or bulk fallback.
 - The **Customer Pallet Rules** Customer Card action and active-rule drilldown open detailed exceptions already filtered to that customer. Use these when a customer needs different capacities by ship-to, item, TE/BK/BKBN or another order-line unit.
 - A customer default never silently converts units and cannot be used when its configured UOM differs from the source line.
+- The Customer Card also records TAC/Costa, separate packed and bulk quantities, freight, mixed-pallet policy, labelling requirements and special conditions. Detailed rules can filter by ship-to, item/category, sales-versus-transfer order, freight company and effective date.
+- An explicit source-line pallet quantity/template override wins before customer rules. New plans automatically create the standard physical pallets that can be resolved safely; short, mixed, custom and unmatched lines remain visible for review.
+
+Packing Facility integration contract (app version 1.1.0.32):
+
+- Releasing a validated version assigns an immutable facility message ID and publishes the released header, source, pallet and component projections through the `wolfe/sal/v1.0` API.
+- The integration identity is granted with permission set **SAL INTEGRATION**. Packing feedback is accepted through `facilityFeedback` and records acknowledgement, pallet IDs, actual components, lot/grower traceability, completion and validation errors against the original message ID.
+- This is the versioned BC contract. Transport credentials, polling and retry orchestration remain external adapter responsibilities; SAL does not embed Cloud or on-premises credentials.
 
 Customer pallet templates (app version 1.1.0.27):
 
@@ -47,7 +55,7 @@ Customer pallet templates (app version 1.1.0.27):
 - The Customer Card selects a default template and displays the resolved physical pallet type. Selecting a template copies its UOM, capacity and mixed-pallet policy into the customer defaults, which can then be reviewed explicitly.
 - Auto-fill snapshots the template code, physical pallet type and mixed-pallet policy onto every generated SAL plan pallet. A later customer setup change therefore does not silently alter an already planned or released pallet.
 - A customer/template marked **Not allowed** cannot be auto-composed or released as a mixed product/size pallet. **Planner choice** preserves the existing per-plan Allow mixed control.
-- These snapshot fields form part of the versioned facility instruction intended for the on-premises Packing Wall and scanner integration.
+- These snapshot fields form part of the versioned facility instruction exposed to the on-premises Packing Wall and scanner integration.
 
 Customer freight defaults (app version 1.1.0.28):
 

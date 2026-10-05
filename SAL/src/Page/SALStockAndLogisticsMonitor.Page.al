@@ -782,7 +782,7 @@ page 58006 "SAL Stock & Logistics Monitor"
         Item.Add('facilityConnected', false);
         Item.Add('packingProgressKnown', false);
         Item.Add('completedPalletCountKnown', false);
-        Item.Add('facilityStatus', 'Not connected');
+        Item.Add('facilityStatus', Format(PlanHeader."Facility Status"));
         Item.Add('unconsignedAvailable', false);
         Item.Add('sizeSummary', SizeSummary);
         if PlanHeader."Marketer Confirmed" then

@@ -47,6 +47,18 @@ page 58000 "SAL Setup"
                     ApplicationArea = All;
                 }
             }
+            group(Marketers)
+            {
+                Caption = 'Marketers';
+                field("TAC Marketer Customer No."; Rec."TAC Marketer Customer No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Costa Marketer Customer No."; Rec."Costa Marketer Customer No.")
+                {
+                    ApplicationArea = All;
+                }
+            }
         }
     }
 

@@ -15,6 +15,7 @@ permissionset 58000 "SAL VIEW"
         tabledata "SAL Product Group Member" = r,
         tabledata "SAL Template Rule" = r,
         tabledata "SAL Pallet Template" = r,
+        tabledata "SAL Facility Feedback" = r,
         tabledata "Shipping Agent" = r,
         tabledata "Shipping Agent Services" = r,
         table "SAL Setup" = X,
@@ -28,6 +29,7 @@ permissionset 58000 "SAL VIEW"
         table "SAL Product Group Member" = X,
         table "SAL Template Rule" = X,
         table "SAL Pallet Template" = X,
+        table "SAL Facility Feedback" = X,
         page "SAL Plan Details" = X,
         page "SAL Plan Pallets" = X,
         page "SAL Pallet Components" = X,
@@ -66,6 +68,7 @@ permissionset 58001 "SAL PLANNER"
         codeunit "SAL Plan Management" = X,
         codeunit "SAL Plan Validation" = X,
         codeunit "SAL Allocation Management" = X,
+        codeunit "SAL Publish Management" = X,
         page "SAL Plans" = X,
         page "SAL Stock & Logistics Planner" = X,
         page "SAL Freight & Arrivals Monitor" = X,
@@ -91,4 +94,24 @@ permissionset 58002 "SAL ADMIN"
         page "SAL Product Group Members" = X,
         page "SAL Template Rules" = X,
         page "SAL Pallet Templates" = X;
+}
+
+permissionset 58003 "SAL INTEGRATION"
+{
+    Assignable = true;
+    Caption = 'SAL Integration';
+
+    Permissions =
+        tabledata "SAL Plan Header" = RM,
+        tabledata "SAL Plan Source" = R,
+        tabledata "SAL Plan Pallet" = R,
+        tabledata "SAL Plan Component" = R,
+        tabledata "SAL Facility Feedback" = RI,
+        table "SAL Facility Feedback" = X,
+        codeunit "SAL Integration Inbound" = X,
+        page "SAL Facility Plans API" = X,
+        page "SAL Facility Sources API" = X,
+        page "SAL Facility Pallets API" = X,
+        page "SAL Facility Components API" = X,
+        page "SAL Facility Feedback API" = X;
 }

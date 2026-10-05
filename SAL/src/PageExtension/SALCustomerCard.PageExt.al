@@ -8,6 +8,11 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
             {
                 Caption = 'SAL Packing';
 
+                field("SAL Default Marketer"; Rec."SAL Default Marketer")
+                {
+                    ApplicationArea = All;
+                }
+
                 field("SAL Pallet Template Code"; Rec."SAL Pallet Template Code")
                 {
                     ApplicationArea = All;
@@ -21,6 +26,14 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                     ApplicationArea = All;
                 }
                 field("SAL Units per Pallet"; Rec."SAL Units per Pallet")
+                {
+                    ApplicationArea = All;
+                }
+                field("SAL Default Packed Qty."; Rec."SAL Default Packed Qty.")
+                {
+                    ApplicationArea = All;
+                }
+                field("SAL Default Bulk Qty."; Rec."SAL Default Bulk Qty.")
                 {
                     ApplicationArea = All;
                 }

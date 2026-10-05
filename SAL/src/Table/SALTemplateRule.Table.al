@@ -86,6 +86,35 @@ table 58007 "SAL Template Rule"
             DataClassification = CustomerContent;
             ToolTip = 'Specifies whether this rule permits mixed product or size pallets. Planner choice preserves the planner selection.';
         }
+        field(11; "Item Category Code"; Code[20])
+        {
+            Caption = 'Product Category';
+            DataClassification = CustomerContent;
+            TableRelation = "Item Category".Code;
+            ToolTip = 'Optionally limits the rule to items in this Business Central item category.';
+        }
+        field(12; "Order Type"; Enum "SAL Rule Order Type")
+        {
+            Caption = 'Order Type';
+            DataClassification = CustomerContent;
+        }
+        field(13; "Freight Company Code"; Code[10])
+        {
+            Caption = 'Freight Company';
+            DataClassification = CustomerContent;
+            TableRelation = "Shipping Agent".Code;
+            ToolTip = 'Optionally limits the rule to orders using this freight company.';
+        }
+        field(14; "Effective From Date"; Date)
+        {
+            Caption = 'Effective From';
+            DataClassification = CustomerContent;
+        }
+        field(15; "Effective To Date"; Date)
+        {
+            Caption = 'Effective To';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys
@@ -120,15 +149,25 @@ table 58007 "SAL Template Rule"
         ExistingRule.SetRange("Ship-to Code", "Ship-to Code");
         ExistingRule.SetRange("Item No.", "Item No.");
         ExistingRule.SetRange("Unit of Measure Code", "Unit of Measure Code");
+        ExistingRule.SetRange("Item Category Code", "Item Category Code");
+        ExistingRule.SetRange("Order Type", "Order Type");
+        ExistingRule.SetRange("Freight Company Code", "Freight Company Code");
+        ExistingRule.SetRange("Effective From Date", "Effective From Date");
+        ExistingRule.SetRange("Effective To Date", "Effective To Date");
         if ExistingRule.FindSet() then
             repeat
                 if ExistingRule.Code <> Code then
                     Error(DuplicateRuleErr, ExistingRule.Code);
             until ExistingRule.Next() = 0;
+        if ("Effective From Date" <> 0D) and ("Effective To Date" <> 0D) and
+           ("Effective From Date" > "Effective To Date")
+        then
+            Error(EffectiveDateErr);
     end;
 
     var
         CustomerRequiredErr: Label 'Choose a customer before setting a ship-to code.';
         DuplicateRuleErr: Label 'Active rule %1 already covers this same customer, ship-to, item and unit of measure.', Comment = '%1 = existing rule code';
+        EffectiveDateErr: Label 'Effective From cannot be later than Effective To.';
         QuantityRequiredErr: Label 'Units per pallet must be greater than zero.';
 }

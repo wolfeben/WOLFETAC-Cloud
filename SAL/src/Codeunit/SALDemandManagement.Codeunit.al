@@ -395,13 +395,18 @@ codeunit 58000 "SAL Demand Management"
     var
         Item: Record Item;
     begin
-        if Item.Get(PlanSource."Item No.") then
+        if Item.Get(PlanSource."Item No.") then begin
             PlanSource."Item Description" := CopyStr(Item.Description, 1, MaxStrLen(PlanSource."Item Description"));
+            PlanSource."Item Category Code" := Item."Item Category Code";
+        end;
     end;
 
     local procedure ApplyFirstDemandDefaults(var PlanHeader: Record "SAL Plan Header"; PlanSource: Record "SAL Plan Source")
     var
+        Customer: Record Customer;
         HeaderChanged: Boolean;
+        MarketerCustomerNo: Code[20];
+        SALSetup: Record "SAL Setup";
     begin
         if PlanHeader.Priority = 0 then begin
             PlanHeader.Priority := PlanSource.Priority;
@@ -422,6 +427,24 @@ codeunit 58000 "SAL Demand Management"
                 PlanHeader.Description := CopyStr(PlanSource."Destination Name", 1, MaxStrLen(PlanHeader.Description));
             if PlanHeader.Description <> '' then
                 HeaderChanged := true;
+        end;
+        if (PlanHeader."Marketer Description" = '') and
+           (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.") and
+           (Customer."SAL Default Marketer" <> Customer."SAL Default Marketer"::NotSet)
+        then begin
+            if SALSetup.Get('') then
+                case Customer."SAL Default Marketer" of
+                    Customer."SAL Default Marketer"::TAC:
+                        MarketerCustomerNo := SALSetup."TAC Marketer Customer No.";
+                    Customer."SAL Default Marketer"::Costa:
+                        MarketerCustomerNo := SALSetup."Costa Marketer Customer No.";
+                end;
+            if MarketerCustomerNo <> '' then begin
+                PlanHeader.Validate("Marketer Customer No.", MarketerCustomerNo);
+                PlanHeader."Marketer Confirmed" := true;
+            end else
+                PlanHeader."Marketer Description" := CopyStr(Format(Customer."SAL Default Marketer"), 1, MaxStrLen(PlanHeader."Marketer Description"));
+            HeaderChanged := true;
         end;
         if HeaderChanged then
             PlanHeader.Modify(true);

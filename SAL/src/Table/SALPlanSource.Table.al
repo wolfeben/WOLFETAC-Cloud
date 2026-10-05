@@ -309,6 +309,33 @@ table 58002 "SAL Plan Source"
             Editable = false;
             ToolTip = 'Specifies the customer handling, packing, temperature or dispatch conditions captured for this source when the SAL plan version was created or refreshed.';
         }
+        field(46; "Item Category Code"; Code[20])
+        {
+            Caption = 'Product Category';
+            DataClassification = CustomerContent;
+            Editable = false;
+            TableRelation = "Item Category".Code;
+        }
+        field(47; "Pallet Quantity Override"; Decimal)
+        {
+            Caption = 'Pallet Quantity Override';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            MinValue = 0;
+            ToolTip = 'Specifies an explicit quantity per pallet for this order line. Zero uses customer and global rules.';
+        }
+        field(48; "Pallet Template Override"; Code[20])
+        {
+            Caption = 'Pallet Template Override';
+            DataClassification = CustomerContent;
+            TableRelation = "SAL Pallet Template".Code where(Active = const(true));
+        }
+        field(49; "Mixed Pallet Override"; Enum "SAL Mixed Pallet Policy")
+        {
+            Caption = 'Mixed Pallet Override';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies the order-specific mixed-pallet choice. Planner choice falls back to customer and rule settings.';
+        }
     }
 
     keys

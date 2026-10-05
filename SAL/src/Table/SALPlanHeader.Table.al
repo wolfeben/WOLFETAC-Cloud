@@ -159,6 +159,30 @@ table 58001 "SAL Plan Header"
                                                                    "Version No." = field("Version No.")));
             Editable = false;
         }
+        field(22; "Facility Message Id"; Guid)
+        {
+            Caption = 'Facility Message Id';
+            DataClassification = SystemMetadata;
+            Editable = false;
+        }
+        field(23; "Facility Status"; Enum "SAL Integration Status")
+        {
+            Caption = 'Packing Facility Status';
+            DataClassification = CustomerContent;
+            Editable = false;
+        }
+        field(24; "Facility Published At"; DateTime)
+        {
+            Caption = 'Published to Packing Facility At';
+            DataClassification = SystemMetadata;
+            Editable = false;
+        }
+        field(25; "Facility Last Feedback At"; DateTime)
+        {
+            Caption = 'Last Packing Facility Feedback At';
+            DataClassification = SystemMetadata;
+            Editable = false;
+        }
     }
 
     keys
@@ -167,6 +191,7 @@ table 58001 "SAL Plan Header"
         {
             Clustered = true;
         }
+        key(ByFacilityMessage; "Facility Message Id") { }
         key(ByStatus; Status, Priority, "Required Finish Date", "No.", "Version No.")
         {
         }

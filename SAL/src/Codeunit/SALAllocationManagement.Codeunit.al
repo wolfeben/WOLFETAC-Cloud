@@ -269,26 +269,43 @@ codeunit 58006 "SAL Allocation Management"
         SALSetup: Record "SAL Setup";
     begin
         PalletCapacity := 0;
-        if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
+        if PlanSource."Pallet Quantity Override" > 0 then begin
+            PalletCapacity := PlanSource."Pallet Quantity Override";
             exit(true);
-
-        if (StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) and
-           (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.")
-        then
-            if (Customer."SAL Units per Pallet" > 0) and
-               (Customer."SAL Pallet Quantity UOM" = PlanSource."Unit of Measure Code")
-            then begin
-                PalletCapacity := Customer."SAL Units per Pallet";
-                exit(true);
-            end;
-
-        if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
+        end;
+        if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
             exit(true);
 
         if not SALSetup.Get('') then begin
             SALSetup.Init();
             SALSetup."Primary Key" := '';
         end;
+
+        if (StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) and
+           (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.")
+        then begin
+            if (PlanSource."Unit of Measure Code" = SALSetup."Default Packed UOM") and
+               (Customer."SAL Default Packed Qty." > 0)
+            then begin
+                PalletCapacity := Customer."SAL Default Packed Qty.";
+                exit(true);
+            end;
+            if (PlanSource."Unit of Measure Code" = SALSetup."Default Bulk UOM") and
+               (Customer."SAL Default Bulk Qty." > 0)
+            then begin
+                PalletCapacity := Customer."SAL Default Bulk Qty.";
+                exit(true);
+            end;
+            if (Customer."SAL Units per Pallet" > 0) and
+               (Customer."SAL Pallet Quantity UOM" = PlanSource."Unit of Measure Code")
+            then begin
+                PalletCapacity := Customer."SAL Units per Pallet";
+                exit(true);
+            end;
+        end;
+
+        if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
+            exit(true);
         if (PlanSource."Unit of Measure Code" = SALSetup."Default Packed UOM") and
            (SALSetup."Default Packed Qty. per Pallet" > 0)
         then begin
@@ -310,8 +327,12 @@ codeunit 58006 "SAL Allocation Management"
         BestScore: Integer;
         RuleScore: Integer;
         FoundRule: Boolean;
+        RuleDate: Date;
     begin
         Clear(MatchedRule);
+        RuleDate := PlanSource."Shipment Date";
+        if RuleDate = 0D then
+            RuleDate := Today();
         TemplateRule.SetRange(Active, true);
         TemplateRule.SetRange("Unit of Measure Code", PlanSource."Unit of Measure Code");
         if CustomerSpecific then
@@ -323,6 +344,11 @@ codeunit 58006 "SAL Allocation Management"
                 if ((not CustomerSpecific) or (TemplateRule."Customer No." = PlanSource."Customer No.")) and
                    ((TemplateRule."Ship-to Code" = '') or (TemplateRule."Ship-to Code" = PlanSource."Destination Code")) and
                    ((TemplateRule."Item No." = '') or (TemplateRule."Item No." = PlanSource."Item No.")) and
+                   ((TemplateRule."Item Category Code" = '') or (TemplateRule."Item Category Code" = PlanSource."Item Category Code")) and
+                   RuleOrderTypeMatches(TemplateRule."Order Type", PlanSource."Source Type") and
+                   ((TemplateRule."Freight Company Code" = '') or (TemplateRule."Freight Company Code" = PlanSource."Freight Company Code")) and
+                   ((TemplateRule."Effective From Date" = 0D) or (TemplateRule."Effective From Date" <= RuleDate)) and
+                   ((TemplateRule."Effective To Date" = 0D) or (TemplateRule."Effective To Date" >= RuleDate)) and
                    ((StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) or (TemplateRule."Item No." = PlanSource."Item No."))
                 then begin
                     RuleScore := 0;
@@ -330,6 +356,12 @@ codeunit 58006 "SAL Allocation Management"
                         RuleScore += 2;
                     if TemplateRule."Item No." <> '' then
                         RuleScore += 4;
+                    if TemplateRule."Item Category Code" <> '' then
+                        RuleScore += 2;
+                    if TemplateRule."Order Type" <> TemplateRule."Order Type"::Any then
+                        RuleScore += 1;
+                    if TemplateRule."Freight Company Code" <> '' then
+                        RuleScore += 1;
                     if FoundRule and (RuleScore = BestScore) then
                         Error(AmbiguousRuleErr, PlanSource."Item No.", PlanSource."Customer No.", PlanSource."Destination Code");
                     if not FoundRule or (RuleScore > BestScore) then begin
@@ -341,6 +373,18 @@ codeunit 58006 "SAL Allocation Management"
                 end;
             until TemplateRule.Next() = 0;
         exit(FoundRule);
+    end;
+
+    local procedure RuleOrderTypeMatches(RuleOrderType: Enum "SAL Rule Order Type"; SourceType: Enum "SAL Source Type"): Boolean
+    begin
+        case RuleOrderType of
+            RuleOrderType::Any:
+                exit(true);
+            RuleOrderType::SalesOrder:
+                exit(SourceType = SourceType::SalesOrder);
+            RuleOrderType::TransferOrder:
+                exit(SourceType = SourceType::TransferOrder);
+        end;
     end;
 
     local procedure CreateExactPallet(PlanHeader: Record "SAL Plan Header"; PlanSource: Record "SAL Plan Source"; Quantity: Decimal; PalletType: Enum "SAL Pallet Type"; var CreatedPallets: Integer)
@@ -422,6 +466,13 @@ codeunit 58006 "SAL Allocation Management"
         PalletTemplate: Record "SAL Pallet Template";
         PalletCapacity: Decimal;
     begin
+        if PlanSource."Pallet Template Override" <> '' then begin
+            PlanPallet."Pallet Template Code" := PlanSource."Pallet Template Override";
+            PlanPallet."Mixed Pallet Policy" := PlanSource."Mixed Pallet Override";
+            if PalletTemplate.Get(PlanSource."Pallet Template Override") then
+                PlanPallet."Physical Pallet Type" := PalletTemplate."Physical Pallet Type";
+            exit;
+        end;
         if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then begin
             ApplyRulePalletDefaults(MatchedRule, PlanPallet);
             exit;
@@ -462,6 +513,10 @@ codeunit 58006 "SAL Allocation Management"
     begin
         if not PlannerAllowsMixed then
             exit(false);
+        if PlanSource."Mixed Pallet Override" = PlanSource."Mixed Pallet Override"::NotAllowed then
+            exit(false);
+        if PlanSource."Mixed Pallet Override" = PlanSource."Mixed Pallet Override"::Allowed then
+            exit(true);
         if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
             if MatchedRule."Mixed Pallet Policy" = MatchedRule."Mixed Pallet Policy"::NotAllowed then
                 exit(false)

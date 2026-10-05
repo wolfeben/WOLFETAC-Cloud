@@ -83,6 +83,28 @@ tableextension 58014 "SAL Customer Extension" extends Customer
             Editable = false;
             ToolTip = 'Shows the number of active customer, ship-to or item-specific pallet rules for this customer.';
         }
+        field(58008; "SAL Default Marketer"; Enum "SAL Marketer")
+        {
+            Caption = 'Default Marketer';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies whether new SAL plans for this customer normally belong to TAC or Costa.';
+        }
+        field(58009; "SAL Default Packed Qty."; Decimal)
+        {
+            Caption = 'Default Packed Quantity';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            MinValue = 0;
+            ToolTip = 'Specifies this customer''s packed quantity per pallet. Zero uses the global packed default.';
+        }
+        field(58010; "SAL Default Bulk Qty."; Decimal)
+        {
+            Caption = 'Default Bulk Quantity';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 5;
+            MinValue = 0;
+            ToolTip = 'Specifies this customer''s bulk quantity per pallet. Zero uses the global bulk default.';
+        }
     }
 
     var

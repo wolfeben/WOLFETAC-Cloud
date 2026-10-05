@@ -152,6 +152,67 @@ codeunit 58802 "SAL Auto Fill Tests"
     end;
 
     [Test]
+    procedure ExplicitOrderOverrideBeatsCustomerAndGlobalRules()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreateSetupDefaults('TE', 160, 'BK', 96);
+        CreateCustomer('OVERRIDE-CUST', 'TE', 152, Customer);
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-OVERRIDE', 168, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source."Pallet Quantity Override" := 84;
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'the explicit order override must create two pallets');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Target Quantity" = 84, 'explicit order override must beat customer and global quantities');
+    end;
+
+    [Test]
+    procedure CustomerPackedAndBulkDefaultsBeatGlobalFallbacks()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreateSetupDefaults('TE', 160, 'BK', 96);
+        CreateCustomer('DUAL-DEFAULTS', '', 0, Customer);
+        Customer."SAL Default Packed Qty." := 152;
+        Customer."SAL Default Bulk Qty." := 88;
+        Customer.Modify(true);
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-PACKED-CUST', 152, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+        CreateSource(Plan, 20000, 'ITEM-BULK-CUST', 88, 'BK', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'customer packed and bulk defaults must allocate both lines');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Target Quantity" = 152, 'customer packed default must beat 160');
+        Pallet.Get(Plan."No.", Plan."Version No.", 2);
+        AssertThat(Pallet."Target Quantity" = 88, 'customer bulk default must beat 96');
+    end;
+
+    [Test]
     procedure CustomerCardCapacityOverridesGenericRuleForMatchingUnit()
     var
         Allocation: Codeunit "SAL Allocation Management";
