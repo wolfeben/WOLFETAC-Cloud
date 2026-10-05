@@ -862,6 +862,7 @@
                                 '<br><small>', escapeHtml(source.freightCompanyName || source.freightCompanyCode || 'Freight company not set'),
                                 source.freightServiceCode ? ' · ' + escapeHtml(source.freightServiceCode) : '',
                                 source.freightReference ? '<br>' + escapeHtml(source.freightReference) : '',
+                                source.labellingRequirements ? '<br><strong>Labels:</strong> ' + escapeHtml(source.labellingRequirements) : '',
                                 '</small></span>',
                             '<span>', source.routingConfirmed ? 'Ship-from confirmed' : 'Review ship-from', '</span>',
                             '<div class="sal-source-actions">',

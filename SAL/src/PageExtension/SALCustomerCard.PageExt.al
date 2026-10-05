@@ -40,6 +40,13 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                     Caption = 'Freight Service';
                     ToolTip = 'Specifies the default freight service for new customer sales documents.';
                 }
+                field("SAL Labelling Requirements"; Rec."SAL Labelling Requirements")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Known Labelling Requirements';
+                    MultiLine = true;
+                    ToolTip = 'Specifies known customer labelling requirements that SAL must include in the versioned packing instruction.';
+                }
             }
         }
     }

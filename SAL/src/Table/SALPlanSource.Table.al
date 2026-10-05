@@ -295,6 +295,13 @@ table 58002 "SAL Plan Source"
             Editable = false;
             ToolTip = 'Specifies the package tracking, booking or other freight reference captured from the source document.';
         }
+        field(44; "Labelling Requirements"; Text[1024])
+        {
+            Caption = 'Known Labelling Requirements';
+            DataClassification = CustomerContent;
+            Editable = false;
+            ToolTip = 'Specifies the customer labelling requirements captured for this source when the SAL plan version was created or refreshed.';
+        }
     }
 
     keys

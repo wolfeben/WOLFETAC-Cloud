@@ -63,6 +63,12 @@ tableextension 58014 "SAL Customer Extension" extends Customer
             CalcFormula = lookup("SAL Pallet Template"."Physical Pallet Type" where(Code = field("SAL Pallet Template Code")));
             Editable = false;
         }
+        field(58005; "SAL Labelling Requirements"; Text[1024])
+        {
+            Caption = 'Known Labelling Requirements';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies the customer''s known carton, tray, pallet or dispatch labelling requirements for packing and logistics planning.';
+        }
     }
 
     var

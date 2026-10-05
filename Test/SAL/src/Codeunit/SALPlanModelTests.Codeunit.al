@@ -566,6 +566,41 @@ codeunit 58800 "SAL Plan Model Tests"
     end;
 
     [Test]
+    procedure SalesOrderDemandSnapshotsKnownCustomerLabellingRequirements()
+    var
+        Customer: Record Customer;
+        DemandManagement: Codeunit "SAL Demand Management";
+        PlanHeader: Record "SAL Plan Header";
+        PlanSource: Record "SAL Plan Source";
+        SalesHeader: Record "Sales Header";
+        AddedCount: Integer;
+        SalesOrderNo: Code[20];
+        SkippedCount: Integer;
+    begin
+        // [GIVEN] a released Sales Order for a customer with known packing-label requirements
+        SalesOrderNo := GetUniquePlanNo();
+        Customer.Init();
+        Customer."No." := SalesOrderNo;
+        Customer.Name := 'Labelled Customer';
+        Customer."SAL Labelling Requirements" := 'Apply customer carton label and one SSCC pallet label.';
+        Customer.Insert(false);
+        CreateSalesOrder(SalesOrderNo, true);
+        SalesHeader.Get(SalesHeader."Document Type"::Order, SalesOrderNo);
+        SalesHeader."Sell-to Customer No." := Customer."No.";
+        SalesHeader."Sell-to Customer Name" := Customer.Name;
+        SalesHeader.Modify(false);
+        CreateSalesOrderLine(SalesOrderNo, 10000, true, 'ITEM-LABEL', 10, 10);
+        CreatePlan(PlanHeader);
+
+        // [WHEN] its demand is added to SAL
+        DemandManagement.AddSalesOrderDemand(PlanHeader, SalesOrderNo, AddedCount, SkippedCount);
+
+        // [THEN] the current customer requirement is frozen into this plan version
+        AssertThat(GetSalesOrderSource(PlanHeader, SalesOrderNo, 10000, PlanSource), 'expected the Sales Order source on the plan');
+        AssertThat(PlanSource."Labelling Requirements" = Customer."SAL Labelling Requirements", 'expected the known customer labelling requirements to be captured');
+    end;
+
+    [Test]
     procedure SalesOrderDemandSkipsDuplicatesAndIneligibleLines()
     var
         DemandManagement: Codeunit "SAL Demand Management";

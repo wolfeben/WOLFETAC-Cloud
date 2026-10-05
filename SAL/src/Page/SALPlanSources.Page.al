@@ -166,6 +166,11 @@ page 58015 "SAL Plan Sources"
                 {
                     ApplicationArea = All;
                 }
+                field("Labelling Requirements"; Rec."Labelling Requirements")
+                {
+                    ApplicationArea = All;
+                    MultiLine = true;
+                }
                 field(Priority; Rec.Priority)
                 {
                     ApplicationArea = All;

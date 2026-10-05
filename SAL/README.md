@@ -54,6 +54,12 @@ Customer freight defaults (app version 1.1.0.28):
 - New sales documents can inherit those customer defaults through standard Business Central behaviour. SAL then snapshots the freight company, service and package-tracking reference actually recorded on the Sales Order or Transfer Order source line.
 - The source document remains authoritative: an order-specific carrier overrides the customer's normal default. The captured values are copied into later SAL plan versions and are available to the future versioned Packing Facility instruction without relying on a mutable customer setting.
 
+Known labelling requirements (app version 1.1.0.29):
+
+- The Customer Card SAL Packing section records known carton, tray, pallet or dispatch labelling requirements in a multiline field.
+- Sales Order demand snapshots those requirements onto each SAL source and displays them with the demand line. Later customer-master edits therefore do not silently change an existing plan version.
+- The snapshot is part of the intended versioned Packing Facility instruction. Order-specific label data and scanner-generated physical label identities remain separate operational information.
+
 Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
 
 Movement source lines (app version 1.1.0.2):
