@@ -150,6 +150,22 @@ page 58015 "SAL Plan Sources"
                     Editable = false;
                     ToolTip = 'Specifies the shipment date captured from the order.';
                 }
+                field("Freight Company Code"; Rec."Freight Company Code")
+                {
+                    ApplicationArea = All;
+                }
+                field("Freight Company Name"; Rec."Freight Company Name")
+                {
+                    ApplicationArea = All;
+                }
+                field("Freight Service Code"; Rec."Freight Service Code")
+                {
+                    ApplicationArea = All;
+                }
+                field("Freight Reference"; Rec."Freight Reference")
+                {
+                    ApplicationArea = All;
+                }
                 field(Priority; Rec.Priority)
                 {
                     ApplicationArea = All;

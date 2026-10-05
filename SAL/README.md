@@ -48,6 +48,12 @@ Customer pallet templates (app version 1.1.0.27):
 - A customer/template marked **Not allowed** cannot be auto-composed or released as a mixed product/size pallet. **Planner choice** preserves the existing per-plan Allow mixed control.
 - These snapshot fields form part of the versioned facility instruction intended for the on-premises Packing Wall and scanner integration.
 
+Customer freight defaults (app version 1.1.0.28):
+
+- The Customer Card SAL Packing section exposes Business Central's standard Shipping Agent and Shipping Agent Service as **Freight Company** and **Freight Service**. No duplicate carrier master is introduced.
+- New sales documents can inherit those customer defaults through standard Business Central behaviour. SAL then snapshots the freight company, service and package-tracking reference actually recorded on the Sales Order or Transfer Order source line.
+- The source document remains authoritative: an order-specific carrier overrides the customer's normal default. The captured values are copied into later SAL plan versions and are available to the future versioned Packing Facility instruction without relying on a mutable customer setting.
+
 Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
 
 Movement source lines (app version 1.1.0.2):

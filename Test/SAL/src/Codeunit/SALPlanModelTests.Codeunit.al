@@ -526,6 +526,46 @@ codeunit 58800 "SAL Plan Model Tests"
     end;
 
     [Test]
+    procedure SalesOrderDemandSnapshotsActualFreightCompanyAndService()
+    var
+        DemandManagement: Codeunit "SAL Demand Management";
+        PlanHeader: Record "SAL Plan Header";
+        PlanSource: Record "SAL Plan Source";
+        SalesHeader: Record "Sales Header";
+        ShippingAgent: Record "Shipping Agent";
+        AddedCount: Integer;
+        SalesOrderNo: Code[20];
+        ShippingAgentCode: Code[10];
+        SkippedCount: Integer;
+    begin
+        // [GIVEN] a released source order with an order-specific freight company, service and tracking reference
+        SalesOrderNo := GetUniquePlanNo();
+        ShippingAgentCode := CopyStr(DelChr(Format(CreateGuid()), '=', '{}-'), 1, MaxStrLen(ShippingAgentCode));
+        ShippingAgent.Init();
+        ShippingAgent.Code := ShippingAgentCode;
+        ShippingAgent.Name := 'Test Freight Company';
+        ShippingAgent.Insert(false);
+        CreateSalesOrder(SalesOrderNo, true);
+        SalesHeader.Get(SalesHeader."Document Type"::Order, SalesOrderNo);
+        SalesHeader."Shipping Agent Code" := ShippingAgentCode;
+        SalesHeader."Shipping Agent Service Code" := 'EXPRESS';
+        SalesHeader."Package Tracking No." := 'BOOKING-123';
+        SalesHeader.Modify(false);
+        CreateSalesOrderLine(SalesOrderNo, 10000, true, 'ITEM-FREIGHT', 10, 10);
+        CreatePlan(PlanHeader);
+
+        // [WHEN] the document demand is added to SAL
+        DemandManagement.AddSalesOrderDemand(PlanHeader, SalesOrderNo, AddedCount, SkippedCount);
+
+        // [THEN] the plan source captures the actual order carrier rather than relying on a mutable customer default
+        AssertThat(GetSalesOrderSource(PlanHeader, SalesOrderNo, 10000, PlanSource), 'expected the Sales Order source on the plan');
+        AssertThat(PlanSource."Freight Company Code" = ShippingAgentCode, 'expected the order freight company code to be captured');
+        AssertThat(PlanSource."Freight Company Name" = ShippingAgent.Name, 'expected the freight company name to be captured');
+        AssertThat(PlanSource."Freight Service Code" = 'EXPRESS', 'expected the order freight service to be captured');
+        AssertThat(PlanSource."Freight Reference" = 'BOOKING-123', 'expected the order freight reference to be captured');
+    end;
+
+    [Test]
     procedure SalesOrderDemandSkipsDuplicatesAndIneligibleLines()
     var
         DemandManagement: Codeunit "SAL Demand Management";

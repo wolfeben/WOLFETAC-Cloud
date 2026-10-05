@@ -28,6 +28,18 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                 {
                     ApplicationArea = All;
                 }
+                field("SAL Freight Company"; Rec."Shipping Agent Code")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Freight Company';
+                    ToolTip = 'Specifies the default freight company for new customer sales documents. SAL snapshots the freight company actually recorded on each source order.';
+                }
+                field("SAL Freight Service"; Rec."Shipping Agent Service Code")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Freight Service';
+                    ToolTip = 'Specifies the default freight service for new customer sales documents.';
+                }
             }
         }
     }
@@ -52,6 +64,14 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                 Image = Setup;
                 RunObject = page "SAL Pallet Templates";
                 ToolTip = 'Opens reusable physical pallet formats such as CHEP, PMC, AKE, standard packed and standard bulk.';
+            }
+            action("SAL Freight Companies")
+            {
+                ApplicationArea = All;
+                Caption = 'Freight Companies';
+                Image = Delivery;
+                RunObject = page "Shipping Agents";
+                ToolTip = 'Opens the standard Business Central shipping agents used as freight companies.';
             }
         }
     }

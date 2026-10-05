@@ -15,6 +15,8 @@ permissionset 58000 "SAL VIEW"
         tabledata "SAL Product Group Member" = r,
         tabledata "SAL Template Rule" = r,
         tabledata "SAL Pallet Template" = r,
+        tabledata "Shipping Agent" = r,
+        tabledata "Shipping Agent Services" = r,
         table "SAL Setup" = X,
         table "SAL Plan Header" = X,
         table "SAL Plan Source" = X,

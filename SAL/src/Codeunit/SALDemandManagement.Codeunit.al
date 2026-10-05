@@ -288,6 +288,7 @@ codeunit 58000 "SAL Demand Management"
         PlanSource."Destination Name" := CopyStr(SalesHeader."Ship-to Name", 1, MaxStrLen(PlanSource."Destination Name"));
         if PlanSource."Destination Name" = '' then
             PlanSource."Destination Name" := CopyStr(SalesHeader."Sell-to Customer Name", 1, MaxStrLen(PlanSource."Destination Name"));
+        ApplyFreightSnapshot(PlanSource, SalesHeader."Shipping Agent Code", SalesHeader."Shipping Agent Service Code", SalesHeader."Package Tracking No.");
 
         if SalesLine."Location Code" <> '' then
             PlanSource."Execution Route" := PlanSource."Execution Route"::ExternalDCFulfilment
@@ -323,8 +324,21 @@ codeunit 58000 "SAL Demand Management"
             PlanSource."Destination Name" := CopyStr(DestinationLocation.Name, 1, MaxStrLen(PlanSource."Destination Name"))
         else
             PlanSource."Destination Name" := TransferHeader."Transfer-to Code";
+        ApplyFreightSnapshot(PlanSource, TransferHeader."Shipping Agent Code", TransferHeader."Shipping Agent Service Code", '');
         PlanSource."Execution Route" := PlanSource."Execution Route"::InterDCTransfer;
         PlanSource."Facility Work Type" := PlanSource."Facility Work Type"::None;
+    end;
+
+    local procedure ApplyFreightSnapshot(var PlanSource: Record "SAL Plan Source"; FreightCompanyCode: Code[10]; FreightServiceCode: Code[10]; FreightReference: Text)
+    var
+        ShippingAgent: Record "Shipping Agent";
+    begin
+        PlanSource."Freight Company Code" := FreightCompanyCode;
+        PlanSource."Freight Service Code" := FreightServiceCode;
+        PlanSource."Freight Reference" := CopyStr(FreightReference, 1, MaxStrLen(PlanSource."Freight Reference"));
+        Clear(PlanSource."Freight Company Name");
+        if (FreightCompanyCode <> '') and ShippingAgent.Get(FreightCompanyCode) then
+            PlanSource."Freight Company Name" := CopyStr(ShippingAgent.Name, 1, MaxStrLen(PlanSource."Freight Company Name"));
     end;
 
     local procedure SourceAlreadyExists(PlanHeader: Record "SAL Plan Header"; SourceType: Enum "SAL Source Type"; DocumentNo: Code[20]; DocumentLineNo: Integer): Boolean

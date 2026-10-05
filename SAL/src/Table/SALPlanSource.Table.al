@@ -265,6 +265,36 @@ table 58002 "SAL Plan Source"
             MinValue = 0;
             ToolTip = 'Specifies the overall pallet limit captured from the fill layout. Zero means no overall cap.';
         }
+        field(40; "Freight Company Code"; Code[10])
+        {
+            Caption = 'Freight Company';
+            DataClassification = CustomerContent;
+            Editable = false;
+            TableRelation = "Shipping Agent".Code;
+            ToolTip = 'Specifies the Business Central shipping agent captured from the source document for this plan version.';
+        }
+        field(41; "Freight Company Name"; Text[100])
+        {
+            Caption = 'Freight Company Name';
+            DataClassification = CustomerContent;
+            Editable = false;
+            ToolTip = 'Specifies the freight company name captured from the source document for this plan version.';
+        }
+        field(42; "Freight Service Code"; Code[10])
+        {
+            Caption = 'Freight Service';
+            DataClassification = CustomerContent;
+            Editable = false;
+            TableRelation = "Shipping Agent Services".Code where("Shipping Agent Code" = field("Freight Company Code"));
+            ToolTip = 'Specifies the shipping agent service captured from the source document for this plan version.';
+        }
+        field(43; "Freight Reference"; Text[100])
+        {
+            Caption = 'Freight Reference';
+            DataClassification = CustomerContent;
+            Editable = false;
+            ToolTip = 'Specifies the package tracking, booking or other freight reference captured from the source document.';
+        }
     }
 
     keys

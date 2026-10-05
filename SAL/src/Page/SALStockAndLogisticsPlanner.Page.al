@@ -756,6 +756,10 @@ page 58007 "SAL Stock & Logistics Planner"
                 Source.Add('destinationCode', PlanSource."Destination Code");
                 Source.Add('destinationName', PlanSource."Destination Name");
                 Source.Add('shipmentDate', FormatDate(PlanSource."Shipment Date"));
+                Source.Add('freightCompanyCode', PlanSource."Freight Company Code");
+                Source.Add('freightCompanyName', PlanSource."Freight Company Name");
+                Source.Add('freightServiceCode', PlanSource."Freight Service Code");
+                Source.Add('freightReference', PlanSource."Freight Reference");
                 Source.Add('modifiedAt', FormatDateTime(PlanSource.SystemModifiedAt));
                 BuildPlanFillMembers(PlanHeader, PlanSource."Line No.", FillMembers);
                 Source.Add('fillMembers', FillMembers);
