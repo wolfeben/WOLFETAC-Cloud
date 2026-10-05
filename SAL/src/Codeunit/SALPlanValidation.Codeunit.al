@@ -287,6 +287,10 @@ codeunit 58002 "SAL Plan Validation"
 
         if HasDifferentProduct then
             ValidateFillMixPermissions(PlanPallet);
+        if HasDifferentProduct and
+           (PlanPallet."Mixed Pallet Policy" = PlanPallet."Mixed Pallet Policy"::NotAllowed)
+        then
+            Error(CustomerMixedPalletErr, PlanPallet."Pallet No.", PlanPallet."Pallet Template Code");
 
         case PlanPallet."Pallet Type" of
             PlanPallet."Pallet Type"::Standard:
@@ -458,6 +462,7 @@ codeunit 58002 "SAL Plan Validation"
 
     var
         ComponentQuantityErr: Label 'Pallet %1 component line %2 must have a quantity greater than zero.', Comment = '%1 = pallet no., %2 = component line no.';
+        CustomerMixedPalletErr: Label 'Pallet %1 cannot contain mixed products or sizes because pallet template %2 does not allow mixed pallets.', Comment = '%1 = pallet no., %2 = pallet template code';
         ComponentFillMemberErr: Label 'Pallet %1 component line %2 is not linked to a valid fill member.', Comment = '%1 = pallet no., %2 = component line no.';
         ComponentFillMismatchErr: Label 'Pallet %1 component line %2 does not match fill member line %3 item, variant and unit of measure.', Comment = '%1 = pallet no., %2 = component line no., %3 = fill member line no.';
         ComponentModeErr: Label 'Pallet %1 component line %2 has an invalid fulfilment mode.', Comment = '%1 = pallet no., %2 = component line no.';

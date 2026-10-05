@@ -69,7 +69,7 @@ codeunit 58006 "SAL Allocation Management"
             PlanPallet.CalcFields("Planned Quantity", "No. of Components");
             PalletRemaining := PlanPallet."Target Quantity" - PlanPallet."Planned Quantity";
             if (PalletRemaining > 0) and (PlanPallet."No. of Components" = 0) then begin
-                if AllowMixed and FillEmptyPalletFromDemand(PlanPallet) then
+                if AllowMixed and FillEmptyPalletFromDemand(PlanPallet, AllowMixed) then
                     UpdatedPallets += 1;
             end else
                 if (PalletRemaining > 0) and (PlanPallet."No. of Components" > 0) then begin
@@ -116,7 +116,7 @@ codeunit 58006 "SAL Allocation Management"
         until PlanPallet.Next() = 0;
     end;
 
-    local procedure FillEmptyPalletFromDemand(var PlanPallet: Record "SAL Plan Pallet"): Boolean
+    local procedure FillEmptyPalletFromDemand(var PlanPallet: Record "SAL Plan Pallet"; PlannerAllowsMixed: Boolean): Boolean
     var
         AnchorSource: Record "SAL Plan Source";
         PlanSource: Record "SAL Plan Source";
@@ -124,6 +124,7 @@ codeunit 58006 "SAL Allocation Management"
         FirstVariantCode: Code[10];
         HasAnchor: Boolean;
         HasDifferentProduct: Boolean;
+        RemainingHasDifferentProduct: Boolean;
         Remaining: Decimal;
         TakeQuantity: Decimal;
         CapacityLeft: Decimal;
@@ -143,14 +144,27 @@ codeunit 58006 "SAL Allocation Management"
                     if not HasAnchor then begin
                         AnchorSource := PlanSource;
                         HasAnchor := true;
-                    end else
+                        FirstItemNo := PlanSource."Item No.";
+                        FirstVariantCode := PlanSource."Variant Code";
+                    end else begin
                         if not SourcesSharePalletIdentity(AnchorSource, PlanSource) then
                             exit(false);
+                        if (FirstItemNo <> PlanSource."Item No.") or
+                           (FirstVariantCode <> PlanSource."Variant Code")
+                        then
+                            RemainingHasDifferentProduct := true;
+                    end;
             until PlanSource.Next() = 0;
         if not HasAnchor then
             exit(false);
+        if RemainingHasDifferentProduct and not CanMixSource(AnchorSource, PlannerAllowsMixed) then
+            exit(false);
+
+        ApplyCustomerPalletDefaults(AnchorSource, PlanPallet);
 
         CapacityLeft := PlanPallet."Target Quantity";
+        Clear(FirstItemNo);
+        Clear(FirstVariantCode);
         if PlanSource.FindSet() then
             repeat
                 if CapacityLeft > 0 then begin
@@ -318,6 +332,7 @@ codeunit 58006 "SAL Allocation Management"
         PlanPallet."Pallet Type" := PalletType;
         PlanPallet."Target Quantity" := Quantity;
         PlanPallet.Description := CopyStr(PlanSource."Item Description", 1, MaxStrLen(PlanPallet.Description));
+        ApplyCustomerPalletDefaults(PlanSource, PlanPallet);
         PlanPallet.Insert(true);
         AddExactComponent(PlanPallet, PlanSource, Quantity);
         CreatedPallets += 1;
@@ -339,13 +354,14 @@ codeunit 58006 "SAL Allocation Management"
         PlanPallet."Pallet Type" := PlanPallet."Pallet Type"::Custom;
         PlanPallet."Target Quantity" := PendingSource.Quantity;
         PlanPallet.Description := CopyStr(ShortPalletDescriptionTxt, 1, MaxStrLen(PlanPallet.Description));
+        ApplyCustomerPalletDefaults(PendingSource, PlanPallet);
         PlanPallet.Insert(true);
         AddExactComponent(PlanPallet, PendingSource, PendingSource.Quantity);
         PendingSource.Quantity := 0;
         PendingSource.Modify();
         CreatedPallets += 1;
 
-        if not AllowMixed then
+        if not CanMixSource(PendingSource, AllowMixed) then
             exit;
         OtherSource.Copy(PendingSource, true);
         if OtherSource.FindSet() then
@@ -374,6 +390,35 @@ codeunit 58006 "SAL Allocation Management"
                     OtherSource.Modify();
                 end;
             until OtherSource.Next() = 0;
+    end;
+
+    local procedure ApplyCustomerPalletDefaults(PlanSource: Record "SAL Plan Source"; var PlanPallet: Record "SAL Plan Pallet")
+    var
+        Customer: Record Customer;
+        PalletTemplate: Record "SAL Pallet Template";
+    begin
+        if (PlanSource."Customer No." = '') or not Customer.Get(PlanSource."Customer No.") then
+            exit;
+        if (Customer."SAL Pallet Template Code" = '') or
+           (Customer."SAL Pallet Quantity UOM" <> PlanSource."Unit of Measure Code")
+        then
+            exit;
+        PlanPallet."Pallet Template Code" := Customer."SAL Pallet Template Code";
+        PlanPallet."Mixed Pallet Policy" := Customer."SAL Mixed Pallet Policy";
+        if PalletTemplate.Get(Customer."SAL Pallet Template Code") then
+            PlanPallet."Physical Pallet Type" := PalletTemplate."Physical Pallet Type";
+    end;
+
+    local procedure CanMixSource(PlanSource: Record "SAL Plan Source"; PlannerAllowsMixed: Boolean): Boolean
+    var
+        Customer: Record Customer;
+    begin
+        if not PlannerAllowsMixed then
+            exit(false);
+        if (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.") then
+            if Customer."SAL Mixed Pallet Policy" = Customer."SAL Mixed Pallet Policy"::NotAllowed then
+                exit(false);
+        exit(true);
     end;
 
     local procedure AddExactComponent(PlanPallet: Record "SAL Plan Pallet"; PlanSource: Record "SAL Plan Source"; Quantity: Decimal)

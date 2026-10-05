@@ -188,6 +188,37 @@ codeunit 58802 "SAL Auto Fill Tests"
     end;
 
     [Test]
+    procedure CustomerPalletTemplateIsSnapshottedAndBlocksMixedPallets()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePalletTemplate('WOOLIES-152', 'CHEP', 'TE', 152, Enum::"SAL Mixed Pallet Policy"::NotAllowed);
+        CreateTemplateCustomer('WOOLIES-TEMPLATE', 'WOOLIES-152', Customer);
+        CreatePlan(Plan);
+        CreateSource(Plan, 10000, 'ITEM-A', 80, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+        CreateSource(Plan, 20000, 'ITEM-B', 72, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, true, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'customer policy must prevent one mixed pallet');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Pallet Template Code" = 'WOOLIES-152', 'template code must be copied onto the plan pallet');
+        AssertThat(Pallet."Physical Pallet Type" = 'CHEP', 'physical pallet type must be copied onto the plan pallet');
+        AssertThat(Pallet."Mixed Pallet Policy" = Pallet."Mixed Pallet Policy"::NotAllowed, 'mixed policy must be copied onto the plan pallet');
+    end;
+
+    [Test]
     procedure ExistingMixedPalletFillsRemainingOrderLinesWithoutAnyRule()
     var
         Allocation: Codeunit "SAL Allocation Management";
@@ -303,6 +334,35 @@ codeunit 58802 "SAL Auto Fill Tests"
         Customer."SAL Pallet Quantity UOM" := Uom;
         Customer."SAL Units per Pallet" := Capacity;
         Customer.Insert(true);
+    end;
+
+    local procedure CreatePalletTemplate(TemplateCode: Code[20]; PhysicalPalletType: Code[20]; Uom: Code[10]; Capacity: Decimal; MixedPolicy: Enum "SAL Mixed Pallet Policy")
+    var
+        PalletTemplate: Record "SAL Pallet Template";
+    begin
+        if PalletTemplate.Get(TemplateCode) then
+            PalletTemplate.Delete(true);
+        PalletTemplate.Init();
+        PalletTemplate.Code := TemplateCode;
+        PalletTemplate.Description := TemplateCode;
+        PalletTemplate."Physical Pallet Type" := PhysicalPalletType;
+        PalletTemplate."Unit of Measure Code" := Uom;
+        PalletTemplate."Units per Pallet" := Capacity;
+        PalletTemplate."Mixed Pallet Policy" := MixedPolicy;
+        PalletTemplate.Active := true;
+        PalletTemplate.Insert(true);
+    end;
+
+    local procedure CreateTemplateCustomer(CustomerNo: Code[20]; TemplateCode: Code[20]; var Customer: Record Customer)
+    begin
+        if Customer.Get(CustomerNo) then
+            Customer.Delete(true);
+        Customer.Init();
+        Customer."No." := CustomerNo;
+        Customer.Name := CustomerNo;
+        Customer.Insert(true);
+        Customer.Validate("SAL Pallet Template Code", TemplateCode);
+        Customer.Modify(true);
     end;
 
     local procedure CreateSource(Plan: Record "SAL Plan Header"; LineNo: Integer; ItemNo: Code[20]; Quantity: Decimal; Uom: Code[10]; var Source: Record "SAL Plan Source")

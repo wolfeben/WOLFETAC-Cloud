@@ -2,6 +2,27 @@ tableextension 58014 "SAL Customer Extension" extends Customer
 {
     fields
     {
+        field(58002; "SAL Pallet Template Code"; Code[20])
+        {
+            Caption = 'Pallet Template Code';
+            DataClassification = CustomerContent;
+            TableRelation = "SAL Pallet Template".Code where(Active = const(true));
+            ToolTip = 'Specifies the customer''s default physical pallet format, pallet quantity and mixed-pallet policy.';
+
+            trigger OnValidate()
+            var
+                PalletTemplate: Record "SAL Pallet Template";
+            begin
+                if "SAL Pallet Template Code" = '' then
+                    exit;
+                PalletTemplate.Get("SAL Pallet Template Code");
+                PalletTemplate.TestField(Active, true);
+                "SAL Units per Pallet" := 0;
+                Validate("SAL Pallet Quantity UOM", PalletTemplate."Unit of Measure Code");
+                Validate("SAL Units per Pallet", PalletTemplate."Units per Pallet");
+                Validate("SAL Mixed Pallet Policy", PalletTemplate."Mixed Pallet Policy");
+            end;
+        }
         field(58000; "SAL Pallet Quantity UOM"; Code[10])
         {
             Caption = 'Pallet Quantity UOM';
@@ -28,6 +49,19 @@ tableextension 58014 "SAL Customer Extension" extends Customer
                 if "SAL Units per Pallet" > 0 then
                     TestField("SAL Pallet Quantity UOM");
             end;
+        }
+        field(58003; "SAL Mixed Pallet Policy"; Enum "SAL Mixed Pallet Policy")
+        {
+            Caption = 'Mixed Pallets';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies whether the customer permits mixed product or size pallets. Planner choice preserves the planner''s Allow mixed selection.';
+        }
+        field(58004; "SAL Physical Pallet Type"; Code[20])
+        {
+            Caption = 'Physical Pallet Type';
+            FieldClass = FlowField;
+            CalcFormula = lookup("SAL Pallet Template"."Physical Pallet Type" where(Code = field("SAL Pallet Template Code")));
+            Editable = false;
         }
     }
 

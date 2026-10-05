@@ -62,6 +62,22 @@ table 58003 "SAL Plan Pallet"
                                                                    "Pallet No." = field("Pallet No.")));
             Editable = false;
         }
+        field(9; "Pallet Template Code"; Code[20])
+        {
+            Caption = 'Pallet Template Code';
+            DataClassification = CustomerContent;
+            TableRelation = "SAL Pallet Template".Code;
+        }
+        field(10; "Physical Pallet Type"; Code[20])
+        {
+            Caption = 'Physical Pallet Type';
+            DataClassification = CustomerContent;
+        }
+        field(11; "Mixed Pallet Policy"; Enum "SAL Mixed Pallet Policy")
+        {
+            Caption = 'Mixed Pallets';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

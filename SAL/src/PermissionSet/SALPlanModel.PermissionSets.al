@@ -14,6 +14,7 @@ permissionset 58000 "SAL VIEW"
         tabledata "SAL Product Group" = r,
         tabledata "SAL Product Group Member" = r,
         tabledata "SAL Template Rule" = r,
+        tabledata "SAL Pallet Template" = r,
         table "SAL Setup" = X,
         table "SAL Plan Header" = X,
         table "SAL Plan Source" = X,
@@ -24,6 +25,7 @@ permissionset 58000 "SAL VIEW"
         table "SAL Product Group" = X,
         table "SAL Product Group Member" = X,
         table "SAL Template Rule" = X,
+        table "SAL Pallet Template" = X,
         page "SAL Plan Details" = X,
         page "SAL Plan Pallets" = X,
         page "SAL Pallet Components" = X,
@@ -80,9 +82,11 @@ permissionset 58002 "SAL ADMIN"
         tabledata "SAL Product Group" = RIMD,
         tabledata "SAL Product Group Member" = RIMD,
         tabledata "SAL Template Rule" = RIMD,
+        tabledata "SAL Pallet Template" = RIMD,
         tabledata "No. Series" = r,
         page "SAL Setup" = X,
         page "SAL Product Groups" = X,
         page "SAL Product Group Members" = X,
-        page "SAL Template Rules" = X;
+        page "SAL Template Rules" = X,
+        page "SAL Pallet Templates" = X;
 }

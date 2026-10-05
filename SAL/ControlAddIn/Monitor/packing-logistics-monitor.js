@@ -722,6 +722,7 @@
         return '<article class="frm-pallet-card"><div class="frm-pallet-head"><div><span class="frm-eyebrow">PLANNED PALLET</span>' +
             '<h4>' + escapeHtml(pallet.plannedPalletId || ('Pallet ' + number(pallet.sequenceNo))) + '</h4></div>' +
             '<div class="frm-pallet-chips"><span class="frm-chip">' + escapeHtml(pallet.palletType || 'Not set') + '</span>' +
+            (pallet.physicalPalletType || pallet.palletTemplateCode ? '<span class="frm-chip">' + escapeHtml(pallet.physicalPalletType || pallet.palletTemplateCode) + '</span>' : '') +
             '<span class="frm-chip is-warning">' + escapeHtml(physicalId) + '</span></div></div>' +
             '<div class="frm-pallet-facts"><span><small>Target</small><strong>' + escapeHtml(number(pallet.targetQuantity)) +
             '</strong></span><span><small>Planned</small><strong>' + escapeHtml(number(pallet.plannedQuantity)) +

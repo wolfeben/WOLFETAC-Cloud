@@ -822,6 +822,9 @@ page 58007 "SAL Stock & Logistics Planner"
                 Clear(Components);
                 Pallet.Add('palletNo', PlanPallet."Pallet No.");
                 Pallet.Add('palletType', Format(PlanPallet."Pallet Type"));
+                Pallet.Add('palletTemplateCode', PlanPallet."Pallet Template Code");
+                Pallet.Add('physicalPalletType', PlanPallet."Physical Pallet Type");
+                Pallet.Add('mixedPalletPolicy', Format(PlanPallet."Mixed Pallet Policy"));
                 Pallet.Add('description', PlanPallet.Description);
                 Pallet.Add('targetQuantity', PlanPallet."Target Quantity");
                 Pallet.Add('plannedQuantity', PlanPallet."Planned Quantity");

@@ -40,6 +40,14 @@ Customer pallet defaults (app version 1.1.0.26):
 - The **SAL Pallet Allocation Rules** Customer Card action opens detailed exceptions already filtered to that customer. Use these when a customer needs different capacities by ship-to, item, TE/BK/BKBN or another order-line unit.
 - A customer default never silently converts units and cannot be used when its configured UOM differs from the source line.
 
+Customer pallet templates (app version 1.1.0.27):
+
+- Page 58010 stores reusable pallet templates with a physical pallet type such as CHEP, PMC or AKE, the exact order-line UOM, units per pallet and a mixed-pallet policy.
+- The Customer Card selects a default template and displays the resolved physical pallet type. Selecting a template copies its UOM, capacity and mixed-pallet policy into the customer defaults, which can then be reviewed explicitly.
+- Auto-fill snapshots the template code, physical pallet type and mixed-pallet policy onto every generated SAL plan pallet. A later customer setup change therefore does not silently alter an already planned or released pallet.
+- A customer/template marked **Not allowed** cannot be auto-composed or released as a mixed product/size pallet. **Planner choice** preserves the existing per-plan Allow mixed control.
+- These snapshot fields form part of the versioned facility instruction intended for the on-premises Packing Wall and scanner integration.
+
 Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
 
 Movement source lines (app version 1.1.0.2):

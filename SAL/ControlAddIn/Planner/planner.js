@@ -801,6 +801,7 @@
                 '<div class="sal-row-head">',
                     cell('Pallet', pallet.palletNo),
                     cell('Type', pallet.palletType),
+                    cell('Physical', pallet.physicalPalletType || pallet.palletTemplateCode || 'Not set'),
                     cell('Product / sizes', productSummary),
                     cell('Target', number(pallet.targetQuantity)),
                     cell('Planned', number(pallet.plannedQuantity)),

@@ -839,6 +839,9 @@ page 58006 "SAL Stock & Logistics Monitor"
                 PalletItem.Add('physicalPalletId', '');
                 PalletItem.Add('physicalIdStatus', 'Awaiting Packing Facility ID');
                 PalletItem.Add('palletType', Format(PlanPallet."Pallet Type"));
+                PalletItem.Add('palletTemplateCode', PlanPallet."Pallet Template Code");
+                PalletItem.Add('physicalPalletType', PlanPallet."Physical Pallet Type");
+                PalletItem.Add('mixedPalletPolicy', Format(PlanPallet."Mixed Pallet Policy"));
                 PalletItem.Add('description', PlanPallet.Description);
                 PalletItem.Add('targetQuantity', PlanPallet."Target Quantity");
                 PalletItem.Add('plannedQuantity', PlanPallet."Planned Quantity");

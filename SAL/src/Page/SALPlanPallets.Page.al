@@ -24,6 +24,21 @@ page 58003 "SAL Plan Pallets"
                     ApplicationArea = All;
                     ToolTip = 'Specifies whether this is a standard, custom or mixed pallet.';
                 }
+                field("Pallet Template Code"; Rec."Pallet Template Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the customer pallet template copied onto this plan version.';
+                }
+                field("Physical Pallet Type"; Rec."Physical Pallet Type")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the physical pallet or air-freight format to send to the Packing Facility.';
+                }
+                field("Mixed Pallet Policy"; Rec."Mixed Pallet Policy")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the customer mixed-pallet rule copied onto this plan version.';
+                }
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = All;
