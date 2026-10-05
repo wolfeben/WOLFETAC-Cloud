@@ -6,6 +6,7 @@
         lastGood: null,
         query: '',
         marketer: 'all',
+        queueView: 'all',
         tab: 'plan',
         activeSourceLine: 0,
         selectedCandidate: null,
@@ -236,6 +237,13 @@
                             '<button class="sal-filter" type="button" data-action="filter-marketer" data-marketer="tac" aria-pressed="false">TAC</button>',
                             '<button class="sal-filter" type="button" data-action="filter-marketer" data-marketer="costa" aria-pressed="false">Costa</button>',
                         '</div>',
+                        '<div class="sal-queue-view-filters" id="sal-queue-view-filters" aria-label="Packing priority queue status">',
+                            '<button class="sal-queue-view-filter" type="button" data-action="filter-queue" data-queue-filter="all" aria-pressed="true">All work <span data-filter-count="all">0</span></button>',
+                            '<button class="sal-queue-view-filter is-attention" type="button" data-action="filter-queue" data-queue-filter="attention" aria-pressed="false">Needs attention <span data-filter-count="attention">0</span></button>',
+                            '<button class="sal-queue-view-filter" type="button" data-action="filter-queue" data-queue-filter="ready" aria-pressed="false">Ready to validate <span data-filter-count="ready">0</span></button>',
+                            '<button class="sal-queue-view-filter" type="button" data-action="filter-queue" data-queue-filter="released" aria-pressed="false">Released <span data-filter-count="released">0</span></button>',
+                            '<button class="sal-queue-view-filter" type="button" data-action="filter-queue" data-queue-filter="unplanned" aria-pressed="false">Unplanned <span data-filter-count="unplanned">0</span></button>',
+                        '</div>',
                         '<div class="sal-queue-list" id="sal-queue-list"></div>',
                         '<div class="sal-queue-footer"><strong>Unconsigned stock</strong><br>Facility feed is not connected in this Cloud slice.</div>',
                     '</aside>',
@@ -255,6 +263,7 @@
             queueCount: host.querySelector('#sal-queue-count'),
             search: host.querySelector('#sal-search'),
             filters: host.querySelector('#sal-filters'),
+            queueViewFilters: host.querySelector('#sal-queue-view-filters'),
             queue: host.querySelector('#sal-queue-list'),
             workspace: host.querySelector('#sal-workspace'),
             sidebar: host.querySelector('#sal-sidebar'),
@@ -375,7 +384,7 @@
         const selected = localState.selectedCandidate || data.selectedKey || {};
         const query = localState.query.trim().toLowerCase();
         const marketerFilter = localState.marketer;
-        const visible = (data.queue || []).filter(function (item) {
+        const filteredBySearchAndMarketer = (data.queue || []).filter(function (item) {
             const haystack = [
                 item.sourceType,
                 item.documentNo,
@@ -390,6 +399,19 @@
             const marketerMatches = marketerFilter === 'all' ||
                 text(item.marketer).toLowerCase().indexOf(marketerFilter) >= 0;
             return marketerMatches && (!query || haystack.indexOf(query) >= 0);
+        });
+
+        ['all', 'attention', 'ready', 'released', 'unplanned'].forEach(function (filter) {
+            const count = filteredBySearchAndMarketer.filter(function (item) {
+                return queueViewMatches(item, filter);
+            }).length;
+            const countElement = elements.queueViewFilters && elements.queueViewFilters.querySelector('[data-filter-count="' + filter + '"]');
+            if (countElement)
+                countElement.textContent = String(count);
+        });
+
+        const visible = filteredBySearchAndMarketer.filter(function (item) {
+            return queueViewMatches(item, localState.queueView);
         }).sort(compareQueueItems);
 
         elements.queueCount.textContent = String(visible.length);
@@ -401,6 +423,31 @@
         elements.queue.innerHTML = visible.map(function (item) {
             return isDemandCandidate(item) ? renderDemandCandidate(item, selected) : renderPlanQueueItem(item, selected);
         }).join('');
+    }
+
+    function queueViewMatches(item, filter) {
+        if (filter === 'all')
+            return true;
+
+        const candidate = isDemandCandidate(item);
+        const status = statusKey(item.status);
+        const required = Number(item.requiredQuantity || 0);
+        const planned = Number(item.plannedQuantity || 0);
+        const fallbackReady = !candidate && status === 'draft' && item.marketerConfirmed === true &&
+            Number(item.palletCount || 0) > 0 && required > 0 && planned === required;
+        const ready = item.readyToValidate === true || (item.readyToValidate == null && fallbackReady);
+        const attention = item.needsAttention === true || (item.needsAttention == null &&
+            (candidate || (status === 'draft' && !ready)));
+
+        if (filter === 'attention')
+            return attention;
+        if (filter === 'ready')
+            return ready;
+        if (filter === 'released')
+            return !candidate && status === 'released';
+        if (filter === 'unplanned')
+            return candidate;
+        return true;
     }
 
     function compareQueueItems(left, right) {
@@ -1309,6 +1356,14 @@
         if (target.dataset.marketer) {
             localState.marketer = target.dataset.marketer;
             elements.filters.querySelectorAll('[data-marketer]').forEach(function (button) {
+                button.setAttribute('aria-pressed', String(button === target));
+            });
+            renderQueue();
+            return;
+        }
+        if (target.dataset.queueFilter) {
+            localState.queueView = target.dataset.queueFilter;
+            elements.queueViewFilters.querySelectorAll('[data-queue-filter]').forEach(function (button) {
                 button.setAttribute('aria-pressed', String(button === target));
             });
             renderQueue();

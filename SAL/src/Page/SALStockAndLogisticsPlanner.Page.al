@@ -308,6 +308,7 @@ page 58007 "SAL Stock & Logistics Planner"
                     QueueItem.Add('palletCount', PlanHeader."No. of Pallets");
                     QueueItem.Add('requiredQuantity', PlanHeader."Total Required Quantity");
                     QueueItem.Add('plannedQuantity', PlanHeader."Total Planned Quantity");
+                    AddQueueReadiness(PlanHeader, QueueItem);
                     Queue.Add(QueueItem);
                     ItemCount += 1;
                 end;
@@ -317,6 +318,41 @@ page 58007 "SAL Stock & Logistics Planner"
         AppendTransferCandidates(Queue, ItemCount, true);
         AppendSalesCandidates(Queue, ItemCount, false);
         AppendTransferCandidates(Queue, ItemCount, false);
+    end;
+
+    local procedure AddQueueReadiness(PlanHeader: Record "SAL Plan Header"; var QueueItem: JsonObject)
+    var
+        PlanPallet: Record "SAL Plan Pallet";
+        PlanSource: Record "SAL Plan Source";
+        HasDemand: Boolean;
+        HasPallets: Boolean;
+        QuantitiesBalanced: Boolean;
+        ReadyToValidate: Boolean;
+        RoutesConfirmed: Boolean;
+    begin
+        PlanSource.SetRange("Plan No.", PlanHeader."No.");
+        PlanSource.SetRange("Version No.", PlanHeader."Version No.");
+        HasDemand := not PlanSource.IsEmpty();
+        RoutesConfirmed := HasDemand;
+        if HasDemand then begin
+            PlanSource.SetRange("Routing Confirmed", false);
+            RoutesConfirmed := PlanSource.IsEmpty();
+        end;
+
+        PlanPallet.SetRange("Plan No.", PlanHeader."No.");
+        PlanPallet.SetRange("Version No.", PlanHeader."Version No.");
+        HasPallets := not PlanPallet.IsEmpty();
+        QuantitiesBalanced := HasDemand and HasPallets and
+            (PlanHeader."Total Required Quantity" = PlanHeader."Total Planned Quantity");
+        ReadyToValidate :=
+            (PlanHeader.Status = PlanHeader.Status::Draft) and
+            HasDemand and PlanHeader."Marketer Confirmed" and RoutesConfirmed and
+            HasPallets and QuantitiesBalanced;
+
+        QueueItem.Add('readyToValidate', ReadyToValidate);
+        QueueItem.Add('needsAttention',
+            (PlanHeader.Status = PlanHeader.Status::Draft) and not ReadyToValidate);
+        QueueItem.Add('validated', PlanHeader."Validated Date Time" <> 0DT);
     end;
 
     local procedure AppendSalesCandidates(var Queue: JsonArray; var ItemCount: Integer; ReleasedOnly: Boolean)
@@ -399,6 +435,8 @@ page 58007 "SAL Stock & Logistics Planner"
                     end;
                     QueueItem.Add('status', Format(SalesHeader.Status));
                     QueueItem.Add('eligible', IsEligible);
+                    QueueItem.Add('readyToValidate', false);
+                    QueueItem.Add('needsAttention', true);
                     if IsEligible then
                         QueueItem.Add('blockedReason', '')
                     else
@@ -493,6 +531,8 @@ page 58007 "SAL Stock & Logistics Planner"
                     end;
                     QueueItem.Add('status', Format(TransferHeader.Status));
                     QueueItem.Add('eligible', IsEligible);
+                    QueueItem.Add('readyToValidate', false);
+                    QueueItem.Add('needsAttention', true);
                     if IsEligible then
                         QueueItem.Add('blockedReason', '')
                     else
