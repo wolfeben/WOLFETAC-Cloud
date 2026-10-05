@@ -91,6 +91,44 @@ table 58000 "SAL Setup"
         Error(SingletonErr);
     end;
 
+    procedure EnsureStandardDefaults()
     var
+        SetupChanged: Boolean;
+    begin
+        if not Get('') then begin
+            Init();
+            "Primary Key" := '';
+            "Default Pallet Type" := "Default Pallet Type"::Standard;
+            "Default Packed UOM" := DefaultPackedUOMTxt;
+            "Default Packed Qty. per Pallet" := 160;
+            "Default Bulk UOM" := DefaultBulkUOMTxt;
+            "Default Bulk Qty. per Pallet" := 96;
+            Insert(true);
+            exit;
+        end;
+
+        if "Default Packed UOM" = '' then begin
+            "Default Packed UOM" := DefaultPackedUOMTxt;
+            SetupChanged := true;
+        end;
+        if "Default Packed Qty. per Pallet" = 0 then begin
+            "Default Packed Qty. per Pallet" := 160;
+            SetupChanged := true;
+        end;
+        if "Default Bulk UOM" = '' then begin
+            "Default Bulk UOM" := DefaultBulkUOMTxt;
+            SetupChanged := true;
+        end;
+        if "Default Bulk Qty. per Pallet" = 0 then begin
+            "Default Bulk Qty. per Pallet" := 96;
+            SetupChanged := true;
+        end;
+        if SetupChanged then
+            Modify(true);
+    end;
+
+    var
+        DefaultBulkUOMTxt: Label 'BK', Locked = true;
+        DefaultPackedUOMTxt: Label 'TE', Locked = true;
         SingletonErr: Label 'Only the single SAL Setup record with a blank primary key is supported.';
 }

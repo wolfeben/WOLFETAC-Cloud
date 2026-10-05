@@ -64,10 +64,6 @@ page 58000 "SAL Setup"
 
     trigger OnOpenPage()
     begin
-        if not Rec.Get('') then begin
-            Rec.Init();
-            Rec."Primary Key" := '';
-            Rec.Insert(true);
-        end;
+        Rec.EnsureStandardDefaults();
     end;
 }

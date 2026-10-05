@@ -276,21 +276,18 @@ codeunit 58006 "SAL Allocation Management"
         if FindBestTemplateRule(PlanSource, true, PalletCapacity, MatchedRule) then
             exit(true);
 
-        if not SALSetup.Get('') then begin
-            SALSetup.Init();
-            SALSetup."Primary Key" := '';
-        end;
+        SALSetup.EnsureStandardDefaults();
 
         if (StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) and
            (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.")
         then begin
-            if (PlanSource."Unit of Measure Code" = SALSetup."Default Packed UOM") and
+            if IsPackedUOM(PlanSource."Unit of Measure Code", SALSetup."Default Packed UOM") and
                (Customer."SAL Default Packed Qty." > 0)
             then begin
                 PalletCapacity := Customer."SAL Default Packed Qty.";
                 exit(true);
             end;
-            if (PlanSource."Unit of Measure Code" = SALSetup."Default Bulk UOM") and
+            if IsBulkUOM(PlanSource."Unit of Measure Code", SALSetup."Default Bulk UOM") and
                (Customer."SAL Default Bulk Qty." > 0)
             then begin
                 PalletCapacity := Customer."SAL Default Bulk Qty.";
@@ -306,19 +303,33 @@ codeunit 58006 "SAL Allocation Management"
 
         if FindBestTemplateRule(PlanSource, false, PalletCapacity, MatchedRule) then
             exit(true);
-        if (PlanSource."Unit of Measure Code" = SALSetup."Default Packed UOM") and
+        if IsPackedUOM(PlanSource."Unit of Measure Code", SALSetup."Default Packed UOM") and
            (SALSetup."Default Packed Qty. per Pallet" > 0)
         then begin
             PalletCapacity := SALSetup."Default Packed Qty. per Pallet";
             exit(true);
         end;
-        if (PlanSource."Unit of Measure Code" = SALSetup."Default Bulk UOM") and
+        if IsBulkUOM(PlanSource."Unit of Measure Code", SALSetup."Default Bulk UOM") and
            (SALSetup."Default Bulk Qty. per Pallet" > 0)
         then begin
             PalletCapacity := SALSetup."Default Bulk Qty. per Pallet";
             exit(true);
         end;
         exit(false);
+    end;
+
+    local procedure IsPackedUOM(UnitOfMeasureCode: Code[10]; ConfiguredPackedUOM: Code[10]): Boolean
+    begin
+        exit(
+            (UpperCase(UnitOfMeasureCode) = UpperCase(ConfiguredPackedUOM)) or
+            (UpperCase(UnitOfMeasureCode) = 'TE'));
+    end;
+
+    local procedure IsBulkUOM(UnitOfMeasureCode: Code[10]; ConfiguredBulkUOM: Code[10]): Boolean
+    begin
+        exit(
+            (UpperCase(UnitOfMeasureCode) = UpperCase(ConfiguredBulkUOM)) or
+            (StrPos(UpperCase(UnitOfMeasureCode), 'BK') = 1));
     end;
 
     local procedure FindBestTemplateRule(PlanSource: Record "SAL Plan Source"; CustomerSpecific: Boolean; var PalletCapacity: Decimal; var MatchedRule: Record "SAL Template Rule"): Boolean
