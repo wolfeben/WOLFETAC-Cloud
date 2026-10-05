@@ -793,13 +793,18 @@ page 58006 "SAL Stock & Logistics Monitor"
 
     local procedure BuildPalletDetails(PlanHeader: Record "SAL Plan Header"; PalletNos: List of [Integer]; var PalletDetails: JsonArray)
     var
+        FacilityFeedback: Record "SAL Facility Feedback";
         PlanComponent: Record "SAL Plan Component";
         PlanPallet: Record "SAL Plan Pallet";
         PlanSource: Record "SAL Plan Source";
         ComponentItem: JsonObject;
         Components: JsonArray;
+        ActualComponentItem: JsonObject;
+        ActualComponents: JsonArray;
         PalletItem: JsonObject;
         ProductCode: Text;
+        PhysicalPalletId: Code[50];
+        PackingStatus: Text;
     begin
         Clear(PalletDetails);
         PlanPallet.SetRange("Plan No.", PlanHeader."No.");
@@ -809,6 +814,9 @@ page 58006 "SAL Stock & Logistics Monitor"
         repeat
             if PalletNos.Contains(PlanPallet."Pallet No.") then begin
                 Clear(Components);
+                Clear(ActualComponents);
+                Clear(PhysicalPalletId);
+                PackingStatus := Format(PlanHeader."Facility Status");
                 PlanComponent.SetRange("Plan No.", PlanPallet."Plan No.");
                 PlanComponent.SetRange("Version No.", PlanPallet."Version No.");
                 PlanComponent.SetRange("Pallet No.", PlanPallet."Pallet No.");
@@ -832,12 +840,35 @@ page 58006 "SAL Stock & Logistics Monitor"
                         Components.Add(ComponentItem);
                     until PlanComponent.Next() = 0;
 
+                FacilityFeedback.SetRange("Message Id", PlanHeader."Facility Message Id");
+                FacilityFeedback.SetRange("Planned Pallet No.", PlanPallet."Pallet No.");
+                if FacilityFeedback.FindSet() then
+                    repeat
+                        if FacilityFeedback."Actual Pallet Id" <> '' then
+                            PhysicalPalletId := FacilityFeedback."Actual Pallet Id";
+                        if FacilityFeedback."Item No." <> '' then begin
+                            Clear(ActualComponentItem);
+                            ActualComponentItem.Add('itemNo', FacilityFeedback."Item No.");
+                            ActualComponentItem.Add('variantCode', FacilityFeedback."Variant Code");
+                            ActualComponentItem.Add('quantity', FacilityFeedback.Quantity);
+                            ActualComponentItem.Add('unitOfMeasure', FacilityFeedback."Unit of Measure Code");
+                            ActualComponentItem.Add('lotNo', FacilityFeedback."Lot No.");
+                            ActualComponentItem.Add('growerCode', FacilityFeedback."Grower Code");
+                            ActualComponents.Add(ActualComponentItem);
+                        end;
+                        if FacilityFeedback."Feedback Type" <> '' then
+                            PackingStatus := FacilityFeedback."Feedback Type";
+                    until FacilityFeedback.Next() = 0;
+
                 PlanPallet.CalcFields("Planned Quantity", "No. of Components");
                 Clear(PalletItem);
                 PalletItem.Add('sequenceNo', PlanPallet."Pallet No.");
                 PalletItem.Add('plannedPalletId', StrSubstNo('Pallet %1', PlanPallet."Pallet No."));
-                PalletItem.Add('physicalPalletId', '');
-                PalletItem.Add('physicalIdStatus', 'Awaiting Packing Facility ID');
+                PalletItem.Add('physicalPalletId', PhysicalPalletId);
+                if PhysicalPalletId = '' then
+                    PalletItem.Add('physicalIdStatus', 'Awaiting Packing Facility ID')
+                else
+                    PalletItem.Add('physicalIdStatus', 'Received from Packing Facility');
                 PalletItem.Add('palletType', Format(PlanPallet."Pallet Type"));
                 PalletItem.Add('palletTemplateCode', PlanPallet."Pallet Template Code");
                 PalletItem.Add('physicalPalletType', PlanPallet."Physical Pallet Type");
@@ -846,8 +877,9 @@ page 58006 "SAL Stock & Logistics Monitor"
                 PalletItem.Add('targetQuantity', PlanPallet."Target Quantity");
                 PalletItem.Add('plannedQuantity', PlanPallet."Planned Quantity");
                 PalletItem.Add('componentCount', PlanPallet."No. of Components");
-                PalletItem.Add('packingStatus', 'Packing Facility feed not connected');
+                PalletItem.Add('packingStatus', PackingStatus);
                 PalletItem.Add('components', Components);
+                PalletItem.Add('actualComponents', ActualComponents);
                 PalletDetails.Add(PalletItem);
             end;
         until PlanPallet.Next() = 0;
