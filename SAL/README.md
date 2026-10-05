@@ -33,6 +33,13 @@ Pallet auto-fill (app version 1.1.0.23):
 - Full pallets are Standard; a short remainder is Custom. The optional **Allow mixed** combines compatible short exact lines from the same order, destination, route, unit and capacity into one Mixed pallet with separate components.
 - Draft pallet type/target and exact component quantity can be edited afterward. Changing a Standard component quantity converts that pallet to Custom. Standard BC validation still gates release.
 
+Customer pallet defaults (app version 1.1.0.26):
+
+- The Customer Card has an **SAL Packing** section with **Pallet Quantity UOM** and **Units per Pallet**. For example, Woolworths WA can use `TE` and `152` without recreating the same generic rule on every plan.
+- Auto-fill resolves capacity in this order: a detailed rule for the customer/ship-to/item, the Customer Card default when its UOM exactly matches the demand line, then a generic item/UOM rule.
+- The **SAL Pallet Allocation Rules** Customer Card action opens detailed exceptions already filtered to that customer. Use these when a customer needs different capacities by ship-to, item, TE/BK/BKBN or another order-line unit.
+- A customer default never silently converts units and cannot be used when its configured UOM differs from the source line.
+
 Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
 
 Movement source lines (app version 1.1.0.2):

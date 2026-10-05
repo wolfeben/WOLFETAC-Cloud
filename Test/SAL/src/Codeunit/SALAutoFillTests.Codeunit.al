@@ -91,6 +91,103 @@ codeunit 58802 "SAL Auto Fill Tests"
     end;
 
     [Test]
+    procedure CustomerCardCapacityOverridesGenericRuleForMatchingUnit()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateRule('TE', '', '', '', 160);
+        CreateCustomer('WOOLIES-CARD', 'TE', 152, Customer);
+        CreateSource(Plan, 10000, 'ITEM-A', 304, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'two customer-card pallets expected');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Target Quantity" = 152, 'customer-card quantity must override the generic rule');
+    end;
+
+    [Test]
+    procedure DetailedCustomerRuleOverridesCustomerCardCapacity()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Pallet: Record "SAL Plan Pallet";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateCustomer('CUSTOMER-RULE', 'TE', 152, Customer);
+        CreateRule('TE', Customer."No.", 'SPECIAL', 'ITEM-A', 84);
+        CreateSource(Plan, 10000, 'ITEM-A', 168, 'TE', Source);
+        Source."Customer No." := Customer."No.";
+        Source."Destination Code" := 'SPECIAL';
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 2) and (Skipped = 0), 'two detailed-rule pallets expected');
+        Pallet.Get(Plan."No.", Plan."Version No.", 1);
+        AssertThat(Pallet."Target Quantity" = 84, 'detailed customer rule must override Customer Card capacity');
+    end;
+
+    [Test]
+    procedure CustomerCardCapacityDoesNotCrossUnits()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateCustomer('CUSTOMER-UOM', 'TE', 152, Customer);
+        CreateSource(Plan, 10000, 'ITEM-A', 96, 'BK', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 0) and (Skipped = 1), 'a TE customer default must not allocate BK demand');
+    end;
+
+    [Test]
+    procedure CustomerCardCapacityDoesNotReplaceExactBKBNRule()
+    var
+        Allocation: Codeunit "SAL Allocation Management";
+        Customer: Record Customer;
+        Plan: Record "SAL Plan Header";
+        Source: Record "SAL Plan Source";
+        Created: Integer;
+        Updated: Integer;
+        Skipped: Integer;
+    begin
+        CreatePlan(Plan);
+        CreateCustomer('CUSTOMER-BKBN', 'BKBN', 20, Customer);
+        CreateSource(Plan, 10000, 'PKD-BKBN-TEST', 20, 'BKBN', Source);
+        Source."Customer No." := Customer."No.";
+        Source.Modify(true);
+
+        Allocation.AutoFillPallets(Plan, false, Created, Updated, Skipped);
+
+        AssertThat((Created = 0) and (Skipped = 1), 'BKBN must retain its exact-item rule requirement');
+    end;
+
+    [Test]
     procedure ExistingMixedPalletFillsRemainingOrderLinesWithoutAnyRule()
     var
         Allocation: Codeunit "SAL Allocation Management";
@@ -194,6 +291,18 @@ codeunit 58802 "SAL Auto Fill Tests"
         Rule."Item No." := ItemNo;
         Rule."Units per Pallet" := Capacity;
         Rule.Insert(true);
+    end;
+
+    local procedure CreateCustomer(CustomerNo: Code[20]; Uom: Code[10]; Capacity: Decimal; var Customer: Record Customer)
+    begin
+        if Customer.Get(CustomerNo) then
+            Customer.Delete(true);
+        Customer.Init();
+        Customer."No." := CustomerNo;
+        Customer.Name := CustomerNo;
+        Customer."SAL Pallet Quantity UOM" := Uom;
+        Customer."SAL Units per Pallet" := Capacity;
+        Customer.Insert(true);
     end;
 
     local procedure CreateSource(Plan: Record "SAL Plan Header"; LineNo: Integer; ItemNo: Code[20]; Quantity: Decimal; Uom: Code[10]; var Source: Record "SAL Plan Source")

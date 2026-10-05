@@ -250,24 +250,46 @@ codeunit 58006 "SAL Allocation Management"
 
     local procedure FindPalletCapacity(PlanSource: Record "SAL Plan Source"; var PalletCapacity: Decimal): Boolean
     var
+        Customer: Record Customer;
+    begin
+        PalletCapacity := 0;
+        if FindBestTemplateRule(PlanSource, true, PalletCapacity) then
+            exit(true);
+
+        if (StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) and
+           (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.")
+        then
+            if (Customer."SAL Units per Pallet" > 0) and
+               (Customer."SAL Pallet Quantity UOM" = PlanSource."Unit of Measure Code")
+            then begin
+                PalletCapacity := Customer."SAL Units per Pallet";
+                exit(true);
+            end;
+
+        exit(FindBestTemplateRule(PlanSource, false, PalletCapacity));
+    end;
+
+    local procedure FindBestTemplateRule(PlanSource: Record "SAL Plan Source"; CustomerSpecific: Boolean; var PalletCapacity: Decimal): Boolean
+    var
         TemplateRule: Record "SAL Template Rule";
         BestScore: Integer;
         RuleScore: Integer;
         FoundRule: Boolean;
     begin
-        PalletCapacity := 0;
         TemplateRule.SetRange(Active, true);
         TemplateRule.SetRange("Unit of Measure Code", PlanSource."Unit of Measure Code");
+        if CustomerSpecific then
+            TemplateRule.SetFilter("Customer No.", '<>%1', '')
+        else
+            TemplateRule.SetRange("Customer No.", '');
         if TemplateRule.FindSet() then
             repeat
-                if ((TemplateRule."Customer No." = '') or (TemplateRule."Customer No." = PlanSource."Customer No.")) and
+                if ((not CustomerSpecific) or (TemplateRule."Customer No." = PlanSource."Customer No.")) and
                    ((TemplateRule."Ship-to Code" = '') or (TemplateRule."Ship-to Code" = PlanSource."Destination Code")) and
                    ((TemplateRule."Item No." = '') or (TemplateRule."Item No." = PlanSource."Item No.")) and
                    ((StrPos(UpperCase(PlanSource."Item No."), 'BKBN') = 0) or (TemplateRule."Item No." = PlanSource."Item No."))
                 then begin
                     RuleScore := 0;
-                    if TemplateRule."Customer No." <> '' then
-                        RuleScore += 1;
                     if TemplateRule."Ship-to Code" <> '' then
                         RuleScore += 2;
                     if TemplateRule."Item No." <> '' then
