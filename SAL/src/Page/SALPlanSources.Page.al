@@ -171,6 +171,11 @@ page 58015 "SAL Plan Sources"
                     ApplicationArea = All;
                     MultiLine = true;
                 }
+                field("Special Conditions"; Rec."Special Conditions")
+                {
+                    ApplicationArea = All;
+                    MultiLine = true;
+                }
                 field(Priority; Rec.Priority)
                 {
                     ApplicationArea = All;

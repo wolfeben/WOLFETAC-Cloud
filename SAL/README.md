@@ -60,6 +60,12 @@ Known labelling requirements (app version 1.1.0.29):
 - Sales Order demand snapshots those requirements onto each SAL source and displays them with the demand line. Later customer-master edits therefore do not silently change an existing plan version.
 - The snapshot is part of the intended versioned Packing Facility instruction. Order-specific label data and scanner-generated physical label identities remain separate operational information.
 
+Special conditions (app version 1.1.0.30):
+
+- The Customer Card SAL Packing section separately records known handling, packing, temperature or dispatch conditions.
+- Sales Order demand snapshots those conditions onto each SAL source and shows them with the demand line. They remain distinct from label-printing and label-application requirements.
+- The versioned snapshot is intended to pass to the Packing Facility with the released plan; it does not replace order-specific freight milestones or scanner events.
+
 Fill layouts support both a per-product pallet cap and an overall pallet-equivalent cap. For example, a supermarket layout can allow no more than five pallets of any one eligible SKU while allowing thirty pallets in total across multiple fill conversions that use the layout.
 
 Movement source lines (app version 1.1.0.2):

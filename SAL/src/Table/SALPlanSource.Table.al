@@ -302,6 +302,13 @@ table 58002 "SAL Plan Source"
             Editable = false;
             ToolTip = 'Specifies the customer labelling requirements captured for this source when the SAL plan version was created or refreshed.';
         }
+        field(45; "Special Conditions"; Text[1024])
+        {
+            Caption = 'Special Conditions';
+            DataClassification = CustomerContent;
+            Editable = false;
+            ToolTip = 'Specifies the customer handling, packing, temperature or dispatch conditions captured for this source when the SAL plan version was created or refreshed.';
+        }
     }
 
     keys

@@ -761,6 +761,7 @@ page 58007 "SAL Stock & Logistics Planner"
                 Source.Add('freightServiceCode', PlanSource."Freight Service Code");
                 Source.Add('freightReference', PlanSource."Freight Reference");
                 Source.Add('labellingRequirements', PlanSource."Labelling Requirements");
+                Source.Add('specialConditions', PlanSource."Special Conditions");
                 Source.Add('modifiedAt', FormatDateTime(PlanSource.SystemModifiedAt));
                 BuildPlanFillMembers(PlanHeader, PlanSource."Line No.", FillMembers);
                 Source.Add('fillMembers', FillMembers);

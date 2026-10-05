@@ -863,6 +863,7 @@
                                 source.freightServiceCode ? ' · ' + escapeHtml(source.freightServiceCode) : '',
                                 source.freightReference ? '<br>' + escapeHtml(source.freightReference) : '',
                                 source.labellingRequirements ? '<br><strong>Labels:</strong> ' + escapeHtml(source.labellingRequirements) : '',
+                                source.specialConditions ? '<br><strong>Conditions:</strong> ' + escapeHtml(source.specialConditions) : '',
                                 '</small></span>',
                             '<span>', source.routingConfirmed ? 'Ship-from confirmed' : 'Review ship-from', '</span>',
                             '<div class="sal-source-actions">',

@@ -280,9 +280,11 @@ codeunit 58000 "SAL Demand Management"
         AddItemSnapshot(PlanSource);
 
         Clear(PlanSource."Labelling Requirements");
+        Clear(PlanSource."Special Conditions");
         if (PlanSource."Customer No." <> '') and Customer.Get(PlanSource."Customer No.") then begin
             PlanSource."Customer Name" := CopyStr(Customer.Name, 1, MaxStrLen(PlanSource."Customer Name"));
             PlanSource."Labelling Requirements" := CopyStr(Customer."SAL Labelling Requirements", 1, MaxStrLen(PlanSource."Labelling Requirements"));
+            PlanSource."Special Conditions" := CopyStr(Customer."SAL Special Conditions", 1, MaxStrLen(PlanSource."Special Conditions"));
         end else
             PlanSource."Customer Name" := CopyStr(SalesHeader."Sell-to Customer Name", 1, MaxStrLen(PlanSource."Customer Name"));
         PlanSource."Source Location Code" := SalesLine."Location Code";
@@ -310,6 +312,7 @@ codeunit 58000 "SAL Demand Management"
         PlanSource."Consignment No." := TransferHeader."No.";
         PlanSource."Customer No." := '';
         Clear(PlanSource."Labelling Requirements");
+        Clear(PlanSource."Special Conditions");
         PlanSource.Priority := NormalisePriority(0, PlanSource.Priority);
         PlanSource."Shipment Date" := TransferLine."Shipment Date";
         if PlanSource."Shipment Date" = 0D then

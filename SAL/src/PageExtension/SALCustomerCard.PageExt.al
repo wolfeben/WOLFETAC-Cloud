@@ -47,6 +47,13 @@ pageextension 58019 "SAL Customer Card" extends "Customer Card"
                     MultiLine = true;
                     ToolTip = 'Specifies known customer labelling requirements that SAL must include in the versioned packing instruction.';
                 }
+                field("SAL Special Conditions"; Rec."SAL Special Conditions")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Special Conditions';
+                    MultiLine = true;
+                    ToolTip = 'Specifies known customer handling, packing, temperature or dispatch conditions that SAL must include in the versioned packing instruction.';
+                }
             }
         }
     }

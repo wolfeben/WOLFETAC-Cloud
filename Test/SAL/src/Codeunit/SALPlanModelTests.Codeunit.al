@@ -566,7 +566,7 @@ codeunit 58800 "SAL Plan Model Tests"
     end;
 
     [Test]
-    procedure SalesOrderDemandSnapshotsKnownCustomerLabellingRequirements()
+    procedure SalesOrderDemandSnapshotsKnownCustomerPackingInstructions()
     var
         Customer: Record Customer;
         DemandManagement: Codeunit "SAL Demand Management";
@@ -583,6 +583,7 @@ codeunit 58800 "SAL Plan Model Tests"
         Customer."No." := SalesOrderNo;
         Customer.Name := 'Labelled Customer';
         Customer."SAL Labelling Requirements" := 'Apply customer carton label and one SSCC pallet label.';
+        Customer."SAL Special Conditions" := 'Maintain cold chain and load last for first delivery.';
         Customer.Insert(false);
         CreateSalesOrder(SalesOrderNo, true);
         SalesHeader.Get(SalesHeader."Document Type"::Order, SalesOrderNo);
@@ -598,6 +599,7 @@ codeunit 58800 "SAL Plan Model Tests"
         // [THEN] the current customer requirement is frozen into this plan version
         AssertThat(GetSalesOrderSource(PlanHeader, SalesOrderNo, 10000, PlanSource), 'expected the Sales Order source on the plan');
         AssertThat(PlanSource."Labelling Requirements" = Customer."SAL Labelling Requirements", 'expected the known customer labelling requirements to be captured');
+        AssertThat(PlanSource."Special Conditions" = Customer."SAL Special Conditions", 'expected the known customer special conditions to be captured');
     end;
 
     [Test]

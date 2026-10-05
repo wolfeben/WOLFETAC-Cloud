@@ -69,6 +69,12 @@ tableextension 58014 "SAL Customer Extension" extends Customer
             DataClassification = CustomerContent;
             ToolTip = 'Specifies the customer''s known carton, tray, pallet or dispatch labelling requirements for packing and logistics planning.';
         }
+        field(58006; "SAL Special Conditions"; Text[1024])
+        {
+            Caption = 'Special Conditions';
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies known customer handling, packing, temperature or dispatch conditions for stock and logistics planning.';
+        }
     }
 
     var
