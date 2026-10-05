@@ -93,6 +93,13 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 | 58011 | SAL Sync State | Reserved |
 | 58012 | SAL Operation Request | Reserved |
 | 58013 | SAL Plan Fill Member | Implemented versioned eligible SKU and per-order limit snapshot |
+| 58014 | SAL Customer Extension | Implemented Customer Card pallet quantity UOM and units-per-pallet defaults |
+
+## SAL page extensions
+
+| ID | Name | State |
+|---|---|---|
+| 58019 | SAL Customer Card | Implemented SAL Packing defaults and filtered allocation-rule action |
 
 ## SAL enums
 
