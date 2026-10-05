@@ -62,7 +62,7 @@ The former 59006/59007 Cloud prototype IDs are retired. The last two digits are 
 | 58007 | SAL Stock & Logistics Planner | Implemented interactive versioned planner card |
 | 58008 | SAL Unconsigned Pallets | Reserved |
 | 58009 | SAL Allocation Exceptions | Reserved |
-| 58010 | SAL Pallet Templates | Reserved |
+| 58010 | SAL Pallet Templates | Implemented reusable customer pallet formats and mixed-pallet policy |
 | 58011 | SAL Template Rules | Reserved |
 | 58012 | SAL Product Groups | Implemented fill-group setup list |
 | 58013 | SAL Product Group Members | Implemented eligible SKU and per-template limit setup |
@@ -85,7 +85,7 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 | 58003 | SAL Plan Pallet | Implemented |
 | 58004 | SAL Plan Component | Implemented |
 | 58005 | SAL Plan Event | Implemented |
-| 58006 | SAL Pallet Template | Reserved |
+| 58006 | SAL Pallet Template | Implemented physical type, UOM, capacity and mixed-pallet policy |
 | 58007 | SAL Template Rule | Reserved |
 | 58008 | SAL Product Group | Implemented marketer-specific fill-group template |
 | 58009 | SAL Product Group Member | Implemented unlimited eligible SKU membership and default limits |
@@ -115,6 +115,7 @@ Packing Wall and Packing Facility Operator remain in the on-premises extension a
 | 58007 | SAL Integration Status | Reserved |
 | 58008 | SAL Exception Type | Reserved |
 | 58009 | SAL Fulfilment Mode | Implemented Exact SKU, Fill Group and Exact + Fill modes |
+| 58010 | SAL Mixed Pallet Policy | Implemented Planner choice, Allowed and Not allowed |
 
 Do not encode TAC and Costa as enum values until the authoritative upstream marketer field and extensibility requirement are confirmed.
 
