@@ -1559,10 +1559,14 @@ page 58007 "SAL Stock & Logistics Planner"
 
     local procedure SaveShipFromAll(LocationCodeText: Text)
     var
+        AllocationManagement: Codeunit "SAL Allocation Management";
         Location: Record Location;
         PlanHeader: Record "SAL Plan Header";
         PlanSource: Record "SAL Plan Source";
+        CreatedPallets: Integer;
         LocationCode: Code[10];
+        SkippedLines: Integer;
+        UpdatedPallets: Integer;
     begin
         GetSelectedDraft(PlanHeader);
         LocationCode := CopyStr(LocationCodeText, 1, MaxStrLen(LocationCode));
@@ -1576,6 +1580,21 @@ page 58007 "SAL Stock & Logistics Planner"
         repeat
             ApplyShipFrom(PlanSource, Location);
         until PlanSource.Next() = 0;
+
+        if IsManjimupLocation(Location) then begin
+            AllocationManagement.AutoFillPallets(
+                PlanHeader, false, CreatedPallets, UpdatedPallets, SkippedLines);
+            LoadScreen(
+                StrSubstNo(
+                    ShipFromAndPalletsUpdatedMsg,
+                    Location.Code,
+                    Location.Name,
+                    CreatedPallets,
+                    UpdatedPallets,
+                    SkippedLines),
+                false);
+            exit;
+        end;
 
         LoadScreen(StrSubstNo(ShipFromUpdatedMsg, Location.Code, Location.Name), false);
     end;
@@ -1772,6 +1791,7 @@ page 58007 "SAL Stock & Logistics Planner"
         PlanNotFoundErr: Label 'Plan %1 version %2 no longer exists.', Comment = '%1 = plan no., %2 = version no.';
         RouteErr: Label '%1 is not a valid execution route.', Comment = '%1 = supplied route';
         ShipFromNoDemandErr: Label 'Add demand lines before confirming the ship-from location.';
+        ShipFromAndPalletsUpdatedMsg: Label 'Ship-from confirmed as %1 · %2. Pallet rules created %3 pallet(s), filled %4 existing pallet(s), and left %5 line(s) for review.', Comment = '%1 = location code, %2 = location name, %3 = new pallets, %4 = updated pallets, %5 = skipped lines';
         ShipFromLocationErr: Label 'BC location %1 does not exist. Set up Dons Fort or Vertex as a Business Central location before selecting it.', Comment = '%1 = location code';
         ShipFromUpdatedMsg: Label 'Ship-from location confirmed as %1 · %2 for all demand lines.', Comment = '%1 = location code, %2 = location name';
         SourceNotFoundErr: Label 'Source line %1 no longer exists.', Comment = '%1 = source line number';
